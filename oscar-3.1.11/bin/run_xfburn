@@ -1,0 +1,47 @@
+#! /bin/bash
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+
+	##### recherche d'une adresse ip sur le poste:
+	rm -f /tmp/carte_ethi
+	runme recuperer_IP	# pour verifier ip fixe donne par OSCAR sur eth0
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	else
+		##### l'ip est dans le fichier ip_installe_poste
+		ip_installe=`cat ip_installe_poste`
+		if [ "$ip_installe" = "" ]
+		then
+			runme lancer_dhcp
+			rm -f /tmp/sortir
+		fi
+	fi
+
+# pour JWM :
+# echo "<StartupCommand>xfburn</StartupCommand>" > /tmp/temp_start_jwm
+
+# pour xfce :
+grep -v "commande_demarrage_winmgr.sh" /root/.xinitrc > /tmp/xinitrc_temp
+cp -f /tmp/xinitrc_temp /root/.xinitrc
+rm -f /tmp/xinitrc_temp
+echo "xfburn" > /tmp/commande_demarrage_winmgr.sh
+
+# pour xfce et JWM :
+# perl -pi -e 's/\/usr\/bin\/terminal -e/\# _\/usr\/bin\/terminal -e/g;' /root/.xinitrc
+perl -pi -e 's/Hidden=false/Hidden=true/g;' /root/.config/autostart/Terminal.desktop 2>/dev/null
+
+start_jwm
+touch /tmp/tmp_xfburn
+echo "forcevesa=1024x768x24" > /tmp/definition_vesa
+config_lancex
+rm -f /tmp/tmp_xfburn
+rm -f /tmp/commande_demarrage_winmgr.sh
+

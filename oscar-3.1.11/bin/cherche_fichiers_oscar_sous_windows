@@ -1,0 +1,298 @@
+#!/bin/bash
+
+
+## DANGER éditer ce texte avec Linux et MC pour le rendre propre !
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Cdrom Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+#-----------------------------------------------------------------------------------------------------
+cherche_oscar()#  test situation du fichier oscar.bat sous dos
+{
+rm -f /tmp/cherche_oscar.bat
+
+echo "@echo off
+rem ## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+rem ## Outil Système Complet d'Assistance Réseau: OSCAR
+rem ## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+rem ## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation
+
+goto partition_C
+if exist C:\demarre_oscar goto partition_C
+if exist D:\demarre_oscar goto partition_D
+if exist E:\demarre_oscar goto partition_E
+if exist F:\demarre_oscar goto partition_F
+if exist G:\demarre_oscar goto partition_G
+if exist H:\demarre_oscar goto partition_H
+if exist I:\demarre_oscar goto partition_I
+if exist J:\demarre_oscar goto partition_J
+if exist K:\demarre_oscar goto partition_K
+if exist L:\demarre_oscar goto partition_L
+if exist M:\demarre_oscar goto partition_M
+if exist N:\demarre_oscar goto partition_N
+if exist O:\demarre_oscar goto partition_O
+if exist P:\demarre_oscar goto partition_P
+if exist Q:\demarre_oscar goto partition_Q
+if exist R:\demarre_oscar goto partition_R
+if exist S:\demarre_oscar goto partition_S
+if exist T:\demarre_oscar goto partition_T
+if exist U:\demarre_oscar goto partition_U
+if exist V:\demarre_oscar goto partition_V
+if exist W:\demarre_oscar goto partition_W
+if exist X:\demarre_oscar goto partition_X
+if exist Y:\demarre_oscar goto partition_Y
+if exist Z:\demarre_oscar goto partition_Z
+
+:partition_C
+set partition_ecrire_oscar=C
+goto continuer
+
+:partition_D
+set partition_ecrire_oscar=D
+goto continuer
+
+:partition_E
+set partition_ecrire_oscar=E
+goto continuer
+
+:partition_F
+set partition_ecrire_oscar=F
+goto continuer
+
+:partition_G
+set partition_ecrire_oscar=G
+goto continuer
+
+:partition_H
+set partition_ecrire_oscar=H
+goto continuer
+
+:partition_I
+set partition_ecrire_oscar=I
+goto continuer
+
+:partition_J
+set partition_ecrire_oscar=J
+goto continuer
+
+:partition_K
+set partition_ecrire_oscar=K
+goto continuer
+
+:partition_L
+set partition_ecrire_oscar=L
+goto continuer
+
+:partition_M
+set partition_ecrire_oscar=M
+goto continuer
+
+:partition_N
+set partition_ecrire_oscar=N
+goto continuer
+
+:partition_O
+set partition_ecrire_oscar=O
+goto continuer
+
+:partition_P
+set partition_ecrire_oscar=P
+goto continuer
+
+:partition_Q
+set partition_ecrire_oscar=Q
+goto continuer
+
+:partition_R
+set partition_ecrire_oscar=R
+goto continuer
+
+:partition_S
+set partition_ecrire_oscar=S
+goto continuer
+
+:partition_T
+set partition_ecrire_oscar=T
+goto continuer
+
+:partition_U
+set partition_ecrire_oscar=U
+goto continuer
+
+:partition_V
+set partition_ecrire_oscar=V
+goto continuer
+
+:partition_W
+set partition_ecrire_oscar=W
+goto continuer
+
+:partition_X
+set partition_ecrire_oscar=X
+goto continuer
+
+:partition_Y
+set partition_ecrire_oscar=Y
+goto continuer
+
+:partition_Z
+set partition_ecrire_oscar=Z
+goto continuer
+
+goto fin
+
+:continuer
+%partition_ecrire_oscar%:\demarre_oscar\delay.vbs
+REGEDIT /s %partition_ecrire_oscar%:\fin_numero_poste_oscar.reg
+del %partition_ecrire_oscar%:\demarre_oscar\delay.vbs
+del %partition_ecrire_oscar%:\oscar.bat" > /tmp/cherche_oscar.bat
+}
+# fin de recherche oscar.bat sous dos
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+cherche_oscar_modifstartup_nom()	#  test situation du fichier oscar_modifstartup_nom.reg sous dos
+{
+rm -f /tmp/cherche_oscar_modifstartup_nom.reg
+
+echo "@echo off
+rem ## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+rem ## Outil Système Complet d'Assistance Réseau: OSCAR
+rem ## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+rem ## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation
+
+goto partition_C
+if exist C:\oscar_modifstartup_nom.reg goto partition_C
+if exist D:\oscar_modifstartup_nom.reg goto partition_D
+if exist E:\oscar_modifstartup_nom.reg goto partition_E
+if exist F:\oscar_modifstartup_nom.reg goto partition_F
+if exist G:\oscar_modifstartup_nom.reg goto partition_G
+if exist H:\oscar_modifstartup_nom.reg goto partition_H
+if exist I:\oscar_modifstartup_nom.reg goto partition_I
+if exist J:\oscar_modifstartup_nom.reg goto partition_J
+if exist K:\oscar_modifstartup_nom.reg goto partition_K
+if exist L:\oscar_modifstartup_nom.reg goto partition_L
+if exist M:\oscar_modifstartup_nom.reg goto partition_M
+if exist N:\oscar_modifstartup_nom.reg goto partition_N
+if exist O:\oscar_modifstartup_nom.reg goto partition_O
+if exist P:\oscar_modifstartup_nom.reg goto partition_P
+if exist Q:\oscar_modifstartup_nom.reg goto partition_Q
+if exist R:\oscar_modifstartup_nom.reg goto partition_R
+if exist S:\oscar_modifstartup_nom.reg goto partition_S
+if exist T:\oscar_modifstartup_nom.reg goto partition_T
+if exist U:\oscar_modifstartup_nom.reg goto partition_U
+if exist V:\oscar_modifstartup_nom.reg goto partition_V
+if exist W:\oscar_modifstartup_nom.reg goto partition_W
+if exist X:\oscar_modifstartup_nom.reg goto partition_X
+if exist Y:\oscar_modifstartup_nom.reg goto partition_Y
+if exist Z:\oscar_modifstartup_nom.reg goto partition_Z
+
+:partition_C
+set partition_ecrire_oscar=C
+goto continuer
+
+:partition_D
+set partition_ecrire_oscar=D
+goto continuer
+
+:partition_E
+set partition_ecrire_oscar=E
+goto continuer
+
+:partition_F
+set partition_ecrire_oscar=F
+goto continuer
+
+:partition_G
+set partition_ecrire_oscar=G
+goto continuer
+
+:partition_H
+set partition_ecrire_oscar=H
+goto continuer
+
+:partition_I
+set partition_ecrire_oscar=I
+goto continuer
+
+:partition_J
+set partition_ecrire_oscar=J
+goto continuer
+
+:partition_K
+set partition_ecrire_oscar=K
+goto continuer
+
+:partition_L
+set partition_ecrire_oscar=L
+goto continuer
+
+:partition_M
+set partition_ecrire_oscar=M
+goto continuer
+
+:partition_N
+set partition_ecrire_oscar=N
+goto continuer
+
+:partition_O
+set partition_ecrire_oscar=O
+goto continuer
+
+:partition_P
+set partition_ecrire_oscar=P
+goto continuer
+
+:partition_Q
+set partition_ecrire_oscar=Q
+goto continuer
+
+:partition_R
+set partition_ecrire_oscar=R
+goto continuer
+
+:partition_S
+set partition_ecrire_oscar=S
+goto continuer
+
+:partition_T
+set partition_ecrire_oscar=T
+goto continuer
+
+:partition_U
+set partition_ecrire_oscar=U
+goto continuer
+
+:partition_V
+set partition_ecrire_oscar=V
+goto continuer
+
+:partition_W
+set partition_ecrire_oscar=W
+goto continuer
+
+:partition_X
+set partition_ecrire_oscar=X
+goto continuer
+
+:partition_Y
+set partition_ecrire_oscar=Y
+goto continuer
+
+:partition_Z
+set partition_ecrire_oscar=Z
+goto continuer
+
+goto fin
+
+:continuer" > /tmp/cherche_oscar_modifstartup_nom.reg
+
+}
+# fin de recherche oscar_modifstartup_nom.reg sous dos
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+
+cherche_oscar
+cherche_oscar_modifstartup_nom

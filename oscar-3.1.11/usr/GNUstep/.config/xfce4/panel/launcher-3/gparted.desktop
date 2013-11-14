@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=GParted
+Comment=
+Icon=/usr/share/oscar/icones/gparted.png
+Exec=/usr/sbin/gparted
+Path=
+Terminal=false
+StartupNotify=false
+

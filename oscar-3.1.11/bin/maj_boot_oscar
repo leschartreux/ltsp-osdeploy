@@ -1,0 +1,1255 @@
+#!/bin/bash
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Cdrom Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+
+#----------------------------------------------------------------------------------------------------
+boite_partition_de_sauvegarde() # selectionner seulement les partitions linux non swap
+{
+runme prepare_fichier_temptaille
+rm -f /tmp/bozo
+egrep -e "^/dev" /tmp/fichier_disque_dur | grep -i "linux" | grep -v "swap" | \
+perl -pi -e 's/\*//g;  s/\+/ /g; s/\-/ /g; s/  /:/g; s/:+/:/g;' | \
+awk 'BEGIN { FS=" " } { printf ("%0s %15s %25s\n","\""$1"\" \"",$2,$3"\" \\")}' > /tmp/bozo
+runme boite_selection_bozo
+if ( test -e /tmp/sortir )
+then
+        return
+fi
+reponse=`cat /tmp/tempfile`	# /dev/hdaiii
+perl -pi -e 's/\/dev\///g;' /tmp/tempfile
+reponse=`cat /tmp/tempfile`	# hdaiii
+}
+#----------------------------------------------------------------------------------------------------
+boite_partition_linux() # prépare la boite pour selectionner seulement les partitions linux non swap
+{
+# proposer toutes les partitions à sauvegarder sur seulement linux non swap
+echo " `cat $chemin_langue/selection_1` " > /tmp/menu_titre
+echo "" > /tmp/menu_texte
+echo "\n`cat $chemin_langue/selection_1`\n\n " > /tmp/fichierquestion
+echo "\n\n`cat $chemin_langue/selection_3`" >> /tmp/fichierquestion
+boite_partition_de_sauvegarde
+rm -f /tmp/menu_titre
+rm -f /tmp/menu_texte
+rm -f /tmp/fichierquestion
+if ( test -e /tmp/sortir )
+then
+	rm -f /tmp/sortir
+	exit
+fi
+
+partition_linux=$reponse
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+boucle_partition() # sortir la partition dans la reponse
+{
+rm -f /tmp/tempfile
+echo "$type" > /tmp/tempfile
+runme prepare_boucle_partition
+nombretype=`cat /tmp/nombre`
+rm -f /tmp/nombre
+	
+numero=0
+cp -f /tmp/tempfile /tmp/temp_ligne_deux_points
+rm -f /tmp/tempfile
+until  ( test  $numero = $nombretype )
+do
+	rm -f /tmp/temp_ligne_deux_points1
+#	#rm -f /tmp/partfile1
+	numero=$[$numero+1]
+	cut -d":" -f$numero /tmp/temp_ligne_deux_points > /tmp/temp_ligne_deux_points1	#hdaiii
+#	#cut -d":" -f$numero /tmp/partfile > /tmp/partfile1	#ide/h0/b0/t0/l0/hdaiii
+	reponse=`cat /tmp/temp_ligne_deux_points1`
+#	#reparti=`cat /tmp/partfile1`
+	rm -f /tmp/temp_ligne_deux_points1
+	if ! [ "$reponse" = "" ] # si la partition existe
+	then 
+		numero_hd=`expr substr $reponse 4 3`
+	#	disque=`cut -d/ -f1-5 /tmp/partfile1`/disc	#ide/h0/b0/t0/l0/disc
+	#	rm -f /tmp/partfile1
+		disque=`expr substr $reponse 1 3`       #hda
+	        if [ "$type" = "linux" ]
+		then
+	        	# id_type=`sfdisk /dev/$disque -c $numero_hd 2>/dev/null`
+			grep -i $reponse /tmp/fichier_disque_dur | grep -c Linux > /tmp/nb_partition_linux
+		        nb_partition_linux=`cat /tmp/nb_partition_linux`
+		        rm -f /tmp/nb_partition_linux
+			if [ "$nb_partition_linux" = "1" ] # partition linux non swap
+			then
+				nombre_partitions_linux=$nombretype			
+				if [ "$nombre_partitions_linux" = "1" ]
+				then
+					partition_linux=$reponse # une seule partition linux
+					rm -f /tmp/temp_ligne_deux_points
+					# rm -f /tmp/partfile
+					return			
+				else
+					partition_linux=non
+					rm -f /tmp/temp_ligne_deux_points
+					# rm -f /tmp/partfile
+					return
+				fi
+			fi
+		fi
+	fi
+	#rm -f /tmp/partfile1
+done
+rm -f /tmp/tempfile
+# rm -f /tmp/partfile
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+cherche_partition_linux()
+{
+nombre_partitions_linux=0
+type="linux"
+boucle_partition
+	if [ "$nombre_partitions_linux" = "0" ] # pas de partition linux
+	then 
+		rm -f /tmp/fichiertmp
+		dialog --colors --no-shadow --backtitle "`cat /etc/banniere_oscar`" \
+		--ok-label "Continuer" \
+		--title " `cat $chemin_langue/DESOLE` " \
+		--msgbox "`cat $chemin_langue/msgbox_2`" 0 0
+	        rm -f /tmp/fichiertmp
+		exit	
+	fi
+if [ "$partition_linux" = "non" ]
+then   # proposer le choix des partition linux non swap
+	boite_partition_linux
+fi
+}
+#----------------------------------------------------------------------------------------------------
+supprimer_boot()
+{
+	dialog --colors --no-shadow --backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Continuer`" \
+	--title " `cat $chemin_langue/msgbox_3` " \
+	--msgbox "\n`cat $chemin_langue/msgbox_4`" 9 68
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+supprimer_lilo()
+{
+if [ "$type_boot" = "lilo" ]
+then
+	cherche_partition_linux
+	
+	if ! ( test -e /mnt/$partition_linux )
+	then
+	    mkdir /mnt/$partition_linux
+	fi
+	rm -f /tmp/tempfile
+	echo "/dev/$partition_linux" > /tmp/tempfile
+	runme selection_disque
+	partition_linux=`cat /tmp/partition`
+	rm -f /tmp/tempfile
+	rm -f /tmp/monter_partition
+	echo "$partition_linux" > /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	nombpart=`cat /tmp/nombpart`
+	if [ "$nombpart" = 0 ]
+	then
+		mount /dev/$partition_linux /mnt/$partition_linux
+		echo "/mnt/$partition_linux : monté linux" >> /tmp/historique
+	fi
+
+	monter_partitions_non_montees
+	mount -t proc none /mnt/$partition_linux/proc
+	mount -o bind /dev /mnt/$partition_linux/dev
+	chroot /mnt/$partition_linux/ lilo -U
+	umount /mnt/$partition_linux/proc 2>/dev/null ; sync
+	umount /mnt$partition_linux/dev 2>/dev/null ; sync
+	monter_partitions_non_montees demonter_partitions_non_montees
+else
+	echo
+	echo -e "`cat $chemin_langue/boucle_3`"
+	echo -e "`cat $chemin_langue/boucle_4`"
+	echo
+        echo -ne "`cat $chemin_langue/boucle_2`"
+        read reponse
+fi
+}
+#----------------------------------------------------------------------------------------------------
+supprimer_tout()
+{
+if ( test -e /mnt/$partition_linux/boot )
+then
+	echo
+    	echo -e "`cat $chemin_langue/patience_1`"
+   	echo
+	rm -fr /mnt/$partition_linux/bin
+	if ( test -e /mnt/$partition_linux/boot/boot.b )
+	then
+	    chmod 777 /mnt/$partition_linux/boot/boot.b
+	    rm -f /mnt/$partition_linux/boot/boot.b
+	fi
+	rm -fr /mnt/$partition_linux/bin
+	rm -fr /mnt/$partition_linux/boot
+	rm -fr /mnt/$partition_linux/dev
+	rm -fr /mnt/$partition_linux/etc
+	rm -fr /mnt/$partition_linux/home
+	rm -fr /mnt/$partition_linux/lib
+	rm -fr /mnt/$partition_linux/lib64
+	rm -fr /mnt/$partition_linux/livemnt
+	# rm -fr /mnt/$partition_linux/media
+	rm -fr /mnt/$partition_linux/opt
+	rm -fr /mnt/$partition_linux/proc
+	rm -fr /mnt/$partition_linux/root
+	rm -fr /mnt/$partition_linux/sbin
+	rm -fr /mnt/$partition_linux/sys
+	rm -fr /mnt/$partition_linux/tftpboot
+	rm -fr /mnt/$partition_linux/tmp
+	rm -fr /mnt/$partition_linux/usr
+	rm -fr /mnt/$partition_linux/var
+fi
+
+rm -f /mnt/$partition_linux/oscar/date_oscar
+}
+#----------------------------------------------------------------------------------------------------
+test_demarrage_cdrom() ## si oscar est démarré avec lilo ne pas utiliser cette commande
+{
+if ! ( test -e /etc/demarrage_cdrom ) ## le poste est démarré sur la partition de sauvegarde voir depart
+then	## seulement les fichiers OSCAR
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--ok-label "`cat $chemin_langue/Continuer`"  \
+	--msgbox "`cat $chemin_langue/nocederom_1`" 17 78
+	case $? in
+	    0) 	exit;;
+	    255) exit;;
+	esac
+fi
+}
+#----------------------------------------------------------------------------------------------------
+cherche_partition_linux_sauvegarde()
+{
+cherche_partition_linux
+
+if ! ( test -e /mnt/$partition_linux )
+then
+    mkdir /mnt/$partition_linux
+fi
+rm -f /tmp/tempfile
+echo "/dev/$partition_linux" > /tmp/tempfile
+runme selection_disque
+partition_linux=`cat /tmp/partition`
+rm -f /tmp/tempfile
+rm -f /tmp/monter_partition
+echo "$partition_linux" > /tmp/monter_partition
+runme autoriser_monter_partition_oscar
+nombpart=`cat /tmp/nombpart`
+if [ "$nombpart" = 0 ]
+then
+	mount /dev/$partition_linux /mnt/$partition_linux
+	echo "/mnt/$partition_linux : monté linux" >> /tmp/historique
+fi
+rm -f partition_linux_sauvegarde
+echo "$partition_linux" > partition_linux_sauvegarde
+}
+#----------------------------------------------------------------------------------------------------
+boite_info_erreur_lilo()
+{
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--ok-label "`cat $chemin_langue/Continuer`"  \
+	--msgbox "\n\n \Zb\Z1ATTENTION : \Zn \n\n \
+	\Zn\Z2Votre fichier \Zb\Z3lilo.conf\Zn\Z2 n'est pas correct. \n\n " 14 52
+	case $? in
+    0) 	
+	return;;
+    255) return;;
+esac
+}
+#----------------------------------------------------------------------------------------------------
+boite_mdp()
+{
+rm -f /tmp/tempfile
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`"  --title "$titre_mdp" \
+	--passwordbox "$fichierquestion" 12 65 2>/tmp/tempfile
+	case $? in
+    0)	reponse=`cat /tmp/tempfile`
+	rm -f /tmp/tempfile
+	return ;;
+    1)	rm -f /tmp/tempfile
+    	exit
+    	;;
+    255) rm -f /tmp/tempfile
+    	 exit
+	 ;;
+esac
+}
+#----------------------------------------------------------------------------------------------------
+boite_confirme_mdp()
+{
+rm -f /tmp/tempfile
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Oui`" --cancel-label "`cat $chemin_langue/Annuler`"  --title "$titre_mdp" \
+	--passwordbox "$fichierquestion" 14 65 2>/tmp/tempfile
+	case $? in
+    0)	reponse_confirme=`cat /tmp/tempfile`
+	rm -f /tmp/tempfile
+	if [ $reponse_confirme = $reponse ]
+	then  
+	    return 
+	else
+	    boite_confirme_mdp
+	fi 
+	;;
+    1)	rm -f /tmp/tempfile 
+    	exit
+    	;;
+    255) rm -f /tmp/tempfile 
+    	exit
+    	;;
+esac
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+faire_grub()
+{
+echo "#!/bin/sh
+grub --batch <<EOT 1>/dev/null 2>/dev/null
+root ($disque_boot_grub,$numero_hd_oscar)
+setup ($disque_boot_grub)
+quit
+EOT" > /mnt/$partition_linux/tmp/installer_grub
+chmod +x /mnt/$partition_linux/tmp/installer_grub
+chroot /mnt/$partition_linux /tmp/installer_grub
+rm -f /mnt/$partition_linux/tmp/installer_grub	
+}
+#----------------------------------------------------------------------------------------------------
+installe_console_clavier_grub()
+{
+# monter_partitions_non_montees
+mount -t proc none /mnt/$partition_linux/proc
+mount -o bind /dev /mnt/$partition_linux/dev
+#	echo "`chroot /mnt/$partition_linux lilo 2>/dev/null`" > /etc/sortie_lilo
+faire_grub
+umount /mnt/$partition_linux/proc 2>/dev/null ; sync
+umount /mnt/$partition_linux/dev 2>/dev/null ; sync	# voir doc http://www.gentoo.org/doc/fr/handbook/handbook-x86.xml?part=1&chap=6
+# monter_partitions_non_montees demonter_partitions_non_montees
+}
+#----------------------------------------------------------------------------------------------------
+remplacer_title_par_nombre()
+{
+cut -d":" -f$nombre /tmp/temptaille > /tmp/tempfile1	#windows
+test=`cat /tmp/tempfile1`
+if ! [ "$test" = "" ]
+then # mettre le nombre avant le systeme
+	echo "perl -pi -e 's/`cat /tmp/tempfile1`/$nombre - `cat /tmp/tempfile1`/g;' /tmp/temptaille" > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+	rm -f /tmp/exec_nom
+	echo "$nombre - `cat /tmp/tempfile1`" > /tmp/temp_sortie_avec_numero1
+	echo "$nombre - `cat /tmp/tempfile1`" >> /tmp/temp_sortie_avec_numero
+	echo "perl -pi -e 's/`cat /tmp/temp_sortie_avec_numero1`//g;' /tmp/temptaille" > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+	rm -f /tmp/temp_sortie_avec_numero1
+	nombre=$[$nombre+1]
+	remplacer_title_par_nombre
+	return
+fi
+cp -f /tmp/temp_sortie_avec_numero /tmp/temptaille
+rm -f /tmp/temp_sortie_avec_numero
+rm -f /tmp/tempfile1
+}
+#----------------------------------------------------------------------------------------------------
+prepare_remplacer_title_par_nombre()
+{
+if ! ( test -e /etc/installer_grub2 )
+then 
+	perl -pi -e 's/title=//g;' /tmp/tempfile
+else
+	cut -d"\"" -f2 /tmp/tempfile > /tmp/tempfile1
+	cp -f /tmp/tempfile1 /tmp/tempfile
+	rm -f /tmp/tempfile1
+fi
+perl -pi -e 's/\,/__virgule__/g; s/=/__egal__/g; s/ /{/g; s/\(/__OSCAR__/g; s/\)/__RACSO__/g; s/\//__slash__/g;' /tmp/tempfile
+echo `gawk '{ print $1 ":" } ' /tmp/tempfile` > /tmp/temptaille
+perl -pi -e 's/: /:/g; s/ //g;' /tmp/temptaille  ## pour enlever les espaces  soit  ;=Windows:;=Ubuntu
+perl -pi -e 's/: /:/g;' /tmp/temptaille # deuxieme fois pour les espaces de fin de ligne
+nombre=1
+rm -f /tmp/temp_sortie_avec_numero
+remplacer_title_par_nombre
+perl -pi -e 's/__virgule__/\,/g; s/:/
+/g; s/{/ /g; s/__OSCAR__/\(/g; s/__RACSO__/\)/g; s/__slash__/\//g; s/__egal__/=/g;' /tmp/temptaille
+rm -f /tmp/tempfile
+}
+#----------------------------------------------------------------------------------------------------
+changer_defaut_grub()
+{
+if ! ( test -e /etc/installer_grub2 )
+then 
+	grep -i "^title" $partition_oscar/etc/grub.conf | grep -v "OSCAR" > /tmp/tempfile
+	grep -ci "^title" /tmp/tempfile > /tmp/tempfile1
+else
+	grep -i "^menuentry" $partition_oscar/etc/grub.cfg | grep -v "OSCAR" > /tmp/tempfile
+	grep -ci "^menuentry" /tmp/tempfile > /tmp/tempfile1
+fi
+nombre_title=`cat /tmp/tempfile1`
+rm -f /tmp/tempfile1
+if [ "$nombre_title" = "1" ]
+then
+	rm -f /tmp/tempfile
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--ok-label "`cat $chemin_langue/Continuer`" \
+	--msgbox "\n\n`cat $chemin_langue/msgbox_5` \n\n " 10 60
+	case $? in
+	0)  echo "" > /tmp/sortir
+	    return
+	    ;;
+	255) echo "" > /tmp/sortir
+	    return
+	    ;;
+	esac
+fi
+prepare_remplacer_title_par_nombre
+echo " `cat $chemin_langue/selection_4` " > /tmp/menu_titre
+echo "" > /tmp/menu_texte
+echo "`cat $chemin_langue/selection_5`" > /tmp/fichierquestion
+echo "`cat $chemin_langue/selection_6`" >> /tmp/fichierquestion
+awk 'BEGIN { FS=":" } { printf ("%0s %s\n","\""$1"\" ","\"\" \\")}' /tmp/temptaille > /tmp/bozo
+perl -pi -e 's/Linux/noyau/g;' /tmp/bozo
+
+runme boite_selection_bozo
+rm -f /tmp/menu_titre
+rm -f /tmp/menu_texte
+rm -f /tmp/fichierquestion
+rm -f /tmp/temptaille
+rm -f /tmp/bozo
+if ( test -e /tmp/sortir )
+then
+	return
+fi
+
+perl -pi -e 's/ /:/g;' /tmp/tempfile
+cut -d":" -f1 /tmp/tempfile > /tmp/tempfile1 
+reponse=`cat /tmp/tempfile1`	# 2::Linux
+valeur_defaut_grub=$[$reponse-1]
+rm -f /tmp/tempfile
+rm -f /tmp/tempfile1
+}
+#-----------------------------------------------------------------------------------------------------
+test_nombre()
+{
+	test_valeur_nombre=`cat /tmp/temp_nombre`
+	rm -f /tmp/temp_nombre
+	test_valeur=`expr 255 - $test_valeur_nombre`
+	controle=$?
+	if ! [ "$controle" = "0" ]
+	then
+	        test_valeur=erreur
+	else
+	    signe_valeur=`expr substr $test_valeur 1 1`
+	    if [ "$signe_valeur" = "-" ]
+	    then
+	        test_valeur=erreur
+	    fi
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+afficher_toujours_menu_grub()
+{
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Delai`" --extra-button --extra-label "`cat $chemin_langue/Toujours`" --cancel-label "`cat $chemin_langue/Annuler`" --title " `cat $chemin_langue/menu_194a` " \
+	--menu "\Zb\Z3 `cat $chemin_langue/menu_192a` : " 0 0 0 \
+	"" "" \
+	"" "\Zb\Z4`cat $chemin_langue/Delai`  \Zn\Z2: `cat $chemin_langue/menu_195b` " \
+	"" "\Zb\Z4`cat $chemin_langue/Toujours` \Zn\Z2: `cat $chemin_langue/menu_196b` " \
+	"" ""
+case $? in
+	0)	# choisir une valeur
+		rm -f $partition_oscar/usr/share/oscar/usr/afficher_menu_grub
+		rm -f $partition_oscar/etc/afficher_menu_grub
+		rm -f /etc/afficher_menu_grub
+	;;
+	1) 	# annuler
+		echo "" > /tmp/sortir
+	;;
+	3)	# toujours
+		echo "" > /etc/afficher_menu_grub
+		echo "" > $partition_oscar/etc/afficher_menu_grub
+		echo "" > $partition_oscar/usr/share/oscar/usr/afficher_menu_grub
+		sp_reparer_boot
+		echo "" > /tmp/sortir
+	;;
+	255)	echo "" > /tmp/sortir
+	;;
+esac
+}
+#----------------------------------------------------------------------------------------------------
+changer_delai()
+{
+if ( test -e $partition_oscar/usr/share/oscar/usr/option_delai_boot )
+then
+	option_delai_boot=`cat $partition_oscar/usr/share/oscar/usr/option_delai_boot`
+else
+	echo "3" > $partition_oscar/usr/share/oscar/usr/option_delai_boot
+	option_delai_boot=3
+fi
+	DIALOGRC="/etc/dialogrc" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/inputbox_3` " \
+	--inputbox "`cat $chemin_langue/inputbox_4`" 10 60 "$option_delai_boot" 2>/tmp/tempfile
+	 case $? in
+    0)  test_rien=`cat /tmp/tempfile`
+    	if ! [ "$test_rien" = "" ]
+    	then
+            	cp -f /tmp/tempfile /tmp/temp_nombre
+		test_nombre	# test si la valeur est un nombre
+		if [ "$test_valeur" = "erreur" ]
+		then
+			changer_delai
+			return
+		fi
+	fi
+	echo "$option_delai_boot" > /tmp/option_delai_boot
+	cp -f /tmp/tempfile $partition_oscar/usr/share/oscar/usr/option_delai_boot
+    	if ! ( test -e /etc/installer_grub2 )
+	then
+		echo "perl -pi -e 's/timeout `cat /tmp/option_delai_boot`/timeout `cat /tmp/tempfile`/g;' $partition_oscar/etc/grub.conf" > /tmp/exec_nom
+		chmod +x /tmp/exec_nom
+		/tmp/exec_nom
+		rm -f /tmp/exec_nom
+	else
+		sp_reparer_boot
+	fi
+	rm -f /tmp/option_delai_boot
+    	rm -f /tmp/tempfile
+    	 ;;
+    1)  rm -f /tmp/tempfile
+    	echo "" > /tmp/sortir
+	 ;;
+    255) rm -f /tmp/tempfile
+     	echo "" > /tmp/sortir
+	 ;;
+esac
+}
+#----------------------------------------------------------------------------------------------------
+perso_boot_grub()
+{
+if ( test -e $partition_grub/grub.conf ) || ( test -e $partition_grub2/grub.cfg )
+then
+	if ( test -e $partition_grub2/grub.cfg )
+	then
+		cp -f $partition_grub2/grub.cfg $partition_grub2/grub.cfg.bak
+		cp -f $partition_grub2/grub.cfg $partition_grub2/grub.cfg.old
+		cp -f $partition_grub2/grub.cfg $partition_oscar/etc/grub.cfg
+	elif ( test -e $partition_grub/menu.lst )
+	then
+		cp -f $partition_grub/grub.conf $partition_oscar/etc/grub.conf.bak
+		cp -f $partition_grub/menu.lst $partition_grub/menu.lst.old
+		cp -f $partition_grub/grub.conf $partition_oscar/etc/grub.conf
+	fi
+	
+else
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/msgbox_6` " \
+	--ok-label "`cat $chemin_langue/Continuer`" \
+	--msgbox "`cat $chemin_langue/msgbox_7`" 15 80
+	case $? in
+	    0) 	echo " " > $partition_boot/etc/grub.conf
+	    ;;
+	    255) return ;;
+	esac
+fi
+if [ "$modif_defaut" = "oui" ]
+then
+	if [ "$net_programme" != "oui" ]
+	then
+		rm -f /$partition_grub/defaut_avant_programme
+		rm -f /etc/programmation_net_programmee
+		changer_defaut_grub
+		if ( test -e /tmp/sortir )
+		then
+			rm -f /tmp/sortir
+			return
+		fi
+	fi
+	if ! ( test -e /etc/installer_grub2 )
+	then
+		grep -i "^default" /$partition_oscar/etc/grub.conf > /tmp/tempfile
+	else
+		grep -i "GRUB_DEFAULT=" /$partition_oscar/etc/default/grub > /tmp/tempfile1
+		perl -pi -e 's/GRUB_DEFAULT=/}/g;' /tmp/tempfile1
+		cut -d"}" -f2 /tmp/tempfile1 > /tmp/tempfile
+		rm -f /tmp/tempfile1
+	fi
+	test_default=`cat /tmp/tempfile`
+	if ! [ "$test_default" = "" ]
+	then
+		if [ "$net_programme" != "oui" ]
+		then
+			echo "$valeur_defaut_grub" > $partition_oscar/usr/share/oscar/bin/fichier_b
+			echo "$valeur_defaut_grub" > /etc/fichier_b
+			if ! ( test -e /etc/installer_grub2 )
+			then
+				echo "perl -pi -e 's/`cat /tmp/tempfile`/default $valeur_defaut_grub/g;' /$partition_oscar/etc/grub.conf" > /tmp/exec_nom
+				chmod +x /tmp/exec_nom
+				/tmp/exec_nom
+				rm -f /tmp/exec_nom
+			else
+				sp_reparer_boot
+			fi
+		else	# installer le boot par le net
+			if [ "$supprimer_net_programme" != "oui" ]
+			then
+				cp -f /tmp/tempfile /$partition_grub/defaut_avant_programme
+				echo "" > /etc/programmation_net_programmee
+				if ! ( test -e /etc/installer_grub2 )
+				then 
+					grep -i "^title" $partition_oscar/etc/grub.conf | grep -v "OSCAR" > /tmp/tempfile
+					grep -ci "^title" /tmp/tempfile > /tmp/tempfile1	
+				else
+					grep -i "^menuentry" $partition_oscar/etc/grub.cfg | grep -v "OSCAR" > /tmp/tempfile
+					grep -ci "^menuentry" /tmp/tempfile > /tmp/tempfile1
+				fi
+				nombre_title=`cat /tmp/tempfile1`
+				rm -f /tmp/tempfile1
+				prepare_remplacer_title_par_nombre
+				####### voir en langue differente :
+				echo "grep -i \"`cat $chemin_langue/Reseau_sans_accent`\" /tmp/temptaille > /tmp/tempfile" > /tmp/exec_nom
+				chmod +x /tmp/exec_nom
+				/tmp/exec_nom
+				rm -f /tmp/exec_nom
+				# prendre la premiere colonne :
+				valeur=`awk '{print$1}' /tmp/tempfile`
+				valeur_defaut_grub=$[$valeur-1]
+				cp -f /$partition_grub/defaut_avant_programme /tmp/tempfile
+			else	# mettre defaut avant programme puis supprimer net_programme
+				rm -f /etc/programmation_net_programmee
+				cp -f /$partition_grub/defaut_avant_programme /tmp/tempfile
+				perl -pi -e 's/default //g;' /tmp/tempfile
+				valeur_defaut_grub=`cat /tmp/tempfile`
+				rm -f /$partition_grub/defaut_avant_programme
+				if ! ( test -e /etc/installer_grub2 )
+				then
+					grep -i "default" /$partition_grub/grub.conf > /tmp/tempfile
+				fi
+			fi
+			if ! ( test -e /etc/installer_grub2 )
+			then
+				echo "perl -pi -e 's/`cat /tmp/tempfile`/default $valeur_defaut_grub/g;' /$partition_oscar/etc/grub.conf" > /tmp/exec_nom
+				chmod +x /tmp/exec_nom
+				/tmp/exec_nom
+				rm -f /tmp/exec_nom
+			else
+				echo "$valeur_defaut_grub" > $partition_oscar/etc/fichier_b
+				echo "$valeur_defaut_grub" > $partition_oscar/usr/share/oscar/bin/fichier_b
+				sp_reparer_boot
+			fi
+			rm -f /tmp/tempfile
+			rm -f /tmp/tempfile1
+		fi
+	else
+		DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--title " `cat $chemin_langue/DESOLE` " \
+		--ok-label "`cat $chemin_langue/Continuer`" \
+		--msgbox "`cat $chemin_langue/msgbox_8`" 10 40
+		case $? in
+		0)
+		return
+		;;
+		255)
+		return
+		;;
+		esac
+	fi
+elif [ "$modif_defaut" = "delai" ]
+then
+	if ( test -e /etc/installer_grub2 )
+	then
+		afficher_toujours_menu_grub
+	fi
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		return
+	fi
+	changer_delai
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		return
+	fi
+else
+	if ! ( test -e /etc/installer_grub2 )
+	then
+		mc -e $partition_oscar/etc/grub.conf
+	else
+		mc -e /etc/conf.d/prive_40_custom
+	fi
+	clear
+fi
+
+if ! ( test -e /etc/installer_grub2 )
+then
+	cp -f $partition_oscar/etc/grub.conf $partition_grub/grub.conf
+	cp -f $partition_oscar/etc/grub.conf $partition_oscar/boot/grub/grub.conf
+	if [ "$modif_defaut" != "oui" ]
+	then
+		if [ "$modif_defaut" != "delai" ]
+		then
+			cp -f $partition_oscar/etc/grub.conf $partition_oscar/usr/share/oscar/usr/grub.conf.expert
+		fi
+	fi
+	if ( test -e $partition_grub/menu.lst )
+	then
+		cp -f $partition_oscar/etc/grub.conf $partition_grub/menu.lst
+	fi
+	if ( test -e $partition_oscar/boot/grub/menu.lst )
+	then
+		cp -f $partition_oscar/etc/grub.conf $partition_oscar/boot/grub/menu.lst
+	fi
+fi
+}
+#----------------------------------------------------------------------------------------------------
+perso_boot_lilo()
+{
+	if ! ( test -e /mnt/$partition_linux/etc/lilo.conf )
+	then
+		DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--title " Création du fichier lilo.conf " \
+		--ok-label "`cat $chemin_langue/Continuer`" \
+		--msgbox "\n\n    \Zb\Z1ATTENTION : \Zn \n \
+		\n\Zn\Z2Il n'y a pas de fichier \Zb\Z3lilo.conf\Zn\Z2 sur ce poste. \n \
+		\n\Zb\Z3OSCAR \Zn\Z2vous conseille dans réaliser un d'abord avec la commande \Zb\Z4installer\Zb\Z2. \n\n \
+		\n\Zn\Z2En \Zb\Z4continuant\Zn\Z2 vous pourrez réaliser un nouveau fichier \Zb\Z3lilo.conf\Zn\Z2. \
+		\n\Zn\Z2Sinon appuyez sur la touche \Zb\Z7Ech  " 15 80
+		case $? in
+		    0) 	echo " " > /mnt/$partition_linux/etc/lilo.conf
+		    ;;
+		    255) return ;;
+		esac
+	fi
+	#	texte_avant_fstab
+	cp -f /mnt/$partition_linux/etc/lilo.conf /mnt/$partition_linux/etc/lilo.bak
+	rm -f /tmp/tempfile
+	mc -e /mnt/$partition_linux/etc/lilo.conf
+	clear
+	monter_partitions_non_montees
+	rm -f /etc/sortie_lilo
+	if ( test -e /etc/demarrage_cdrom ) ## le poste est démarré avec le cdrom voir depart
+	then
+		mount -t proc none /mnt/$partition_linux/proc
+		mount -o bind /dev /mnt/$partition_linux/dev
+		echo "`chroot /mnt/$partition_linux/ lilo 2>/dev/null`" > /etc/sortie_lilo
+		umount /mnt/$partition_linux/proc 2>/dev/null ; sync
+		umount /mnt/$partition_linux/dev 2>/dev/null ; sync
+	else	# demarrer avec lilo
+		echo "`lilo 2>/dev/null`" > /etc/sortie_lilo
+	fi
+	monter_partitions_non_montees demonter_partitions_non_montees
+	grep -i " *" /etc/sortie_lilo > /tmp/tempfile
+	cat /tmp/tempfile
+	reponse=`cat /tmp/tempfile`
+	sleep 2
+	if ! [ "$reponse" = "" ] # lilo sans erreur
+	then
+		cp -f /mnt/$partition_linux/etc/lilo.conf /mnt/$partition_linux/usr/share/oscar/usr/lilo.conf
+		rm -f /tmp/tmpfile
+		grep -v " / ext2 errors=remount-ro 0 " /mnt/$partition_linux/etc/fstab > /tmp/tempfile
+		cp -f /tmp/tempfile /mnt/$partition_linux/etc/fstab
+		rm -f /tmp/tmpfile
+#	#	echo "/dev/$nouvelle_partition / ext2 errors=remount-ro 0 1" >> /mnt/$partition_linux/etc/fstab
+		echo "/dev/$partition_linux / ext2 errors=remount-ro 0 1" >> /mnt/$partition_linux/etc/fstab
+		cp -f /mnt/$partition_linux/etc/fstab /mnt/$partition_linux/usr/share/oscar/usr/fstab
+		cp -f /mnt/$partition_linux/etc/fstab /etc/fstab
+	else
+		cp -f /mnt/$partition_linux/etc/lilo.bak /mnt/$partition_linux/etc/lilo.conf
+		rm -f /mnt/$partition_linux/etc/lilo.bak
+		boite_info_erreur_lilo
+	fi
+	rm -f /tmp/tempfile
+}
+#----------------------------------------------------------------------------------------------------
+preparation_perso_boot()
+{
+# cherche la partition de boot seul puis cherche_partition_linux_sauvegarde
+installe_oscar_dd cherche_partition_et_variables_boot
+if ( test -e /tmp/sortir )
+then
+	return
+fi
+
+partition_boot=`cat /tmp/partition_boot_grub`	# partition_boot
+
+echo "$partition_boot" > /tmp/monter_partition
+runme autoriser_monter_partition_oscar
+partition_boot=`cat /tmp/monter_partition`
+rm -f /tmp/monter_partition
+
+grep -ci "partition_linux_juste_boot" /tmp/fichier_partitions_boot > /tmp/tempfile
+nombre_partition_juste_boot=`cat /tmp/tempfile`
+if [ "$nombre_partition_juste_boot" = "1" ]        # une partition linux juste boot
+then
+	partition_grub=$partition_boot/grub
+else
+	partition_grub=$partition_boot/boot/grub
+fi
+
+partition_oscar=`cat /tmp/partition_installer_oscar`
+echo "$partition_oscar" > /tmp/monter_partition
+runme autoriser_monter_partition_oscar
+partition_oscar=`cat /tmp/monter_partition`
+rm -f /tmp/monter_partition
+if ( test -e /etc/installer_grub2 )
+then
+	partition_grub2="$partition_grub""2"
+	if [ "$nombre_partition_juste_boot" = "1" ]        # une partition linux juste boot
+	then
+		if ( test -e $partition_oscar/boot/grub2/grub.cfg )
+		then
+			partition_grub2=$partition_oscar/boot/grub2
+		fi
+	fi
+fi
+}
+#----------------------------------------------------------------------------------------------------
+eteindre_le_poste()
+{
+runme boite_eteindre_le_poste
+if ( test -e /tmp/annuler_eteindre )
+then
+	rm -f /tmp/annuler_eteindre
+	main
+	return
+fi
+
+runme boite_eteindre_ordinateur
+}
+#----------------------------------------------------------------------------------------------------
+editer_options_boot()
+{
+	DIALOGRC="/etc/dialogrc" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/inputbox_5` " \
+	--inputbox "`cat $chemin_langue/inputbox_6`" 10 60 "`cat $partition_oscar/usr/share/oscar/usr/options_boot`" 2>/tmp/tempfile
+	 case $? in
+    0)  cp -f /tmp/tempfile $partition_oscar/usr/share/oscar/usr/options_boot
+	#	controle_rien=`cat $partition_oscar/usr/share/oscar/usr/options_boot`
+	#	if [ "$controle_rien" = "" ] || [ "$controle_rien" = " " ] || [ "$controle_rien" = "  " ]
+	#	then
+	#		echo "" > /tmp/sortir
+	#	fi
+    	rm -f /tmp/tempfile
+    	 ;;
+    1)  rm -f /tmp/tempfile
+    	echo "" > /tmp/sortir
+	 ;;
+    255) rm -f /tmp/tempfile
+     	echo "" > /tmp/sortir
+	 ;;
+esac
+}
+#----------------------------------------------------------------------------------------------------
+tester_demarrage_usb_pour_installer_oscar()
+{
+rm -f /tmp/non_proposer_linux_usb_oscar_demarrage
+if ( test -e /etc/demarrage_usb )
+then
+	echo "" > /tmp/non_proposer_linux_usb_oscar_demarrage
+fi
+}
+#----------------------------------------------------------------------------------------------------
+sp_reparer_boot()
+{
+echo "" > /tmp/repare_boot_dd
+tester_demarrage_usb_pour_installer_oscar
+echo "$partition_oscar" > /tmp/partition_oscar_maj_boot_oscar
+installe_oscar_dd
+rm -f /tmp/sortir
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+main()
+{
+	#	client_synchrone "\ZnClient en mode \Z1synchrone\Zn." \
+	#	client_oscar "Installer en \Z1client\Zn pour recevoir \Zb\Z3OSCAR\Zn du \Zb\Z4serveur_oscar\Zn." \
+rm -f /tmp/sortir
+rm -f /tmp/tempfile
+rm -f /tmp/tempfile__
+rm -f /tmp/tempfile___
+rm -f /tmp/tempfile____
+rm -f /tmp/tempfile_____
+rm -f /tmp/tempfile______
+
+rm -f /tmp/non_proposer_linux_usb_oscar_demarrage
+rm -f /tmp/partition_installer_oscar
+
+calendrier=$(date +%d/%m/%y)
+heure=$(date +%kh%Mmin)
+rm -f /tmp/rien
+	# 	résolution "Changer la définition de l'\Z1affichage\Zn." \
+echo "  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn \Zn  \Zn  \Zn  \Zn  " > /tmp/rien
+output=exit
+	#	"client_synchrone" "`cat $chemin_langue/menu_49`" \
+	#	"client_asynchrone" "`cat $chemin_langue/menu_51`" \
+dialog  --no-cancel --colors --no-shadow --backtitle "`cat /etc/banniere_oscar`" --title " `cat $chemin_langue/menu_45` " \
+	--menu  "  `cat $chemin_langue/menu_1` `cat /tmp/rien`  le $calendrier à $heure " 7 80 0  \
+	" " "`cat $chemin_langue/menu_46`" \
+	" " "" \
+	"installer" "`cat $chemin_langue/menu_47`" \
+	"oscar_asynchrone" "`cat $chemin_langue/menu_50`" \
+	" " "" \
+	"disque_usb" "`cat $chemin_langue/menu_52a`" \
+	"clé_usb" "`cat $chemin_langue/menu_52`" \
+	" " "" \
+	" " "`cat $chemin_langue/menu_53`" \
+	" " "" \
+	"mot_de_passe" "`cat $chemin_langue/menu_54`" \
+	"numero_poste" "`cat $chemin_langue/menu_18`" \
+	"changer_boot" "`cat $chemin_langue/menu_55`" \
+	"delai_boot" "`cat $chemin_langue/menu_56`" \
+	"options_boot" "`cat $chemin_langue/menu_57`" \
+	"réparer_boot" "`cat $chemin_langue/menu_58`" \
+	"langue" "`cat $chemin_langue/menu_348`" \
+	"clavier" "`cat $chemin_langue/menu_293`" \
+	"supprimer_boot" "`cat $chemin_langue/menu_59`" \
+	"perso_boot" "`cat $chemin_langue/menu_60`" \
+	" " "" \
+	"oscar_synchrone" "`cat $chemin_langue/menu_48`" \
+	"halt" "`cat $chemin_langue/menu_8`" \
+	"quitter" "`cat $chemin_langue/menu_61`" \
+	" " "" 2>/tmp/tempfile_______
+	
+if [ $? = "255" ]
+then
+    rm -f /tmp/tempfile_______
+    rm -f /tmp/rien
+    exit
+fi
+output=`cat /tmp/tempfile_______`
+rm -f /tmp/rien
+
+if [ "$output" = " " ]
+then
+	main
+elif [ "$output" = "" ]
+then
+	main
+elif [ "$output" = "installer" ]
+then
+	tester_demarrage_usb_pour_installer_oscar
+        installe_oscar_dd
+        main
+elif [ "$output" = "oscar_synchrone" ]
+then
+	menu_reseau test_partition_lvm
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		exit
+	fi
+	if ! ( test -e /etc/serveur_pxe_lance )
+	then
+		# supprime_IP :
+		runme supprimer_ip_ethernet
+		echo "" > /tmp/serveur_lance_pxe_pour_client
+		serveur_pxe
+		rm -f /tmp/serveur_lance_pxe_pour_client
+	fi
+	rm -f /etc/serveur_pxe_lance
+        serveur_oscar
+	clear
+        main
+elif [ $output = "serveur_PXE" ]
+then
+	serveur_pxe 
+	main
+elif [ "$output" = "client" ]
+then
+	lancer_avahi client
+	rm -f /tmp/sortir
+	main
+elif [ "$output" = "client_synchrone" ]
+then
+        client_synchrone
+	main
+elif [ "$output" = "oscar_asynchrone" ]
+then
+	menu_reseau test_partition_lvm
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		exit
+	fi
+	if ! ( test -e /etc/serveur_pxe_lance )
+	then
+		# supprime_IP :
+		runme supprimer_ip_ethernet
+		echo "" > /tmp/serveur_lance_pxe_pour_client
+		serveur_pxe
+		rm -f /tmp/serveur_lance_pxe_pour_client
+	fi
+	rm -f /etc/serveur_pxe_lance
+	echo "" > /tmp/serveur_oscar_lance
+        serveur_nfs
+        main
+elif [ $output = "client_asynchrone" ]
+then
+	client_nfs
+	main
+elif [ "$output" = "client_oscar" ]
+then
+        client_oscar
+	clear
+        main
+elif [ "$output" = "disque_usb" ]
+then
+	echo "" > /tmp/disque_usb_oscar
+	installe_oscar_usb
+        main
+elif [ "$output" = "clé_usb" ]
+then
+	rm -f /tmp/disque_usb_oscar
+	installe_oscar_usb
+        main
+elif [ "$output" = "résolution" ]
+then
+	rm -f /tmp/installe_oscar_mp_lance
+	echo " " > /tmp/installe_oscar_mp_lance
+	echo " " > /tmp/installe_resolution_lance
+	tester_demarrage_usb_pour_installer_oscar
+	installe_oscar_dd
+	rm -f /tmp/sortir
+        main
+elif [ "$output" = "mot_de_passe" ]
+then
+	echo "mot_de_passe" > /tmp/mot_de_passe	# pour installe_oscar_dd
+	echo " " > /tmp/installe_oscar_mp_lance
+	tester_demarrage_usb_pour_installer_oscar
+	installe_oscar_dd
+	rm -f /tmp/sortir
+        main
+elif [ $output = "numero_poste" ]
+then
+	menu_sauvegarde changer_numero_poste
+	main
+elif [ "$output" = "supprimer_boot" ]
+then
+	supprimer_boot
+        main
+elif [ "$output" = "supprimer_tout" ]
+then
+	commande_maj=supprimer_tout
+	test_demarrage_cdrom
+	if [ "$type_boot" = "lilo" ]
+	then
+		supprimer_lilo
+		supprimer_tout
+	else
+		supprimer_tout
+		supprimer_lilo
+	fi
+	main
+elif [ "$output" = "réparer_boot" ]	# faire seulement le boot sans installer les fichiers oscar et supprimer expert
+then
+	sp_reparer_boot
+	main
+elif [ "$output" = "perso_boot" ] 	# modifier pour grub le fichier grub.conf
+then
+	modif_defaut=non
+	tester_demarrage_usb_pour_installer_oscar
+	preparation_perso_boot
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	else
+		perso_boot_$type_boot
+	fi
+	main
+elif [ "$output" = "changer_boot" ] 	# modifier default pour grub du fichier grub.conf
+then
+	sp_reparer_boot # pour mettre a jour le fichier grub.cfg avt de modifier default 
+	modif_defaut=oui
+	tester_demarrage_usb_pour_installer_oscar
+	preparation_perso_boot
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	else
+		perso_boot_$type_boot
+	fi
+	main
+elif [ "$output" = "delai_boot" ] 	# modifier default pour grub du fichier grub.conf
+then
+	modif_defaut=delai
+	tester_demarrage_usb_pour_installer_oscar
+	preparation_perso_boot
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	else
+		perso_boot_$type_boot
+	fi
+	main
+elif [ "$output" = "options_boot" ] 	# modifier les options du boot
+then
+	tester_demarrage_usb_pour_installer_oscar
+	preparation_perso_boot
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		main
+	fi
+	editer_options_boot
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	else
+		echo "" > /tmp/sp_editer_options_boot
+		echo "" > /tmp/repare_boot_dd
+		installe_oscar_dd
+		rm -f /tmp/sortir
+	fi
+	main
+elif [ "$output" = "langue" ]
+then
+	tester_demarrage_usb_pour_installer_oscar
+	preparation_perso_boot
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		main
+	fi
+	rm -f /tmp/tempfile_______
+	langage
+	oscar
+	rm -f /tmp/partition_installer_oscar
+	exit
+elif [ "$output" = "clavier" ]
+then
+	modif_defaut=clavier
+	tester_demarrage_usb_pour_installer_oscar
+	preparation_perso_boot	# cherche la partition oscar : partition_oscar montee
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		main
+	fi
+
+		#	if ( test -e /etc/demarrage_cdrom  )
+		#	then
+		#		ls /livemnt/boot/isolinux/maps > /tmp/liste_clavier
+		#	else
+		#		if ( test -e /etc/demarrage_usb )
+		#		then
+		#			ls /mnt/cdrom/maps > /tmp/liste_clavier	# voir demarrage docache ...
+		#		else
+		#			ls $partition_oscar/usr/share/oscar/usr/oscar_usb/maps > /tmp/liste_clavier
+		#		fi
+		#	fi
+	if ( test -e /livemnt/boot/isolinux/maps )
+	then
+		isolinux_=isolinux
+	elif ( test -e /livemnt/boot/syslinux/maps )
+	then # demarrage cle usb
+		isolinux_=syslinux
+	else
+		echo " Erreur clavier ..."
+		sleep 8
+		exit
+	fi
+	ls /livemnt/boot/$isolinux_/maps > /tmp/liste_clavier
+	installe_oscar_dd demander_clavier
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		main
+	fi
+	choix_clavier=`cat /usr/share/oscar/usr/choix_clavier`
+	echo "$choix_clavier" > $partition_oscar/usr/share/oscar/usr/choix_clavier
+	echo "XKEYBOARD=`cat  /usr/share/oscar/usr/choix_clavier`" > $partition_oscar/etc/sysconfig/keyboard
+	cp -f /usr/share/oscar/usr/clavier/clavier_grub $partition_oscar/usr/share/oscar/usr/clavier/clavier_grub 2>/dev/null
+	echo "" > /tmp/repare_boot_dd
+	echo "" > /tmp/sp_editer_options_boot
+	installe_oscar_dd
+	rm -f /tmp/sortir
+        main
+elif [ "$output" = "halt" ]
+then
+	rm -f /tmp/tempfile_______
+	rm -f /tmp/non_proposer_linux_usb_oscar_demarrage
+	rm -f /tmp/partition_installer_oscar
+        eteindre_le_poste
+elif [ "$output" = "quitter" ]
+then
+	rm -f /tmp/tempfile_______
+	rm -f /tmp/non_proposer_linux_usb_oscar_demarrage
+	rm -f /tmp/partition_installer_oscar
+        exit
+else
+$output
+fi
+rm -f /tmp/tempfile_______
+rm -f /tmp/non_proposer_linux_usb_oscar_demarrage
+rm -f /tmp/partition_installer_oscar
+}
+#----------------------------------------------------------------------------------------------------
+rm -f /tmp/tempfile
+type_boot=grub
+net_programme=
+#  commandes externes de procédures
+case "$1" in
+	net_programme)
+		net_programme=oui
+		modif_defaut=oui
+		preparation_perso_boot
+		if ( test -e /tmp/sortir )
+		then
+			rm -f /tmp/sortir
+		else
+			sp_reparer_boot
+			perso_boot_$type_boot
+		fi
+		exit 0
+	;;
+	supprimer_net_programme)
+		net_programme=oui
+		supprimer_net_programme=oui
+		modif_defaut=oui
+		preparation_perso_boot
+		if ( test -e /tmp/sortir )
+		then
+			rm -f /tmp/sortir
+		else
+			perso_boot_$type_boot
+		fi
+		exit 0
+	;;
+esac
+rm -f /tmp/serveur_lance_pxe_pour_client
+
+main

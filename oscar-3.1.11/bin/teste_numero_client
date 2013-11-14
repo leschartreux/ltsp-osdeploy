@@ -1,0 +1,104 @@
+#!/bin/sh
+
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+
+#-----------------------------------------------------------------------------------------------------
+test_limite()
+{
+if [ "$test_ip_fixe" = "ip_fixe_oscar" ]
+then
+	test_valeur=`expr 251 - $nombre` # 2>/dev/null
+	signe_valeur=`expr substr $test_valeur 1 1`
+	if [ "$signe_valeur" = "-" ] || [ "$nombre" = "251" ]
+	then
+		# Numéro du poste client
+		DIALOGRC="/etc/dialogrc" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/menu_506` " \
+		--inputbox "\n\Zb\Z1`cat $chemin_langue/inputbox_47`. \
+		\n\n`cat $chemin_langue/inputbox_48` \Z3$nombre \Z4`cat $chemin_langue/inputbox_49` :" 12 74 2>/tmp/tempfile
+		case $? in
+		    0)	nombre=`cat /tmp/tempfile`
+			deux_tests
+			return	
+			;;
+		    1)  rm -f /tmp/tempfile
+		        echo "" > /tmp/sortir
+			exit
+			;;
+		    255) rm -f /tmp/tempfile
+		        echo "" > /tmp/sortir
+			exit
+			;;
+		esac
+	fi
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+test_caractere()
+{
+test_valeur=`expr 251 - $nombre 2>/dev/null 1>/dev/null`
+controle=$?
+if [ "$controle" != "0" ] 
+then
+	if [ "$nombre" != "251" ]
+	then
+		# Numéro du poste client
+		DIALOGRC="/etc/dialogrc" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/menu_506` " \
+		--inputbox "\n\Zb\Z1`cat $chemin_langue/inputbox_46` : " 10 45 2>/tmp/tempfile
+		case $? in
+		    0)	nombre=`cat /tmp/tempfile`
+			test_caractere
+			return
+			;;
+		    1)  rm -f /tmp/tempfile
+		        echo "" > /tmp/sortir
+			exit
+			;;
+		    255) rm -f /tmp/tempfile
+		        echo "" > /tmp/sortir
+			exit
+			;;
+		esac
+	fi
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+deux_tests()
+{
+test_caractere
+test_limite
+}
+#-----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+#  commandes externes de procédures
+case "$1" in
+	test_caractere)
+		nombre=`cat /tmp/tempfile`
+		test_caractere
+		exit 0
+	;;
+esac	#  fin des commandes externes de procédures
+nombre=`cat /tmp/tempfile`
+test_ip_fixe=`cat /etc/adresse_ip_installee`
+deux_tests

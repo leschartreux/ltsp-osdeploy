@@ -1,0 +1,2168 @@
+#!/bin/sh
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+# 3 variables /tmp/correcteur_compression_restaure selon linux ou  2 pour ntfs
+
+PATH="/usr/share/oscar/bin:$PATH"
+/usr/share/oscar/usr/version_theme_oscar
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+
+
+#-----------------------------------------------------------------------------------------------------
+#			Installation d'un client qui se connecte sur un serveur et
+#			qui restaure sa partition hda1 avec l'image partagée par le serveur
+#			avec le protocole linux
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+boite_numero_poste()
+{
+runme prepare_fichier_temptaille
+runme colorier_selection_info
+cp -f /tmp/couleurs_info /tmp/fichier_disque_dur
+rm -f /tmp/couleurs_info
+
+	# Connexion au serveur
+	DIALOGRC="/etc/dialogrc" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/inputbox_26` " \
+	--inputbox "`cat /tmp/fichier_disque_dur`\n `cat /tmp/fichierquestion`" 0 0 $defaut 2>/tmp/tempfile
+     case $? in
+	    0)	rm -f /tmp/fichier_disque_dur
+		rm -f /tmp/fichierquestion
+		return ;;
+	    1)  rm -f /tmp/fichier_disque_dur
+		rm -f /tmp/tempfile
+		rm -f /tmp/fichierquestion
+		supprimer_poste_du_fichier_serveur
+		exit;;
+	    255) rm -f /tmp/fichier_disque_dur
+		rm -f /tmp/tempfile
+		rm -f /tmp/fichierquestion
+		supprimer_poste_du_fichier_serveur
+		exit;;
+	esac
+}
+#----------------------------------------------------------------------------------------------------
+boite_partition_sauvegardee() # selectionner seulement les partitions linux non swap
+{
+runme prepare_fichier_temptaille
+rm -f /tmp/bozo
+egrep -e "^/dev" /tmp/fichier_disque_dur | grep -v "$reponse" | grep -v "extended" | grep -v "W95 Ext'd" | grep -v "swap" | \
+perl -pi -e 's/\*//g;  s/\+/ /g; s/\-/ /g; s/  /:/g; s/:+/:/g;' | \
+awk 'BEGIN { FS=" " } { printf ("%0s %15s %25s\n","\""$1"\" \"",$2,$3"\" \\")}' >> /tmp/bozo
+
+runme boite_selection_bozo
+}
+#----------------------------------------------------------------------------------------------------
+demander_partition_a_sauvegarder()	#si pas de fichier /mnt/$reponse/oscar/partition_sauvegardee
+{
+	rm -f /tmp/menu_titre
+	rm -f /tmp/menu_texte
+	rm -f /tmp/fichierquestion
+
+	# Partition sauvegardée
+	echo " `cat $chemin_langue/selection_7` " > /tmp/menu_titre
+	echo "" > /tmp/menu_texte
+	echo "`cat $chemin_langue/selection_8` \Zb\Z2$reponse\Zn:\n\n " > /tmp/fichierquestion
+	echo "`cat $chemin_langue/selection_9`" >> /tmp/fichierquestion
+	boite_partition_sauvegardee
+	if ( test -e /tmp/sortir )
+	then
+	        rm -f /tmp/sortir
+	        supprimer_poste_du_fichier_serveur
+	        exit
+	fi
+	
+	rm -f /tmp/menu_titre
+	rm -f /tmp/menu_texte
+	rm -f /tmp/fichierquestion
+
+	perl -pi -e 's/\/dev\///g;' /tmp/tempfile
+	base=`cat /tmp/tempfile`	# hdaiii
+	rm -f /tmp/tempfile
+}
+#----------------------------------------------------------------------------------------------------
+boucle_partition() # sortir la partition linux dans la reponse ici le type est linux
+{
+rm -f /tmp/tempfile
+echo "$type" > /tmp/tempfile
+runme prepare_boucle_partition
+nombretype=`cat /tmp/nombre`
+rm -f /tmp/nombre
+rm -f /tmp/fichier_partition_linux_connues
+rm -f /tmp/fichier_partition_linux_possibles
+
+if [ "$nombretype" = 0 ]
+then
+	pas_partition_linux_sur_ce_poste=oui
+	return
+fi
+numero=0
+cp -f /tmp/tempfile /tmp/temp_ligne_deux_points
+rm -f /tmp/tempfile
+until  ( test  $numero = $nombretype )
+    do
+	rm -f /tmp/temp_ligne_deux_points1
+	numero=$[$numero+1]
+	cut -d":" -f$numero /tmp/temp_ligne_deux_points > /tmp/temp_ligne_deux_points1	#hdaiii
+	reponse=`cat /tmp/temp_ligne_deux_points1`
+	reparti=$reponse
+	rm -f /tmp/temp_ligne_deux_points1
+
+	if ! [ "$reponse" = "" ] # si la partition existe
+	then 
+		numero_hd=`expr substr $reponse 4 3`
+		disque=`expr substr $reponse 1 3`       #hda
+	        if [ "$type" = "linux" ]
+		then
+	        	# id_type=`sfdisk /dev/$disque -c $numero_hd 2>/dev/null`
+	        	# 3 lignes suivantes inutiles
+	        	grep -c Linux /tmp/fichier_disque_dur > /tmp/nb_partition_linux
+		        nb_partition_linux=`cat /tmp/nb_partition_linux`
+		        rm -f /tmp/nb_partition_linux
+			#if [ "$nb_partition_linux" = "1" ] # partition linux non swap
+			#then
+				echo "$reponse" > /tmp/monter_partition
+            			runme autoriser_monter_partition_oscar
+            			partition_montee=`cat /tmp/monter_partition`
+            			rm -f /tmp/monter_partition
+				if ( test -e $partition_montee/oscar/image.partimage.000 ) || ( test -e $partition_montee/oscar/image.ntfs.00 ) || ( test -e $partition_montee/oscar/image_dar.1.dar ) || ( test -e $partition_montee/oscar/image_fsa.fsa ) || ( test -e $partition_montee/oscar1/image.partimage.000 ) || ( test -e $partition_montee/oscar1/image.ntfs.00 ) || ( test -e $partition_montee/oscar1/image_dar.1.dar ) || ( test -e $partition_montee/oscar1/image_fsa.fsa )
+				then
+					partition_linux=$reponse
+					umount /mnt/$reponse 2>/dev/null ; sync
+					rm -f /tmp/temp_ligne_deux_points
+				#	rm -f /tmp/fichier_partition_linux_possibles
+				#	rm -f /tmp/fichier_partition_linux_connues
+					return
+				elif ( test -e $partition_montee/etc/conf.d/hostname )
+				then
+					echo "$partition_montee" > /tmp/verifier_partition_montee_oscar
+					runme verifier_partition_oscar
+					resultat_oscar_sur_partition=`cat /tmp/verifier_partition_montee_oscar`
+					rm -f /tmp/verifier_partition_montee_oscar
+					if [ "$resultat_oscar_sur_partition" = "oui" ]
+					then
+						partition_linux=$reponse
+						umount /mnt/$reponse 2>/dev/null ; sync
+						rm -f /tmp/temp_ligne_deux_points
+						return
+					else
+						if ( test -e $partition_montee/etc/init.d )
+						then	# autre partition systeme linux
+							echo "$reponse" >> /tmp/fichier_partition_linux_connues
+							umount /mnt/$reponse 2>/dev/null ; sync
+						fi
+					fi
+					#	grep -ci "OSCAR" $partition_montee/etc/conf.d/hostname > /tmp/nbr_partition_oscar
+					#	nbr_partition_oscar=`cat /tmp/nbr_partition_oscar`
+					#	rm -f /tmp/nbr_partition_oscar
+					#	if [ "$nbr_partition_oscar" = "1" ]
+					#	then
+					#		echo "$reponse" >> /tmp/fichier_partition_linux_possibles
+					#		umount /mnt/$reponse 2>/dev/null ; sync
+					#	fi
+				elif ( test -e $partition_montee/etc/lsb-release )
+				then	# partition Ubuntu
+            				echo "$reponse" >> /tmp/fichier_partition_linux_connues
+            				umount /mnt/$reponse 2>/dev/null ; sync
+			        elif ( test -e $partition_montee/etc/release )
+				then	# partition Mandriva
+					echo "$reponse" >> /tmp/fichier_partition_linux_connues
+					umount /mnt/$reponse 2>/dev/null ; sync
+				elif ( test -e $partition_montee/grub/menu.lst )
+				then	# partition juste boot
+					echo "$reponse" >> /tmp/fichier_partition_linux_connues
+					umount /mnt/$reponse 2>/dev/null ; sync
+				elif ( test -e $partition_montee/etc/init.d )
+				then	# autre partition systeme linux
+					echo "$reponse" >> /tmp/fichier_partition_linux_connues
+					umount /mnt/$reponse 2>/dev/null ; sync
+				elif [ "$nombretype" = 1 ]	# une seule partition linux c'est la bonne
+				then
+					partition_linux=$reponse
+					umount /mnt/$reponse 2>/dev/null ; sync
+					rm -f /tmp/temp_ligne_deux_points
+					rm -f /tmp/fichier_partition_linux_possibles
+					rm -f /tmp/fichier_partition_linux_connues
+					return
+				else
+					echo "$reponse;" >> /tmp/fichier_partition_linux_possibles
+					umount /mnt/$reponse 2>/dev/null ; sync
+				fi
+			#fi
+		fi
+	fi
+    done
+rm -f /tmp/tempfile
+
+grep -ci ";" /tmp/fichier_partition_linux_possibles > /tmp/temp
+test_nombre=`cat /tmp/temp`
+if [ "$test_nombre" = "1" ]	# une seule partition possible linux donc oscar
+then
+	perl -pi -e 's/;//g;' /tmp/fichier_partition_linux_possibles
+	partition_linux=`cat /tmp/fichier_partition_linux_possibles`
+	rm -f /tmp/temp
+else
+	demander_partition_installation_oscar
+fi
+
+rm -f /tmp/fichier_partition_linux_possibles
+rm -f /tmp/fichier_partition_linux_connues
+}
+#----------------------------------------------------------------------------------------------------
+boite_partition_oscar() # selectionner seulement les partitions linux non swap et non connues
+{
+runme prepare_fichier_temptaille
+rm -f /tmp/bozo
+if ( test -e /tmp/fichier_partition_linux_connues )
+then
+	cp -f /tmp/fichier_partition_linux_connues /tmp/tempfile
+	rm -f /tmp/fichier_partition_linux_connues
+
+	# supprimer les partitions linux connues
+		perl -pi -e 's/;/ /g;' /tmp/tempfile
+		echo `gawk '{ print $1 " " }' /tmp/tempfile ` > /tmp/tempfile2
+		perl -pi -e 's/ sd/\" \| grep -v \"sd/g; s/ hd/\" \| grep -v \"hd/g;' /tmp/tempfile2
+		perl -pi -e 's/\"/ \"/g;' /tmp/tempfile2	# ajouter espace pour ne pas prendre sdaix
+		echo "grep -v \"`cat /tmp/tempfile2`\"" > /tmp/tempfile
+else
+	echo "grep -v \"__rien_du_tout__\"" > /tmp/tempfile
+fi
+
+echo "egrep -e \"^\/dev\" /tmp/fichier_disque_dur | grep -i \"linux\" | grep -v \"swap\" | \
+`cat /tmp/tempfile` | \
+perl -pi -e 's/\*//g;  s/\+/ /g; s/\-/ /g; s/  /:/g; s/:+/:/g;' > /tmp/tempfile1" > /tmp/exec_nom
+chmod +x /tmp/exec_nom
+/tmp/exec_nom
+rm -f /tmp/exec_nom
+rm -f /tmp/tempfile
+rm -f /tmp/tempfile2
+awk 'BEGIN { FS=" " } { printf ("%0s %15s %25s\n","\""$1"\" \"",$2,$3"\" \\")}' /tmp/tempfile1 > /tmp/bozo
+runme boite_selection_bozo
+if ( test -e /tmp/sortir )
+then
+	rm -f /tmp/sortir
+    	supprimer_poste_du_fichier_serveur
+	exit
+fi
+perl -pi -e 's/\/dev\///g;' /tmp/tempfile
+reponse=`cat /tmp/tempfile`
+rm -f /tmp/tempfile
+partition_linux=$reponse
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+demander_partition_installation_oscar() # propose les partitions linux seulement
+{
+	# Partition d'installation des fichiers OSCAR
+	echo " `cat $chemin_langue/selection_23` " > /tmp/menu_titre
+	echo "" > /tmp/menu_texte
+	echo "\n`cat $chemin_langue/selection_24`\n\n " > /tmp/fichierquestion
+	echo "\n\n`cat $chemin_langue/selection_22`" >> /tmp/fichierquestion
+	boite_partition_oscar
+	if ( test -e /tmp/sortir )
+	        then
+	        return
+	fi
+	
+	rm -f /tmp/menu_titre
+	rm -f /tmp/menu_texte
+	rm -f /tmp/fichierquestion
+	partition_linux=$reponse
+}
+#-----------------------------------------------------------------------------------------------------
+boite_forcer_sans_partition_linux()
+{
+	# Information pas de partition linux forcage propose
+	dialog --colors --backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Quitter`" --cancel-label "`cat $chemin_langue/Forcer`" \
+	--title " `cat $chemin_langue/Information` " \
+	--menu  "\n\n`cat $chemin_langue/msgbox_24` ... \n " 10 64 0 \
+	"" "`cat $chemin_langue/menu_173`"
+	case $? in
+	    0)  rm -f partition_linux_sauvegarde
+	    	supprimer_poste_du_fichier_serveur
+	    	exit
+	    	;;
+	    1) 	return
+	    	;;
+	    255) rm -f partition_linux_sauvegarde
+	    	supprimer_poste_du_fichier_serveur
+	    	exit
+	    	;;
+	esac
+}
+#-----------------------------------------------------------------------------------------------------
+cherche_linux()		# cherche partition linux et la monte
+{
+type="linux"
+partition_linux=
+echo "eteindre_le_poste" > /tmp/tempofile
+boucle_partition
+if ( [ "$partition_linux" = "" ] || [ "$partition_linux" = " " ] ) # il n'y a pas de partitions linux
+then
+	test_partition_linux=non
+	echo "" > partition_linux_sauvegarde
+	return
+fi
+	echo "$partition_linux" > partition_linux_sauvegarde 	# pour installe_oscar_dd
+	
+	#if ! ( test -e /mnt/$partition_linux )
+	#	then	mkdir /mnt/$partition_linux
+	#fi
+	
+	echo "$partition_linux" > /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	partition_linux=`cat /tmp/monter_partition`
+	rm -f /tmp/monter_partition
+}
+#  fin de recherche de partition linux
+#----------------------------------------------------------------------------------------------------
+installation_eventuelle_cdOSCAR()
+{
+umount /mnt/$base 2>/dev/null ; sync
+### les fichiers OSCAR envoyés sont dans le rep $partition_linux/cd_oscar/oscar/
+
+#### préparer lilo.conf:
+echo "$partition_linux" > /tmp/partition_oscar_image
+fichiers_oscar_clients
+
+if ( test -e $partition_linux/usr/share/oscar/bin/fichier_t ) # semble inutile
+then
+	cp -f $partition_linux/cd_oscar/oscar/bin/fichier_r $partition_linux/usr/share/oscar/bin/fichier_r	# resolution_vga
+	cp -f $partition_linux/cd_oscar/oscar/bin/fichier_s $partition_linux/usr/share/oscar/bin/fichier_s	# seul
+	cp -f $partition_linux/cd_oscar/oscar/bin/fichier_t $partition_linux/usr/share/oscar/bin/fichier_t	# tous
+	cp -f $partition_linux/cd_oscar/oscar/bin/fichier_b $partition_linux/usr/share/oscar/bin/fichier_b	# boot
+fi
+
+#### fin de préparer lilo.conf
+if [ "$partition_linux" = "" ]
+then
+	partition_linux=/mnt/`cat partition_linux_sauvegarde`
+	echo "$partition_linux" > /tmp/partition_oscar_image
+fi
+###  nettoyer le boot avant mise à jour éventuelle
+if ( test -e $partition_linux/boot/boot.b )
+then
+	chmod 777 $partition_linux/boot/boot.b
+	rm -f $partition_linux/boot/boot.b
+fi
+
+# installe_oscar_dd pour installer_fichiers_oscar et grub :
+echo "$partition_linux" > /tmp/tempfile # /mnt/sda2
+perl -pi -e 's/\/mnt\///g;' /tmp/tempfile # sda2
+repertoire_oscar=`cat /tmp/tempfile`
+echo "$repertoire_oscar" > /tmp/partition_oscar_client
+echo "" > /tmp/client_lance
+echo "" > /tmp/client_nfs_lance
+echo "" > /tmp/repare_boot_dd
+
+if ( test -e /etc/demarrage_cdrom ) || ( test -e /etc/demarrage_usb )	###	Si démarrage par cdrom ou usb installer les fichiers et le boot:
+then
+	installe_oscar_dd  ### faire le fichier grub.conf et grub si pas lilo_expert
+else	## il faut installer juste grub.conf pour mise à jour mais pas les fichiers oscar
+	echo "" > /tmp/client_multi_lance
+	installe_oscar_dd  ### faire le fichier grub.conf et grub si pas lilo_expert
+fi
+
+###	mise à jour des fichiers oscar:
+echo "$repertoire_oscar" > /tmp/monter_partition
+runme autoriser_monter_partition_oscar
+repertoire_oscar=`cat /tmp/monter_partition`
+rm -f /tmp/monter_partition
+if [ "$repertoire_oscar" = "" ]
+then
+	repertoire_oscar=`cat partition_linux_sauvegarde`
+fi
+
+### installer les nouveaux fichiers oscar:
+cp -f $partition_linux/etc/date_oscar $partition_linux/oscar/date_oscar
+if ( test -e $partition_linux/cd_oscar/oscar/var_salle )
+then
+	cp -fr $partition_linux/cd_oscar/oscar/var_salle $partition_linux/usr/share/oscar/
+fi	
+
+fichiers_oscar_clients fichiers_apres_installe_oscar_dd
+
+rm -f /tmp/client_lance
+rm -f partition_linux_sauvegarde
+rm -fr $partition_linux/cd_oscar
+rm -f /tmp/partition_oscar_image
+### fin d'installation éventuelle du cd OSCAR
+}
+#-----------------------------------------------------------------------------------------------------
+proposer_la_liste_des_postes_sysprep()
+{
+sysprep boite_liste_des_postes_sysprep
+
+	reponse=`cat /tmp/tempfile_sysprep`
+	rm -f /tmp/tempfile_sysprep
+	client=$reponse
+	poste=$client
+}
+#-----------------------------------------------------------------------------------------------------
+demander_boite_numero_poste()
+{
+if ( test -e /tmp/liste_postes_sysprep )
+then
+	proposer_la_liste_des_postes_sysprep
+	echo
+else
+	# echo "\n`cat $chemin_langue/inputbox_25`" > /tmp/fichierquestion
+	defaut=$poste
+	boite_numero_poste_dhcp
+fi
+}
+#----------------------------------------------------------------------------------------------------
+boite_numero_poste_dhcp()
+{
+rm -f /tmp/tempfile
+	clear
+	# Restauration du poste depuis un serveur en NFS
+        DIALOGRC="/etc/dialogrc" dialog --colors \
+        --backtitle "`cat /etc/banniere_oscar`" \
+        --cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/inputbox_27` " \
+        --inputbox "\n\n`cat $chemin_langue/inputbox_28`" 11 60 $defaut 2>/tmp/tempfile
+     case $? in
+            0)  teste_numero_client
+		rm -f /tmp/fichierquestion
+		if ( test -e /tmp/sortir )
+	        then
+	        	rm -f /tmp/tempfile
+    			rm -f /tmp/sortir
+    			supprimer_poste_du_fichier_serveur
+	        	exit
+		fi
+
+                reponse=`cat /tmp/tempfile`
+                rm -f /tmp/tempfile
+                return ;;
+            1)  rm -f /tmp/tempfile
+                echo "" > /tmp/sortir
+                rm -f /tmp/fichierquestion
+                return;;
+            255) rm -f /tmp/tempfile
+                echo "" > /tmp/sortir
+                rm -f /tmp/fichierquestion
+                return;;
+        esac
+}
+#----------------------------------------------------------------------------------------------------
+boite_demande_chemin_oscar_serveur()
+{
+	# Répertoire OSCAR partagé par le serveur
+        DIALOGRC="/etc/dialogrc" dialog --colors \
+        --backtitle "`cat /etc/banniere_oscar`" \
+        --cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/inputbox_29` " \
+        --inputbox "\n\n`cat $chemin_langue/inputbox_30`" 11 60 / 2>/tmp/tempfile
+     case $? in
+            0)  
+                reponse=`cat /tmp/tempfile`
+                rm -f /tmp/tempfile
+                return ;;
+            1)  rm -f /tmp/tempfile
+                echo "" > /tmp/sortir
+                return;;
+            255) rm -f /tmp/tempfile
+                echo "" > /tmp/sortir
+                return;;
+        esac
+}
+#----------------------------------------------------------------------------------------------------
+table_partitions_eventuel()
+{
+# if ( test -e /mnt/serveur_oscar/var_poste/procedure_serveur_nfs )
+if ( test -e /mnt/serveur_nfs/procedure_serveur_nfs )
+then
+	# cut -f2 -d"," /mnt/serveur_oscar/var_poste/procedure_serveur_nfs > /tmp/procedure_serveur
+	cut -f2 -d"," /mnt/serveur_nfs/procedure_serveur_nfs > /tmp/procedure_serveur
+	procedure_serveur=`cat /tmp/procedure_serveur`
+	rm -f /tmp/procedure_serveur
+	if [ "$procedure_serveur" = "table_partitions" ]
+	then
+		umount $partition_linux 2>/dev/null ; sync
+		# disque_maitre=`cat /mnt/serveur_oscar/disque_maitre`
+		disque_maitre=`cat /mnt/serveur_nfs/disque_maitre`
+		echo "$disque_maitre" > /tmp/disque_client
+		# cp -f /mnt/serveur_oscar/taille_disque_envoye /tmp/taille_disque_envoye
+		cp -f /mnt/serveur_nfs/taille_disque_envoye /tmp/taille_disque_envoye
+		
+		##################
+		if ( test -e /dev/evms/$disque_maitre )
+		then
+		    evms_oscar="evms/"
+		else
+		    evms_oscar=
+		fi
+		##################
+	
+		if ! ( test -e /dev/$evms_oscar$disque_maitre )
+		then
+			# texte_mauvais_cablage_disque
+			serveur_disque choisir_disque_maitre
+			disque_maitre=`cat /tmp/disque`	# sda
+			rm -f /tmp/disque
+			if ( test -e /tmp/sortir )
+			then
+			    rm -f /tmp/sortir
+			    supprimer_poste_du_fichier_serveur
+			    exit
+			fi
+		fi
+		if ! ( test -e /etc/demarrage_cdrom ) ## le poste est démarré avec client_multi ou USB voir depart
+		then
+			echo "$disque_maitre" > /tmp/disque_maitre_image
+			client_table test_demarrage_table_partition
+			if ( test -e /tmp/sortir )
+		        then
+	    			rm -f /tmp/sortir
+	    			supprimer_poste_du_fichier_serveur
+		        	exit
+			fi
+		fi
+
+		# cut -f4 -d"," /mnt/serveur_oscar/var_poste/procedure_serveur_nfs > /tmp/procedure_disque
+		cut -f4 -d"," /mnt/serveur_nfs/procedure_serveur_nfs > /tmp/procedure_disque
+		procedure_disque=`cat /tmp/procedure_disque`
+		rm -f /tmp/procedure_disque
+		if [ "$procedure_disque" != "disque" ]
+		then
+			echo
+			echo -e " `cat $chemin_langue/texte_33` ..."
+			echo
+		fi
+		
+		client_clone controler_taille_disque_client
+		if ( test -e /tmp/sortir )
+		then
+			rm -f /tmp/sortir
+			supprimer_poste_du_fichier_serveur
+			exit
+		fi
+
+		# sfdisk /dev/$evms_oscar$disque_maitre < /mnt/serveur_oscar/table_partitions.sf -f 2>/dev/null	# il est oblogatoire après d'attendre 5 secondes pour continuer
+		#	sfdisk /dev/$evms_oscar$disque_maitre < /mnt/serveur_nfs/table_partitions.sf -f 2>/dev/null	# il est oblogatoire après d'attendre 5 secondes pour continuer
+		#	echo
+		#	echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+		#	echo
+		#	sleep 6 # obligatoire après l'installation de la table des partitions
+		#	echo
+		#	echo -e "\033[1;32m ..."
+		#	echo
+		#	# dd if=/mnt/serveur_oscar/table_partitions.mbr of=/dev/$evms_oscar$disque_maitre 2>/dev/null
+		#	dd if=/mnt/serveur_nfs/table_partitions.mbr of=/dev/$evms_oscar$disque_maitre 2>/dev/null
+		#	sleep 8 # obligatoire après le mbr
+		
+		cp -f /mnt/serveur_nfs/disque_maitre disque_maitre
+		cp -f /mnt/serveur_nfs/formatage_disques formatage_disques
+		cp -f /mnt/serveur_nfs/formatage_linux /tmp/formatage_linux
+		
+		# cut -f4 -d"," /mnt/serveur_oscar/var_poste/procedure_serveur_nfs > /tmp/procedure_serveur
+		cut -f4 -d"," /mnt/serveur_nfs/procedure_serveur_nfs > /tmp/procedure_serveur
+		procedure_serveur=`cat /tmp/procedure_serveur`
+		rm -f /tmp/procedure_serveur
+		if [ "$procedure_serveur" = "disque" ]	# cette procedure ne fonctionne pas en nfs
+		then
+			echo "" > /tmp/procedure_nfs_disque
+			echo "$ip_serveur" > /tmp/ip_serveur_disque
+			finir_procedure_disque=oui
+		fi
+		
+		cp -f /mnt/serveur_nfs/table_partitions.sf table_partitions.sf
+		cp -f /mnt/serveur_nfs/table_partitions.mbr table_partitions.mbr
+		cp -f /mnt/serveur_nfs/fichier_disque_dur_serveur /tmp/fichier_disque_dur_serveur
+		client_clone formater_disque
+		rm -f table_partitions.sf
+		rm -f table_partitions.mbr
+		rm -f /tmp/fichier_disque_dur_serveur
+		
+		# cut -f3 -d"," /mnt/serveur_oscar/var_poste/procedure_serveur_nfs > /tmp/procedure_serveur
+		cut -f3 -d"," /mnt/serveur_nfs/procedure_serveur_nfs > /tmp/procedure_serveur
+		procedure_serveur=`cat /tmp/procedure_serveur`
+		rm -f /tmp/procedure_serveur
+		if ( test -e /mnt/serveur_oscar/var_poste/reboot_clients )
+		then
+			reboot_clients=`cat /mnt/serveur_oscar/var_poste/reboot_clients`
+		fi
+		if [ "$procedure_serveur" = "formate" ]	|| [ "$finir_procedure_disque" = "oui" ] # aussi pour disque
+		then
+			if ( test -e /tmp/oui_partition_oscar_existe_disque )
+			then
+				rm -f /tmp/oui_partition_oscar_existe_disque
+				# faire reparer_boot
+				echo "" > /tmp/rst_lance
+				echo "" > /tmp/repare_boot_dd
+				installe_oscar_dd	# pour boot sur partition systÃ¨me linux aprÃ¨s formatage mbr local
+			else
+				if [ "$finir_procedure_disque" = "oui" ]
+				then
+					# sfdisk -f /dev/$evms_oscar$disque_maitre < /mnt/serveur_nfs/table_partitions.sf 2>/dev/null	# il est oblogatoire après d'attendre 5 secondes pour continuer
+					echo "$evms_oscar$disque_maitre" > /tmp/disque_installer_table_sf
+					cp -f /mnt/serveur_nfs/table_partitions.sf /tmp/fichier_installer_table_sf
+					runme installer_table_partition_sf
+					sleep 2 # obligatoire après l'installation de la table des partitions
+					echo
+					echo -e "\033[1;32m ..."
+					echo
+					# dd if=/mnt/serveur_oscar/table_partitions.mbr of=/dev/$evms_oscar$disque_maitre 2>/dev/null
+					dd if=/mnt/serveur_nfs/table_partitions.mbr of=/dev/$evms_oscar$disque_maitre 2>/dev/null
+					sleep 2 # obligatoire après le mbr
+				fi
+			fi
+			supprimer_poste_du_fichier_serveur
+			client_table eteindre_ordinateur
+			sleep 4
+			if [ "$reboot_clients" = "oui_reboot" ]
+			then
+				reboot
+			else
+				halt
+			fi
+		fi
+		partition_installer_oscar=`cat /mnt/serveur_oscar/partition_installer_oscar`
+		if ! ( test -e /mnt/$partition_installer_oscar )
+		then
+			mkdir /mnt/$partition_installer_oscar
+		fi
+		mount /dev/$evms_oscar$partition_installer_oscar /mnt/$partition_installer_oscar
+		partition_linux="/mnt/$partition_installer_oscar"
+	else
+		if [ "$test_partition_linux" = "non" ]
+		then
+			boite_forcer_sans_partition_linux
+		fi
+	fi
+fi
+}
+#----------------------------------------------------------------------------------------------------
+sauver_eventuel()
+{
+# if ( test -e /mnt/serveur_oscar/var_poste/procedure_serveur_nfs )
+if ( test -e /mnt/serveur_nfs/procedure_serveur_nfs )
+then
+	# cut -f1 -d"," /mnt/serveur_oscar/var_poste/procedure_serveur_nfs > /tmp/procedure_serveur
+	cut -f1 -d"," /mnt/serveur_nfs/procedure_serveur_nfs > /tmp/procedure_serveur
+	procedure_serveur=`cat /tmp/procedure_serveur`
+	rm -f /tmp/procedure_serveur
+	if [ "$procedure_serveur" = "restaure+sauve" ]
+	then
+		if [ "$partition_linux" = "" ] # demarrage poste
+		then
+			# determiner la partition de demarrage OSCAR :
+			grep -i "^\/dev" /etc/mtab | grep -i " \/ " | head -n 1 | perl -pi -e 's/ //g;' > /tmp/ligne_uuid_demarrage
+			cut -d"/" -f5 /tmp/ligne_uuid_demarrage > /tmp/temp_sdai
+			rm -f /tmp/ligne_uuid_demarrage
+    			installe_oscar_dd remplacer_uuid_par_sdai
+    			partition_linux=/mnt/`cat /tmp/temp_sdai`
+    			rm -f /tmp/temp_sdai
+		fi
+		echo "$partition_linux" > /tmp/chemin_de_sauvegarde
+		sauve sauvegarder
+	fi
+fi
+}
+#----------------------------------------------------------------------------------------------------
+teste_serveur_oscar()
+{
+# if ( test -e /mnt/serveur_oscar/var_poste/procedure_serveur_nfs )
+if ( test -e /mnt/serveur_nfs/procedure_serveur_nfs )
+then
+	if ( test -e /mnt/serveur_oscar/var_poste/reboot_clients )
+	then
+		reboot_clients=`cat /mnt/serveur_oscar/var_poste/reboot_clients`
+	fi
+	# cut -f2 -d"," /mnt/serveur_oscar/var_poste/procedure_serveur_nfs > /tmp/procedure_serveur
+	cut -f2 -d"," /mnt/serveur_nfs/procedure_serveur_nfs > /tmp/procedure_serveur
+	procedure_serveur=`cat /tmp/procedure_serveur`
+	rm -f /tmp/procedure_serveur
+	if [ "$procedure_serveur" = "oscar" ]
+	then
+		disque_boot=`cat /mnt/serveur_oscar/var_poste/disque_boot` # inutile
+		client_fichiers_oscar=oui
+		oscar_dd=oui
+	fi
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+configurer()
+{
+umount /mnt/serveur_nfs 2>/dev/null ; sync
+umount /mnt/serveur_oscar 2>/dev/null ; sync
+variable_runme=`cat /tmp/tempofile`
+clear
+rm -f /tmp/tempofile
+}
+#----------------------------------------------------------------------------------------------------
+fin_apres_sysprep()
+{
+	# installation_eventuelle_cdOSCAR :
+	if [ "$oscar_dd" = "oui" ]
+	then
+		installation_eventuelle_cdOSCAR # sur partition_linux
+	fi
+	ajouter_fichier_mac_adresse_poste
+	poste=`cat $partition_linux/oscar/var_poste/numero_poste_client`
+	echo "\Zb\Z2         `cat $chemin_langue/texte_19` \Z4$poste `cat $chemin_langue/infobox_9`\n
+	\n`cat $chemin_langue/infobox_2`" > /tmp/texte_fin
+	largeur_info=60
+}
+#----------------------------------------------------------------------------------------------------
+ajouter_mac_adresse_au_serveur()
+{
+if ( test -e /mnt/serveur_oscar/var_poste/salle_clients )
+then
+	cut -f1 -d";" /mnt/serveur_oscar/var_poste/salle_clients > /tmp/nom_salle
+	if ( test -e /mnt/serveur_oscar/var_poste/`cat /tmp/nom_salle`.wol )
+	then	# supprimer la mac adresse si existe
+		grep -v "`cat /tmp/mac_adresse`" /mnt/serveur_oscar/var_poste/`cat /tmp/nom_salle`.wol > /tmp/temp_nom_salle
+		cp -f /tmp/temp_nom_salle /mnt/serveur_oscar/var_poste/`cat /tmp/nom_salle`.wol
+		rm -f /tmp/temp_nom_salle
+	fi
+	echo "`cat /tmp/mac_adresse`,poste=`cat $partition_linux/oscar/var_poste/numero_poste_client`" >> /mnt/serveur_oscar/var_poste/`cat /tmp/nom_salle`.wol
+fi
+}
+#---------------------------------------------------------------------------------------------------
+trouver_config()
+{
+grep -i "right (" /usr/share/oscar/bin/choix_largeur_bande > /tmp/choix1
+perl -pi -e 's/##//g; s/ //g;' /tmp/choix1
+choix1=`cat /tmp/choix1`
+rm -f /tmp/choix1
+config_disk=`expr substr $choix1 17 1`
+}
+#---------------------------------------------------------------------------------------------------
+supprimer_poste_du_fichier_serveur()
+{
+rm -f /mnt/serveur_nfs/postes_connectes_nfs/$poste
+if ( test -e /mnt/serveur_nfs/client_pxe )
+then
+	# indiquer au serveur pxe que le poste va s'eteindre :
+	echo "perl -pi -e 's/$poste//g;' /mnt/serveur_nfs/client_pxe" > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+fi
+
+# enleve les doublons du fichier $partition_linux/usr/share/oscar/var_salle/`cat /tmp/nom_salle`.wol
+if ( test -e /tmp/nom_salle )
+then
+	if ( test -e $partition_linux/usr/share/oscar/var_salle/`cat /tmp/nom_salle`.wol )
+	then
+		cp -f $partition_linux/usr/share/oscar/var_salle/`cat /tmp/nom_salle`.wol /tmp/temp_doublons_a_supprimer
+		enlever_les_doublons
+		if ( test -e /tmp/doublons_supprimes )
+		then
+			cp -f /tmp/doublons_supprimes $partition_linux/usr/share/oscar/var_salle/`cat /tmp/nom_salle`.wol
+		fi
+		rm -f /tmp/doublons_supprimes
+		rm -f /tmp/nom_salle
+	fi
+fi
+umount /mnt/serveur_nfs 2>/dev/null ; sync
+umount /mnt/serveur_oscar 2>/dev/null ; sync
+umount /mnt/serveur_partage 2>/dev/null ; sync
+}
+#---------------------------------------------------------------------------------------------------
+lancer_config_reseau()
+{
+if ( test -e /tmp/format_ip_salle )
+then
+	if ( test -e /tmp/format_disque )
+	then
+		# echo " : " >> /tmp/format_disque
+		echo `gawk '{ print $1 ";" } ' /tmp/format_disque` > /tmp/format_disque1
+		perl -pi -e 's/;/;
+		/g;' /tmp/format_disque1
+		grep -ci ";" /tmp/format_disque1 > /tmp/format_disque
+		config_disk=`cat /tmp/format_disque`
+		rm -f /tmp/format_disque1
+		rm -f /tmp/format_disque
+		config_disque1=$[$config_disque-$config_disk]
+		trouver_config
+		config_disque=`expr substr $config_disque1 1 1`
+		# if [ "$config_disque" = "config_disk" ]
+		if [ "$config_disque" = "$config_disk" ]
+		then
+			clear
+			config_disk=
+			config_disque=
+			configurer
+			runme $variable_runme
+		fi
+	fi
+fi
+rm -f /tmp/tempofile
+}
+#---------------------------------------------------------------------------------------------------
+ajouter_fichier_mac_adresse_poste()
+{
+if ( test -e $partition_linux/usr/share/oscar )
+then
+	if ! ( test -e $partition_linux/usr/share/oscar/var_salle )
+	then
+		mkdir $partition_linux/usr/share/oscar/var_salle
+	fi
+	if ( test -e /tmp/nom_salle )
+	then
+		if ( test -e /mnt/serveur_oscar/var_poste/`cat /tmp/nom_salle`.wol )
+		then
+			cp -f /mnt/serveur_oscar/var_poste/`cat /tmp/nom_salle`.wol $partition_linux/usr/share/oscar/var_salle/`cat /tmp/nom_salle`.wol
+		fi
+	fi
+fi
+supprimer_poste_du_fichier_serveur
+}
+#----------------------------------------------------------------------------------------------------
+ecrire_sur_ntfs_oscar()
+{
+if ! ( test -e $partition_ecrire_oscar/demarre_oscar )
+then
+	mkdir $partition_ecrire_oscar/demarre_oscar
+fi
+
+## nettoyer partition_ecrire_oscar sur le poste :
+if ( test -e $partition_ecrire_oscar/oscar.bat )
+then 
+	rm -f $partition_ecrire_oscar/oscar.bat
+fi
+if ( test -e $partition_ecrire_oscar/oscar_modifstartup_nom.reg )
+then 
+	rm -f $partition_ecrire_oscar/oscar_modifstartup_nom.reg
+fi
+if ( test -e $partition_ecrire_oscar/oscar_nettoie_numero_poste.reg )
+then 
+	rm -f $partition_ecrire_oscar/oscar_nettoie_numero_poste.reg
+fi
+
+if ( test -e $partition_ecrire_oscar/fin_numero_poste_oscar.reg )
+then 
+	rm -f $partition_ecrire_oscar/fin_numero_poste_oscar.reg
+fi
+if ! ( test -e $partition_linux/oscar/demarre_oscar )
+then 
+	mkdir $partition_linux/oscar/demarre_oscar
+fi
+if ( test -e $partition_ecrire_oscar/demarre_oscar/delay.vbs )
+then
+    rm -f $partition_ecrire_oscar/demarre_oscar/delay.vbs
+fi
+if ( test -e $partition_ecrire_oscar/demarre_oscar/fin_numero_poste_oscar.bat )
+then
+    rm -f $partition_ecrire_oscar/demarre_oscar/fin_numero_poste_oscar.bat
+fi
+
+###### installer newsid:
+newsid=`cat /mnt/serveur_oscar/var_poste/domaine`
+cp -f /mnt/serveur_oscar/var_poste/domaine $partition_linux/oscar/var_poste/domaine
+if [ "$newsid" = "non" ]
+then
+	mettre_nom_poste
+else 
+	mettre_dom_nom_poste
+fi
+
+###### copier les fichiers dans partition_ecrire_oscar et dans demarre_oscar mais pas sur linux (non montée ni trouvée):
+
+if [ "$oscar_dd" = "oui" ]
+then
+	cp -f partition_oscar $partition_linux/oscar
+fi
+cp -f oscar.bat $partition_ecrire_oscar
+cp -f oscar.bat $partition_linux/oscar
+cp -f /mnt/serveur_oscar/var_poste/salle_clients $partition_linux/oscar/var_poste
+if ( test -e domaine_oscar.bat )
+then
+	cp -f domaine_oscar.bat $partition_ecrire_oscar/demarre_oscar
+fi
+cp -f oscar_modifstartup_nom.reg $partition_ecrire_oscar
+if ( test -e oscar_nettoie_numero_poste.reg )
+then
+	cp -f oscar_nettoie_numero_poste.reg $partition_ecrire_oscar
+fi
+cp -f fin_numero_poste_oscar.reg $partition_ecrire_oscar
+cp -f fin_numero_poste_oscar.bat $partition_ecrire_oscar/demarre_oscar
+cp -f /tmp/delay.vbs $partition_ecrire_oscar/demarre_oscar
+cp -f /tmp/nom_oscar_poste $partition_ecrire_oscar
+
+# installation_eventuelle_cdOSCAR :
+if [ "$oscar_dd" = "oui" ]
+then
+	installation_eventuelle_cdOSCAR # sur partition_linux
+fi
+
+# nettoyer desktop.ini intempestif
+rm -f $partition_ecrire_oscar/Documents\ and\ Settings/All\ Users/Menu\ Démarrer/Programmes/Démarrage/desktop.ini
+rm -f $partition_ecrire_oscar/ProgramData/Microsoft/Windows/Start\ Menu/Programs/Startup/desktop.ini
+
+ajouter_fichier_mac_adresse_poste
+#lettre_win=`cat /tmp/partition_oscar_lettre_win`
+lettre_win=C
+echo "\Zb\Z2           `cat $chemin_langue/texte_19` \Z4$nom_poste `cat $chemin_langue/infobox_9`\n
+	\n`cat $chemin_langue/infobox_10` \n
+	\n`cat $chemin_langue/infobox_16` \Z3$lettre_win:\\oscar.bat\n
+	\n\Z2        `cat $chemin_langue/infobox_2`" > /tmp/texte_fin
+largeur_info=76
+}
+#----------------------------------------------------------------------------------------------------
+verifier_si_le_poste_est_dans_la_liste_sysprep()
+{
+deja_demande_poste=non
+cut -d">" -f1 /tmp/liste_postes_sysprep > /tmp/liste_postes_sysprep1
+grep -ci "$poste" /tmp/liste_postes_sysprep1 > /tmp/test_nb_poste
+test_nb_poste=`cat /tmp/test_nb_poste`
+rm -f /tmp/test_nb_poste
+rm -f /tmp/liste_postes_sysprep1
+if ! [ "$test_nb_poste" = "1" ]
+then
+	demander_boite_numero_poste
+	deja_demande_poste=oui
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+montage_nfs_avec_controle_serveur_oscar()
+{
+#############/etc/init.d/nfs restart 1>/dev/null 2>/dev/null
+mount "$ip_serveur":$chemin_oscar /mnt/serveur_oscar 1>/dev/null 2>/dev/null	# serveur_oscar est le repertoire oscar du serveur
+sleep 4
+
+grep -ci "/mnt/serveur_oscar" /etc/mtab > /tmp/test_deja_monte_nfs
+test_deja_monte_nfs=`cat /tmp/test_deja_monte_nfs`
+rm -f /tmp/test_deja_monte_nfs
+if [ "$test_deja_monte_nfs" = "0" ]
+then
+	montage_nfs_avec_controle_serveur_oscar
+	return
+	#	echo
+	#	echo -e "\033[1;31m  `cat $chemin_langue/menu_665a`"
+	#	echo
+	#	echo -e "  `cat $chemin_langue/boucle_2`"
+	#	read p
+	#	exit
+else
+	return
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+montage_nfs_avec_controle_serveur_nfs()
+{
+tftpboot_partage=`cat /tmp/partage_tftpboot_serveur 2>/dev/null`
+test_reseau_nfs=$?	# /tmp/partage_tftpboot_serveur n'existe pas
+if [ "$test_reseau_nfs" != 0 ]
+then
+	echo
+	echo -e "\033[1;31m  `cat $chemin_langue/menu_665a`"
+	echo
+	if ! ( test -e /etc/avahi/oscar_avahi )
+	then
+		echo -e " `cat $chemin_langue/boucle_2`"
+		read p
+	fi
+	lancer_avahi client
+	return
+fi
+rm -f /tmp/partage_tftpboot_serveur
+mount "$ip_serveur":$tftpboot_partage /mnt/serveur_nfs 1>/dev/null 2>/dev/null	# serveur_nfs est le repertoire oscar du serveur
+sleep 4
+
+grep -ci "/mnt/serveur_nfs" /etc/mtab > /tmp/test_deja_monte_nfs
+test_deja_monte_nfs=`cat /tmp/test_deja_monte_nfs`
+rm -f /tmp/test_deja_monte_nfs
+if [ "$test_deja_monte_nfs" = "0" ]
+then
+	montage_nfs_avec_controle_serveur_nfs
+	return
+	#	echo
+	#	echo -e "\033[1;31m  `cat $chemin_langue/menu_665a`"
+	#	echo
+	#	echo -e "  `cat $chemin_langue/boucle_2`"
+	#	read p
+	#	exit
+else
+	return
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+restaure_ntfsclone()
+{
+# si procedure simple : comparer la taille de la sauvegarde avec la partition windows a restaurer non encore realise
+
+echo -e " `cat $chemin_langue/texte_30` \033[1;32m$base $texte_ecrire\033[1;34mNTFS \033[1;m...\033[1;31m"
+echo -e "\033[1;m `cat $chemin_langue/Taille` = $valeur1 Mo\033[1;m     `cat $chemin_langue/Poste` : \033[1;31m$poste "
+echo
+cat image.ntfs.* | gunzip -c | ntfsclone --restore-image --overwrite /dev/$evms_oscar$base -
+erreur=$?
+if ! [ "$erreur" = "0" ]
+then	# des erreurs
+	echo
+        echo -e "\033[1;31m `cat $chemin_langue/ERREUR` \033[1;34m$base \033[1;31m`cat $chemin_langue/ou` \033[1;34m`cat $chemin_langue/sauvegarde`\033[1;34m ...\033[1;m "
+	echo
+	echo -e " `cat $chemin_langue/boucle_2`"
+	echo
+	read p
+	supprimer_poste_du_fichier_serveur
+	exit
+fi
+}
+#----------------------------------------------------------------------------------------------------
+lancer_client_nfs()
+{
+# deja fait dans avahi
+/etc/init.d/nfs restart 1>/dev/null 2>/dev/null
+# recuperer le repertoire partage:
+montage_nfs_avec_controle_serveur_nfs
+}
+#-----------------------------------------------------------------------------------------------------
+copier_sauvegarde_oscar_serveur()
+{
+rm -f /tmp/fin_transfert_oscar_serveur
+cp -f /mnt/serveur_oscar/$image_transferee.* $partition_linux/oscar/
+echo "" > /tmp/fin_transfert_oscar_serveur
+}
+#----------------------------------------------------------------------------------------------------
+bargraphe_copier_sauvegarde_oscar()
+{
+fin_transfert_oscar_serveur=non
+pourcentage_transfert=0
+valeur_fin_transfert=0
+while [ "$valeur_fin_transfert" != 1 ]
+do
+	sleep 4
+	# taille des fichiers copies
+	ls -s $partition_linux/oscar/$image_transferee.* | awk '{print $1 "+" }' > /tmp/liste_fichiers_copies	# par ligne : valeur
+	perl -pi -e 's/ //g;' /tmp/liste_fichiers_copies
+	taille_fichiers_copies=`cat /tmp/liste_fichiers_copies`1-1
+	rm -f /tmp/liste_fichiers_copies
+	taille_fichiers_copies=$[$taille_fichiers_copies]
+
+	pourcentage_transfert=$[100*$taille_fichiers_copies/$taille_fichiers_sauvegarde_serveur]
+
+	if ( test -e /tmp/fin_transfert_oscar_serveur )
+	then
+		valeur_fin_transfert=1
+		pourcentage_transfert=100
+		rm -f /tmp/fin_transfert_oscar_serveur
+	fi
+	pourcentage_transfert=$[$pourcentage_transfert]
+	echo $pourcentage_transfert
+done | DIALOGRC="/etc/dialogmenu_bloque" dialog --colors\
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/infobox_25a` " \
+	--gauge "\n\Zb\Z4  Poste :\Zb\Z2 $poste\n\Zb\Z4  `cat $chemin_langue/infobox_18` : \Zb\Z2$ecrire `cat $chemin_langue/infobox_22`" 15 70
+}
+#----------------------------------------------------------------------------------------------------
+copier_sauvegarde_serveur_nfs()
+{
+# copier seulement la sauvegarde du serveur
+	# nom si besoin ?
+	ecrire=
+	if ( test -e /mnt/serveur_oscar/partition_sauvegardee )
+	then
+		if ( test -e /mnt/serveur_oscar/commentaire_oscar.txt )
+		then	# nom de la sauvegarde copiee
+			ecrire=`cat /mnt/serveur_oscar/commentaire_oscar.txt`
+			texte_ecrire="$ecrire "
+		fi
+	fi
+if [ "$partition_linux" = "" ] # demarrage poste
+then
+	# determiner la partition de demarrage OSCAR :
+	grep -i "^\/dev" /etc/mtab | grep -i " \/ " | head -n 1 | perl -pi -e 's/ //g;' > /tmp/ligne_uuid_demarrage
+	cut -d"/" -f5 /tmp/ligne_uuid_demarrage > /tmp/temp_sdai
+	rm -f /tmp/ligne_uuid_demarrage
+	installe_oscar_dd remplacer_uuid_par_sdai
+	partition_linux=/mnt/`cat /tmp/temp_sdai`
+	rm -f /tmp/temp_sdai
+fi
+echo "$partition_linux" > /tmp/chemin_de_sauvegarde
+cp -f /mnt/serveur_oscar/partition_sauvegardee /tmp/base_copiee_serveur
+sauve preparer_copier_sauvegarde_client	# incrementer eventuel
+partition_linux=`cat /tmp/chemin_de_sauvegarde`
+rm -f /tmp/chemin_de_sauvegarde
+
+echo "$partition_linux" > /tmp/temp1
+perl -pi -e s'/\/mnt\///g' /tmp/temp1
+partition_linux=`cat /tmp/temp1`
+rm -f /tmp/temp1
+echo "$partition_linux" > /tmp/monter_partition
+runme autoriser_monter_partition_oscar
+partition_linux=`cat /tmp/monter_partition`
+rm -f /tmp/monter_partition
+
+# copier les fichiers sauvegardés
+cp -f /mnt/serveur_oscar/var_poste/taille_fichiers_sauvegarde_serveur /tmp/taille_fichiers_sauvegarde_serveur
+cut -d"," -f1 /tmp/taille_fichiers_sauvegarde_serveur > /tmp/taille_fichiers_sauvegarde_serveur1
+taille_fichiers_sauvegarde_serveur=`cat /tmp/taille_fichiers_sauvegarde_serveur1`
+taille_fichiers_sauvegarde_serveur=$[$taille_fichiers_sauvegarde_serveur]
+
+cut -d"," -f2 /tmp/taille_fichiers_sauvegarde_serveur > /tmp/taille_fichiers_sauvegarde_serveur1
+image_transferee=`cat /tmp/taille_fichiers_sauvegarde_serveur1`
+rm -f /tmp/taille_fichiers_sauvegarde_serveur1
+rm -f /tmp/taille_fichiers_sauvegarde_serveur
+
+
+echo "/mnt/serveur_oscar" > /tmp/partition_origine_oscar
+echo "$partition_linux/oscar" > /tmp/partition_destination_oscar
+if ( test -e /mnt/serveur_oscar/commentaire_oscar.txt )
+then
+	cp -f /mnt/serveur_oscar/commentaire_oscar.txt $partition_linux/oscar/
+fi
+transfert_sauvegarde copier_autres_fichiers_definissant_sauvegarde
+
+copier_sauvegarde_oscar_serveur &
+bargraphe_copier_sauvegarde_oscar
+}
+#----------------------------------------------------------------------------------------------------
+restaurer_eventuel()
+{
+if ( test -e /mnt/serveur_nfs/procedure_serveur_nfs )
+then
+	cut -f1 -d"," /mnt/serveur_nfs/procedure_serveur_nfs > /tmp/procedure_serveur
+	procedure_serveur=`cat /tmp/procedure_serveur`
+	rm -f /tmp/procedure_serveur
+	if [ "$procedure_serveur" = "petite" ]	# copier seulement la sauvegarde du serveur
+	then
+		return
+	fi
+fi
+cd /mnt/serveur_oscar
+	ecrire=
+	if ( test -e partition_sauvegardee )
+	then
+		if ( test -e commentaire_oscar.txt )
+		then
+			ecrire=`cat commentaire_oscar.txt`
+			texte_ecrire="$ecrire "
+		fi
+	fi
+	echo "`du * --max-depth=1 -ma`" > /tmp/valeur2
+	# prendre la premiere colonne et additionner :
+	echo `gawk '{ print$1 "+" }' /tmp/valeur2` > /tmp/valeur1
+	perl -pi -e 's/ //g;' /tmp/valeur1
+	valeur1=$[`cat /tmp/valeur1`0]
+	rm -f /tmp/valeur1
+	rm -f /tmp/valeur2
+
+echo
+echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+echo
+numero_sd=`expr substr $base 4 3`
+disque=`expr substr $base 1 3`       		#sda
+if ! ( test -e /tmp/fichier_disque_dur )
+then
+	runme info_ddialog
+fi
+
+rm -f /tmp/partition_ntfs_sauvegardee
+# id_type=`sfdisk /dev/$disque -c $numero_sd 2>/dev/null`
+grep -i $base /tmp/fichier_disque_dur | grep -ci ntfs > /tmp/nb_partition_ntfs
+nb_partition_ntfs=`cat /tmp/nb_partition_ntfs`
+rm -f /tmp/nb_partition_ntfs
+if [ "$nb_partition_ntfs" = "1" ] # partition ntfs
+then  # partition ntfs
+	if ! ( test -e image.partimage.000 )
+	then
+		if ! ( test -e image_dar.1.dar )
+		then
+			echo "" > /tmp/sauve_diag
+			if ( test -e /tmp/sauve_diag )
+			then
+				echo "/mnt/serveur_oscar" > /tmp/partition_restaure_dar
+				echo "$base" > /tmp/base_restaure_dar
+				echo "$texte_ecrire" > /tmp/texte_ecrire
+				echo "$poste" > /tmp/tmp_numero_poste_client
+				rm -f /tmp/sauve_fsa
+				if ! ( test -e image_fsa.fsa )
+				then
+					restaure_dar restaure_ntfsclone
+				else
+					echo "182" > /tmp/correcteur_compression_restaure	# compression 2,14 pour fsa
+					echo "partition_ntfs_sauvegardee" > /tmp/partition_ntfs_sauvegardee
+					restaure_dar restaure_fsa
+					echo "" > /tmp/sauve_fsa # pour la sauvegarde prochaine de cette procedure
+				fi
+				rm -f /tmp/sauve_diag
+				if ( test -e /tmp/sortir )
+			 	then
+			 		rm -f /tmp/sortir
+			 		oscar
+					exit
+			 	fi
+			else	# n'est plus utilise ancien
+				restaure_ntfsclone
+			fi
+		else
+			mkntfs -f /dev/$base 1>/dev/null
+			fsck /dev/$base -N 2>/tmp/ntfs_valide 1>/dev/null
+			grep -ci ntfs /tmp/ntfs_valide > /tmp/nb_ntfs_valide
+			nb_ntfs_valide=`cat /tmp/nb_ntfs_valide`
+			rm -f /tmp/nb_ntfs_valide
+			rm -f /tmp/ntfs_valide
+			if [ "$nb_ntfs_valide" = 0 ]
+			then
+				echo
+				echo -e " \033[1;33mOSCAR \033[1;34mcorrige la partition \033[1;32m$repertoire ntfs \033[1;34m:"
+				echo
+				mkfs.ext4 -qF /dev/$base
+				mkntfs -f /dev/$base
+			fi
+		fi
+		if ( test -e image_dar.1.dar )
+		then
+			echo "ntfs" > /tmp/besoin_type
+			echo "$base" > /tmp/monter_partition
+			runme autoriser_monter_partition_oscar
+			rm -f /tmp/monter_partition
+			rm -f /tmp/besoin_type
+			
+			echo "/mnt/serveur_oscar" > /tmp/partition_restaure_dar
+			echo "$base" > /tmp/base_restaure_dar
+			echo "173" > /tmp/correcteur_compression_restaure	# compression 1,73 pour ntfs
+			echo "$texte_ecrire" > /tmp/texte_ecrire
+			echo "$poste" > /tmp/tmp_numero_poste_client
+			restaure_dar
+		 	if ( test -e /tmp/sortir )
+		 	then
+		 		rm -f /tmp/sortir
+		 		oscar
+				exit
+		 	fi
+		 	echo "" > /tmp/sauve_ntfs_dar # pour la sauvegarde prochaine de cette procedure
+		fi
+		
+		# tester sysprep :
+		if ( test -e /mnt/$base/sysprep/sysprep_var.inf ) || ( test -e /mnt/$base/Windows/System32/sysprep/sysprep_var.xml ) || ( test -e /mnt/$base/Windows/oscar_deploie/oscar_var.txt ) || ( test -e /mnt/$base/WINDOWS/oscar_deploie/oscar_var.txt )
+		then
+			if ( test -e /mnt/$base/sysprep/sysprep_oscar.inf ) || ( test -e /mnt/$base/Windows/System32/sysprep/sysprep_oscar.xml ) || ( test -e /mnt/$base/Windows/oscar_deploie/oscar_var.txt ) || ( test -e /mnt/$base/WINDOWS/oscar_deploie/oscar_var.txt )
+			then
+				rm -f /tmp/sysprep_var.inf_temp_nfs
+				rm -f /tmp/sysprep_oscar.inf_temp_nfs
+				rm -f /tmp/sysprep_var.xml_temp_nfs
+				rm -f /tmp/sysprep_oscar.xml_temp_nfs
+				rm -f /tmp/oscar_var.txt_temp_nfs
+				echo "" > /tmp/client_nfs_sysprep
+				echo "$partition_linux" > /tmp/partition_linux_pour_sysprep
+				if ( test -e /mnt/$base/sysprep/sysprep_oscar.inf )
+				then
+					cp -f /mnt/$base/sysprep/sysprep_var.inf /tmp/sysprep_var.inf_temp_nfs
+					cp -f /mnt/$base/sysprep/sysprep_oscar.inf /tmp/sysprep_oscar.inf_temp_nfs
+				elif ( test -e /mnt/$base/Windows/System32/sysprep/sysprep_oscar.xml )
+				then
+					cp -f /mnt/$base/Windows/System32/sysprep/sysprep_var.xml /tmp/sysprep_var.xml_temp_nfs
+					cp -f /mnt/$base/Windows/System32/sysprep/sysprep_oscar.xml /tmp/sysprep_oscar.xml_temp_nfs
+				elif ( test -e /mnt/$base/Windows/oscar_deploie/oscar_var.txt )
+				then
+					cp -f /mnt/$base/Windows/oscar_deploie/oscar_var.txt /tmp/oscar_var.txt_temp_nfs
+				elif ( test -e /mnt/$base/WINDOWS/oscar_deploie/oscar_var.txt )
+				then
+					cp -f /mnt/$base/WINDOWS/oscar_deploie/oscar_var.txt /tmp/oscar_var.txt_temp_nfs
+				fi
+				sysprep
+				if ( test -e /tmp/sysprep_var.inf_temp_nfs )
+				then
+					cp -f /tmp/sysprep_var.inf_temp_nfs /mnt/$base/sysprep/sysprep_var.inf
+					cp -f /tmp/sysprep_oscar.inf_temp_nfs /mnt/$base/sysprep/sysprep_oscar.inf
+					rm -f /tmp/sysprep_var.inf_temp_nfs
+					rm -f /tmp/sysprep_oscar.inf_temp_nfs
+				elif ( test -e /tmp/sysprep_var.xml_temp_nfs )
+				then
+					cp -f /tmp/sysprep_var.xml_temp_nfs /mnt/$base/Windows/System32/sysprep/sysprep_var.xml
+					cp -f /tmp/sysprep_oscar.xml_temp_nfs /mnt/$base/Windows/System32/sysprep/sysprep_oscar.xml
+					rm -f /tmp/sysprep_var.xml_temp_nfs
+					rm -f /tmp/sysprep_oscar.xml_temp_nfs
+				elif ( test -e /tmp/oscar_var.txt_temp_nfs )
+				then
+					if ( test -e /mnt/$base/Windows/oscar_deploie )
+					then
+						cp -f /tmp/oscar_var.txt_temp_nfs /mnt/$base/Windows/oscar_deploie/oscar_var.txt
+					elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+					then
+						cp -f /tmp/oscar_var.txt_temp_nfs /mnt/$base/WINDOWS/oscar_deploie/oscar_var.txt
+					fi
+					rm -f /tmp/oscar_var.txt_temp_nfs
+				fi
+				umount /mnt/$base 2>/dev/null ; sync
+			fi
+		fi
+		umount /mnt/$base 2>/dev/null ; sync
+		echo
+	else 	# autre type de partition ou ancienne sauvegarde partimage en ntfs
+		rm -f /tmp/fichiertmp
+		
+		# Informations sur la sauvegarde de ce poste
+		echo " " >> /tmp/fichiertmp
+		echo "`cat $chemin_langue/msgbox_23`" >> /tmp/fichiertmp
+		echo " " >> /tmp/fichiertmp
+		dialog --colors --no-shadow --ok-label "`cat $chemin_langue/Continuer`" \
+		--backtitle  "`cat /etc/banniere_oscar`" \
+		--title " `cat $chemin_langue/msgbox_22` " \
+		--msgbox "`cat /tmp/fichiertmp`" 10 60
+		rm -f /tmp/fichiertmp
+		supprimer_poste_du_fichier_serveur
+		exit
+	fi
+else   # autre type de partition voir si c'est une bonne image:
+	if ( test -e image_dar.1.dar ) || ( test -e image_fsa.fsa )
+	then
+                if ! ( test -e /mnt/$base )
+                then
+			mkdir /mnt/$base
+                fi
+                grep -i $base /tmp/fichier_disque_dur | grep -c Linux > /tmp/nb_partition_linux
+		nb_partition_linux=`cat /tmp/nb_partition_linux`
+		rm -f /tmp/nb_partition_linux
+		if [ "$nb_partition_linux" = "1" ] # partition linux non swap
+		then # partition linux non swap
+	                fsck /dev/$evms_oscar$base -N > /tmp/fs_type
+		        grep -ci "reiserfs" /tmp/fs_type > /tmp/nb_fstype
+    			valeur=`cat /tmp/nb_fstype`
+            		if [ "$valeur" = "1" ] # partition ReiserFS
+		        then
+				echo
+    		        	echo -e " `cat $chemin_langue/texte_16` \033[1;34m$base \033[1;m`cat $chemin_langue/en` \033[0;32mLinux ReiserFS\033[1;m "
+				echo
+	                    	mkfs.reiserfs -fq /dev/$evms_oscar$base 2>/dev/null
+	                    	mount -t reiserfs /dev/$evms_oscar$base /mnt/$base
+		        else
+        		        grep -ci "xfs" /tmp/fs_type > /tmp/nb_fstype
+	        		valeur=`cat /tmp/nb_fstype`
+		                if [ "$valeur" = "1" ] # partition XFS
+    			        then
+            	    			echo
+	                		echo -e " `cat $chemin_langue/texte_16` \033[1;34m$base \033[1;m`cat $chemin_langue/en` \033[0;32mLinux XFS\033[1;m "
+					echo
+                        	        mkfs.xfs -f /dev/$evms_oscar$base
+                        	        mount -t xfs /dev/$evms_oscar$base /mnt/$base
+                        	else
+                        		grep -ci "jfs" /tmp/fs_type > /tmp/nb_fstype
+	        			valeur=`cat /tmp/nb_fstype`
+		                	if [ "$valeur" = "1" ] # partition JFS
+    			        	then
+	            	    			echo
+		                		echo -e " `cat $chemin_langue/texte_16` \033[1;34m$base \033[1;m`cat $chemin_langue/en` \033[0;32mLinux JFS\033[1;m "
+						echo
+	                        	        mkfs.jfs -q /dev/$evms_oscar$base
+	                        	        mount -t jfs /dev/$evms_oscar$base /mnt/$base
+					else
+						grep -ci "ext4" /tmp/fs_type > /tmp/nb_fstype
+		        			valeur=`cat /tmp/nb_fstype`
+			                	if [ "$valeur" = "1" ] # partition ext4
+	    			        	then
+							echo
+			            			echo -e " `cat $chemin_langue/texte_16` \033[1;34m$base \033[1;m`cat $chemin_langue/en` \033[0;32mLinux ext4\033[1;m "
+							echo
+	            		            		mkfs.ext4 -qF /dev/$evms_oscar$base
+	            		            		mount -t ext4 /dev/$evms_oscar$base /mnt/$base
+						else
+							grep -ci "reiser4" /tmp/fs_type > /tmp/nb_fstype
+			            			valeur=`cat /tmp/nb_fstype`
+				            		if [ "$valeur" = "1" ] # partition Reiser4
+			        		        then
+								echo
+				    		        	echo -e " `cat $chemin_langue/texte_16` \033[1;34m$base \033[1;m`cat $chemin_langue/en` \033[0;32mLinux Reiser4\033[1;m "
+								echo
+					                    	mkfs.reiser4 -f /dev/$evms_oscar$base 2>/dev/null
+					                    	mount -t reiser4 /dev/$evms_oscar$base /mnt/$base
+			    			        else  # autres cas ext3 et ext2
+				        		        echo
+				            			echo -e " `cat $chemin_langue/texte_16` \033[1;34m$base \033[1;m`cat $chemin_langue/en` \033[0;32mLinux ext3\033[1;m "
+								echo
+		            		            		mkfs.ext3 -qF /dev/$evms_oscar$base
+		            		            		mount -t ext3 /dev/$evms_oscar$base /mnt/$base
+		            		            	fi
+            		            		fi
+            		            	fi
+            			fi
+    			fi
+			rm -f /tmp/fs_type
+			rm -f /tmp/nb_fstype
+		else
+			grep -i $base /tmp/fichier_disque_dur | grep -ci swap > /tmp/nb_partition_swap
+			nb_partition_swap=`cat /tmp/nb_partition_swap`
+			rm -f /tmp/nb_partition_swap
+			if [ "$nb_partition_swap" = "1" ] # partition swap linux
+			then  # partition linux swap
+	                	echo
+	                	echo -e " `cat $chemin_langue/texte_16` \033[1;34m$base \033[1;m`cat $chemin_langue/en` \033[0;32mLinux swap\033[1;m "
+				echo
+				mkfs.ext3 -qF /dev/$evms_oscar$base
+				mkswap -f /dev/$evms_oscar$base
+				mount /dev/$evms_oscar$base /mnt/$base
+				grep -i $repertoire /tmp/fichier_disque_dur | grep -ci fat32 > /tmp/nb_partition_fat32
+				nb_partition_fat32=`cat /tmp/nb_partition_fat32`
+				rm -f /tmp/nb_partition_fat32
+			else
+				grep -i $base /tmp/fichier_disque_dur | grep -ci fat32 > /tmp/nb_partition_fat32
+				nb_partition_fat32=`cat /tmp/nb_partition_fat32`
+				rm -f /tmp/nb_partition_fat32
+				if [ "$nb_partition_fat32" = "1" ] # partition fat32
+		               	then
+					echo
+					echo -e " `cat $chemin_langue/texte_16` \033[1;34m$base \033[1;m`cat $chemin_langue/en` \033[0;32mfat32\033[1;m "
+					echo
+					mkdosfs -qF 32 /dev/$evms_oscar$base
+					mount /dev/$evms_oscar$base /mnt/$base
+				else
+					grep -i $base /tmp/fichier_disque_dur | grep -ci fat16 > /tmp/nb_partition_fat16
+					nb_partition_fat16=`cat /tmp/nb_partition_fat16`
+					rm -f /tmp/nb_partition_fat16
+					if [ "$nb_partition_fat16" = "1" ] # partition fat16
+			               	then
+						echo
+						echo -e " `cat $chemin_langue/texte_16` \033[1;34m$base \033[1;m`cat $chemin_langue/en` \033[0;32mfat16\033[1;m "
+						echo
+						mkdosfs -vF 16 /dev/$evms_oscar$base
+						mount /dev/$evms_oscar$base /mnt/$base
+					else    # partition  autre
+						mount /dev/$evms_oscar$base /mnt/$base
+					fi
+				fi
+	                fi
+		fi
+		# cd /mnt/$base
+		# dar -x /mnt/serveur_oscar/image_dar -R /mnt/$base -b -w -v # à voir option -b
+		echo "/mnt/serveur_oscar" > /tmp/partition_restaure_dar
+		echo "$base" > /tmp/base_restaure_dar
+		echo "234" > /tmp/correcteur_compression_restaure	# compression 2,34 pour linux
+		echo "$texte_ecrire" > /tmp/texte_ecrire
+		echo "$poste" > /tmp/tmp_numero_poste_client
+		if ! ( test -e /mnt/serveur_oscar/image_fsa.fsa )	# image_dar
+		then
+			restaure_dar
+		else # avec image_fsa.fsa
+			echo "182" > /tmp/correcteur_compression_restaure
+			umount /mnt/$base 2>/dev/null ; sync
+			restaure_dar restaure_fsa
+		fi
+         	if ( test -e /tmp/sortir )
+         	then
+         		rm -f /tmp/sortir
+         		oscar
+			exit
+         	fi
+                cd /root
+		if [ "$oscar_dd" != "oui" ]
+		then
+			if ( test -e /mnt/$base/dev )	# partition linux systeme
+			then
+				echo "" > /tmp/rst_lance
+				echo "" > /tmp/repare_boot_dd
+				installe_oscar_dd	# pour boot sur partition système linux après formatage mbr local
+			fi
+		fi
+                umount /mnt/$base 2>/dev/null ; sync
+	else
+		rm -f /tmp/fichiertmp
+		echo " " >> /tmp/fichiertmp
+		# Informations sur la sauvegarde de ce poste
+		echo "`cat $chemin_langue/msgbox_23`" >> /tmp/fichiertmp
+		echo " " >> /tmp/fichiertmp
+		dialog --colors --no-shadow --ok-label "`cat $chemin_langue/Continuer`" \
+		--backtitle  "`cat /etc/banniere_oscar`" \
+		--title " `cat $chemin_langue/msgbox_22` " \
+		--msgbox "`cat /tmp/fichiertmp`" 10 60
+		rm -f /tmp/fichiertmp
+		supprimer_poste_du_fichier_serveur
+		exit		
+	fi
+fi
+cd /root
+}
+#----------------------------------------------------------------------------------------------------
+numeroter_poste()
+{
+#copier les fichiers dans partition_oscar et dans demarre_oscar:
+nomsalle=`cat /mnt/serveur_oscar/var_poste/salle_clients`
+if ! [ "$nomsalle" = "aucun" ]	# copier les fichiers oscar si le nom du poste demandé:
+then
+
+#	echo "$nomsalle-P$poste" > /tmp/nom_oscar_poste
+#	cat /tmp/nom_oscar_poste | sed s/-P/_P/g > /tmp/nom_oscar_poste
+
+        grep -ci ";" /mnt/serveur_oscar/var_poste/salle_clients > /tmp/tempnombre
+        nombre_test=`cat /tmp/tempnombre`
+        rm -f /tmp/tempnombre
+        if [ "$nombre_test" = "0" ]
+        then
+    	    nomsalle=`cat /mnt/serveur_oscar/var_poste/salle_clients`
+	    echo "$nomsalle" > /tmp/tempnom
+	    echo "" > /tmp/tempsepar
+        else
+	    cut -f1 -d";" /mnt/serveur_oscar/var_poste/salle_clients > /tmp/tempnom
+            cut -f2 -d";" /mnt/serveur_oscar/var_poste/salle_clients > /tmp/tempsepar
+        fi
+        nom_separateur=`cat /tmp/tempsepar`
+	if ! [ "$nom_separateur" = "aucun" ]	# copier les fichiers oscar si le nom du poste demandé:
+	then
+		nom_poste=`cat /tmp/tempnom``cat /tmp/tempsepar`$poste
+		rm -f /tmp/tempnom
+		rm -f /tmp/tempsepar
+		echo "$nom_poste" > /tmp/nom_oscar_poste
+		echo
+		echo -e " `cat $chemin_langue/texte_32`\033[1;34m $nom_poste \033[1;m"
+		echo
+		
+	#	# ecrire éventuellement les fichiers pour le nom du poste:
+
+		echo "$base" > /tmp/base_sauvegarde
+		installe_oscar_dd cherche_partition_et_variables_boot_pour_serveur  # pour mettre fichiers servant au nom du poste dans partition_oscar
+		rm -f /tmp/sysprep_installe	# inutile ici en client
+		
+		cp -f partition_oscar_reponse partition_oscar
+		rm -f partition_oscar_reponse
+		rm -f /tmp/textetmp1
+		rm -f /tmp/textetmp2
+	
+		cp -f /mnt/serveur_oscar/var_poste/ip_passerelle /tmp/ip_passerelle
+		cp -f /mnt/serveur_oscar/var_poste/ip_masque /tmp/ip_masque
+		cp -f /mnt/serveur_oscar/var_poste/ip_format /tmp/ip_format
+		cp -f $partition_linux/oscar/var_poste/numero_poste_client /tmp/numero_poste_client
+		
+		# copier sur le poste:
+		cp -f /tmp/ip_format $partition_linux/oscar/var_poste/ip_format
+                cp -f /tmp/ip_masque $partition_linux/oscar/var_poste/ip_masque
+                cp -f /tmp/ip_passerelle $partition_linux/oscar/var_poste/ip_passerelle
+		cp -f /mnt/serveur_oscar/var_poste/vitesse_transmission $partition_linux/oscar/var_poste/vitesse_transmission
+		if ( test -e /mnt/serveur_oscar/liste_postes_sysprep )
+		then
+			cp -f /mnt/serveur_oscar/liste_postes_sysprep $partition_linux/oscar/
+		else
+			rm -f $partition_linux/oscar/liste_postes_sysprep
+		fi
+		installe_ip	#	si IP demandé installation dans oscar_modifstartup.reg
+		rm -f /tmp/ip_masque
+		rm -f /tmp/ip_passerelle
+		rm -f /tmp/ip_format
+		rm -f /tmp/numero_poste_client
+		
+		partition_ecrire_oscar=`cat partition_oscar`
+			
+	#ok	monter le répertoire où ecrire oscar
+		if [ "$partition_ecrire_oscar" = "linux" ] # partition linux
+		then
+			echo "$base" > /tmp/monter_partition
+			runme autoriser_monter_partition_oscar
+			rm -f /tmp/monter_partition
+			
+			## ici installer le numéro de poste son IP et son domaine pour Ubuntu dans le répertoire base
+			if ( test -e /mnt/$base/etc )	# partition linux système
+			then
+				if ( test -e /mnt/$base/etc/hostname )
+				then
+					cp -f /mnt/$base/etc/hostname /tmp/hostname_modele
+				else
+					echo "$nom_poste" > /tmp/hostname_modele	# pour eviter une erreur
+				fi
+				echo "$nom_poste" > /mnt/$base/etc/hostname
+				echo "$partition_linux" > /tmp/partition_linux_oscar
+				echo "$base" > /tmp/partition_linux_particuliere	# pour ubuntu mandriva ou linux
+				# dans le fichier installer_ip_manuel_linux_supprimer_fichiers les fichiers ssh et detection pour eole valable pour tous les linux
+				installer_ip_manuel_linux_supprimer_fichiers	# pour ubuntu mandriva ou linux		
+				rm -f /tmp/partition_linux_oscar
+				## ici installer le numéro de poste pour Linux dans le répertoire base
+				
+				# remplacer le nom du modele par le nom du client :
+				echo "perl -pi -e 's/`cat /tmp/hostname_modele`/`cat /mnt/$base/etc/hostname`/g;' /mnt/$base/etc/hosts" > /tmp/exec_nom
+				chmod +x /tmp/exec_nom
+				/tmp/exec_nom
+				
+				rm -f /tmp/hostname_modele
+				rm -f /tmp/exec_nom
+				rm -f /tmp/partition_linux_particuliere
+
+				# installation_eventuelle_cdOSCAR :
+				if [ "$oscar_dd" = "oui" ]
+				then
+					installation_eventuelle_cdOSCAR # sur partition_linux
+				fi
+				ajouter_fichier_mac_adresse_poste
+				echo "\Zb\Z2   `cat $chemin_langue/texte_19` \Z4$nom_poste `cat $chemin_langue/infobox_9`\n
+				\n`cat $chemin_langue/infobox_2`" > /tmp/texte_fin
+			else	# partition linux de données
+				# installation_eventuelle_cdOSCAR :
+				if [ "$oscar_dd" = "oui" ]
+				then
+					installation_eventuelle_cdOSCAR # sur partition_linux
+				fi
+				ajouter_fichier_mac_adresse_poste
+				poste=`cat $partition_linux/oscar/var_poste/numero_poste_client`
+				echo "\Zb\Z2       `cat $chemin_langue/texte_19` \Z4$poste `cat $chemin_langue/infobox_9`\n
+				\n`cat $chemin_langue/infobox_2`" > /tmp/texte_fin
+			fi
+			largeur_info=60
+		else	# partition windows
+			#if ! ( test -e /mnt/$partition_ecrire_oscar )
+			#then
+			#    mkdir /mnt/$partition_ecrire_oscar
+			#fi
+
+			#echo "$partition_ecrire_oscar" > /tmp/monter_partition
+			if [ "$partition_ecrire_oscar" = "ntfs" ]
+			then
+				echo "ntfs" > /tmp/besoin_type
+			fi
+			echo "$base" > /tmp/monter_partition
+			runme autoriser_monter_partition_oscar
+			partition_ecrire_oscar=`cat /tmp/monter_partition`
+			rm -f /tmp/monter_partition
+			rm -f /tmp/besoin_type
+
+			if ( test -e $partition_ecrire_oscar/ProgramData/Microsoft/Windows/Start\ Menu/Programs )
+			then	# partition système Win Seven
+				cp -f /usr/share/oscar/usr/oscar.lnk $partition_ecrire_oscar/ProgramData/Microsoft/Windows/Start\ Menu/Programs/Startup/oscar.lnk
+				ecrire_sur_ntfs_oscar
+			elif ( test -e $partition_ecrire_oscar/Documents\ and\ Settings/All\ Users/Menu\ Démarrer/Programmes/Démarrage ) # si partition système sauvegardée
+			then	# partition système Win XP fr
+				cp -f /usr/share/oscar/usr/oscar.lnk $partition_ecrire_oscar/Documents\ and\ Settings/All\ Users/Menu\ Démarrer/Programmes/Démarrage/oscar.lnk
+				ecrire_sur_ntfs_oscar
+			else	# partition de données
+				# installation_eventuelle_cdOSCAR :
+				if [ "$oscar_dd" = "oui" ]
+				then
+					installation_eventuelle_cdOSCAR # sur partition_linux
+				fi
+				ajouter_fichier_mac_adresse_poste
+				poste=`cat $partition_linux/oscar/var_poste/numero_poste_client`
+			         echo "\Zb\Z2       `cat $chemin_langue/texte_19` \Z4$poste `cat $chemin_langue/infobox_17`\n
+				\n`cat $chemin_langue/infobox_2`" > /tmp/texte_fin
+				largeur_info=60
+			fi
+		fi
+                rm -f partition_oscar
+                rm -f oscar.bat
+                rm -f domaine_oscar.bat
+                rm -f oscar_modifstartup_nom.reg
+                rm -f oscar_nettoie_numero_poste.reg
+                rm -f fin_numero_poste_oscar.reg
+                rm -f fin_numero_poste_oscar.bat
+		rm -f /tmp/delay.vbs
+                rm -f /tmp/partition_oscar_lettre_win
+                rm -f partition_linux_sauvegarde
+                rm -f /tmp/nom_oscar_poste
+                rm -f /tmp/cherche_oscar.bat
+                rm -f /tmp/cherche_oscar_modifstartup_nom.reg
+                rm -f /tmp/fin_cherche_oscar_modifstartup_nom.reg
+                rm -f /tmp/netsh_oscar_bat
+                rm -f oscar_modifstartup_ip.reg
+                rm -f /tmp/ip_oscar_bat
+                ajouter_fichier_mac_adresse_poste
+	else	# ne pas copier les fichiers oscar:
+		fin_apres_sysprep
+	fi
+else	# fin de copier les fichiers dans partition_oscar et dans demarre_oscar
+	# ne pas copier les fichiers oscar:
+	fin_apres_sysprep
+fi
+}
+#----------------------------------------------------------------------------------------------------
+cherche_ip_client_nfs()
+{
+##### recherche d'une adresse ip sur le poste:
+rm -f /tmp/carte_ethi
+runme recuperer_IP	# pour verifier ip fixe donne par OSCAR sur eth0
+if ( test -e /tmp/sortir )
+then
+	rm -f /tmp/sortir
+	supprimer_poste_du_fichier_serveur
+	exit
+fi
+grep -i "netboot=http" /proc/cmdline > /tmp/test_serveur_pxe	# demarrage serveur_pxe
+test_serveur_pxe=`cat /tmp/test_serveur_pxe`
+rm -f /tmp/test_serveur_pxe
+rm -f /tmp/format_ip_salle
+
+##### l'ip est dans le fichier ip_installe_poste
+ip_installe=`cat ip_installe_poste`
+rm -f /tmp/fichierquestion
+if [ "$ip_installe" = "" ]
+then
+    runme lancer_dhcp
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		supprimer_poste_du_fichier_serveur
+		exit
+	fi
+    runme recuperer_IP
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		supprimer_poste_du_fichier_serveur
+		exit
+	fi
+    ip_installe=`cat ip_installe_poste`
+else
+	if ( test -e /etc/menuoscar_client )
+	then
+		if [ "$poste" = "" ] || [ "$poste" = " " ]
+		then
+			if [ "$test_serveur_pxe" != "" ]	# demarrage serveur_pxe
+			then
+				client=par_pxe
+				poste=$client
+###	#		else
+	#	    		boite_numero_poste_dhcp
+	#			client=$reponse
+###	#			poste=$client
+			fi
+		else
+			client=$poste
+		fi
+#####	else	# demarrage par oscar
+##		boite_numero_poste_dhcp
+##		client=$reponse
+#####		poste=$client
+	fi
+	if ( test -e /tmp/sortir )
+	then
+	    rm -f /tmp/sortir
+	    supprimer_poste_du_fichier_serveur
+	    exit
+	fi
+fi
+if ! ( test -e /etc/avahi/oscar_avahi )
+then
+	echo "ip_serveur_salle" > /tmp/format_ip_salle
+fi
+if [ "$test_serveur_pxe" != "" ]	# demarrage serveur_pxe
+then
+	ip_serveur=`cat /tmp/ip_serveur_synchrone`
+	rm -f /tmp/ip_serveur_synchrone
+else
+	if ! ( test -e /etc/avahi/oscar_avahi )
+	then
+		# demander a completer l'ip
+		cut -f1-2 -d"." ip_installe_poste > ip_salle
+		# rm -f ip_installe_poste
+		echo "`cat $chemin_langue/inputbox_31`" > /tmp/fichierquestion
+		defaut=`cat ip_salle`.
+		rm -f ip_salle
+		boite_numero_poste
+		reponse=`cat /tmp/tempfile`
+		rm -f /tmp/tempfile
+		ip_serveur=$reponse
+	else
+		ip_serveur=`cat /tmp/ip_serveur_synchrone`
+		rm -f /tmp/ip_serveur_synchrone
+	fi
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+case "$1" in
+    # boucle_partition)	# non utilise
+    #    boucle_partition
+    #    exit 0
+    #    ;;
+    boite_partition_oscar)
+	boite_partition_oscar
+	exit 0
+	;;
+    copier_sauvegarde_serveur_nfs)
+	partition_linux=`cat /tmp/partition_linux_client`
+	rm -f /tmp/partition_linux_client
+	copier_sauvegarde_serveur_nfs
+	exit 0
+	;;
+esac
+
+
+if ! ( test -e /etc/cdrom_ejecte )
+then
+	if ( test -e /etc/demarrage_cdcache )
+	then
+		echo "" > /etc/cdrom_ejecte	# cd ejecte
+		# umount /mnt/cdrom 2>/dev/null ; sync
+		eject
+	fi
+fi
+# Pour numero de poste:
+cherche_linux	## cherche une partition_linux
+if ( test -e $partition_linux/oscar/var_poste/numero_poste_client )
+then
+	defaut=`cat $partition_linux/oscar/var_poste/numero_poste_client`
+else
+	defaut=
+fi
+poste=$defaut
+
+cherche_ip_client_nfs
+
+# montage linux   monter un répertoire oscar distant avec le protocole de linux
+
+if ! ( test -e /mnt/serveur_oscar )
+then
+	mkdir /mnt/serveur_oscar
+fi
+if ! ( test -e /mnt/serveur_nfs )
+then
+	mkdir /mnt/serveur_nfs
+fi
+#	echo
+#	echo -e "`cat $chemin_langue/texte_21` \033[1;32m$ip_serveur:$chemin_oscar \033[1;34m... \033[1;m"
+#	echo
+
+lancer_client_nfs
+
+cut -d"," -f1 /mnt/serveur_nfs/var_nfs > /tmp/chemin_oscar
+chemin_oscar=`cat /tmp/chemin_oscar`
+rm -f /tmp/chemin_oscar
+
+echo -e "`cat $chemin_langue/texte_21` \033[1;32m$ip_serveur:$chemin_oscar \033[1;34m... \033[1;m"
+
+#	# ancien: # mount "$ip_serveur":/mnt/image_serveur /mnt/image_serveur
+	##	avec chemin_oscar = /mnt/hdai/oscar si serveur démarré par cdrom ou /oscar si serveur démarré par disque dur
+montage_nfs_avec_controle_serveur_oscar
+
+	echo "/mnt/serveur_oscar : monté réseau linux" >> /tmp/historique
+#######
+nb_restaure=
+# if ( test -e /mnt/serveur_oscar/var_poste/procedure_serveur_nfs )
+if ( test -e /mnt/serveur_nfs/procedure_serveur_nfs )
+then
+	rm -f /tmp/liste_postes_sysprep
+	# grep -ci "restaure" /mnt/serveur_oscar/var_poste/procedure_serveur_nfs > /tmp/nb_restaure
+	grep -ci "restaure" /mnt/serveur_nfs/procedure_serveur_nfs > /tmp/nb_restaure
+	nb_restaure=`cat /tmp/nb_restaure`
+	rm -f /tmp/nb_restaure
+	# if [ "$nb_restaure" = "1" ] || [ "`cat /mnt/serveur_oscar/var_poste/procedure_serveur_nfs`" = ",table_partitions" ]
+	if [ "$nb_restaure" = "1" ] || [ "`cat /mnt/serveur_nfs/procedure_serveur_nfs`" = ",table_partitions" ] || [ "`cat /mnt/serveur_nfs/procedure_serveur_nfs`" = "petite" ]
+	then
+		nb_restaure=oui
+		if ( test -e /mnt/serveur_oscar/liste_postes_sysprep )
+		then
+			cp -f /mnt/serveur_oscar/liste_postes_sysprep /tmp/liste_postes_sysprep
+		fi
+	fi
+fi
+
+if [ "$poste" = "par_pxe" ]
+then
+	cut -d"," -f2 /mnt/serveur_nfs/var_nfs > /tmp/differe
+	client_differe=`cat /tmp/differe`
+	rm -f /tmp/differe
+	if [ "$client_differe" = "differe" ]
+	then
+		cd /mnt/serveur_oscar/var_poste
+			echo "`ls *.wol 2>/dev/null`" > /tmp/tempbozo1
+			tester_vide=`cat /tmp/tempbozo1`
+			if [ "$tester_vide" = "" ]
+			then
+				demander_boite_numero_poste
+				client=$reponse
+				poste=$client
+			else
+				cat `cat /tmp/tempbozo1` > /tmp/tous_wol
+				grep -i "`cat /tmp/mac_adresse`" /tmp/tous_wol > /tmp/tempbozo1
+				cut -d"=" -f2 /tmp/tempbozo1 > /tmp/tous_wol
+				perl -pi -e 's/,/ ,/g;' /tmp/tous_wol
+				echo `gawk '{ print $1 ";" } ' /tmp/tous_wol` > /tmp/tempbozo1	# 00:11:22:33:44:55; 00:11:22:33:44:55; 00:11:22:33:44:55; ...
+				# prendre seulement la premiere valeur
+				cut -d";" -f1 /tmp/tempbozo1 > /tmp/tous_wol
+				client=`cat /tmp/tous_wol`
+				poste=$client
+				rm -f /tmp/tous_wol
+			fi
+			rm -f /tmp/tempbozo1
+		cd /root
+	else
+		deja_demande_poste=non
+		if ( test -e /tmp/liste_postes_sysprep )
+		then
+			verifier_si_le_poste_est_dans_la_liste_sysprep
+		fi
+		if [ "$deja_demande_poste" = "non" ]
+		then
+			boite_numero_poste_dhcp
+			client=$reponse
+			poste=$client
+			if ( test -e /tmp/liste_postes_sysprep )
+			then
+				verifier_si_le_poste_est_dans_la_liste_sysprep
+			fi
+		fi
+	fi
+fi
+if [ "$nb_restaure" = "oui" ]
+then
+	if ( test -e /etc/menuoscar_client )
+	then
+		if [ "$poste" = "" ] || [ "$poste" = " " ]
+		then
+			demander_boite_numero_poste
+			client=$reponse
+			poste=$client
+		else
+			if ( test -e /tmp/liste_postes_sysprep )
+			then
+				verifier_si_le_poste_est_dans_la_liste_sysprep
+			fi
+		fi
+	else	# demarrage par oscar
+		deja_demande_poste=non
+		
+		if [ "$deja_demande_poste" = "non" ]
+		then
+			boite_numero_poste_dhcp
+			client=$reponse
+			poste=$client
+			if ( test -e /tmp/liste_postes_sysprep )
+			then
+				verifier_si_le_poste_est_dans_la_liste_sysprep
+			fi
+		fi
+	fi
+fi
+	
+rm -f /tmp/liste_postes_sysprep
+
+if ( test -e /tmp/format_ip_salle )
+then
+	if ( test -e /mnt/serveur_nfs/client_pxe )
+	then
+		cp -f /mnt/serveur_nfs/client_pxe /tmp/format_disque
+	fi
+	echo " : " >> /tmp/format_disque
+	grep -i "right (" /usr/share/oscar/bin/choix_largeur_bande > /tmp/format_disque1
+	perl -pi -e 's/##//g; s/ //g;' /tmp/format_disque1
+	format_disque=`cat /tmp/format_disque1`
+	rm -f /tmp/format_disque1
+	config_disque=$[`expr substr $format_disque 18 3`/4-3]
+fi
+lancer_config_reseau
+if ( test -e $partition_linux )
+then
+	if ! ( test -e $partition_linux/oscar )
+	then
+		mkdir $partition_linux/oscar
+	fi
+	if ! ( test -e $partition_linux/oscar/var_poste )
+	then
+		mkdir $partition_linux/oscar/var_poste
+	fi
+	echo "$poste" > $partition_linux/oscar/var_poste/numero_poste_client
+fi
+
+
+echo "$poste" >> /mnt/serveur_nfs/client_pxe
+echo "$poste" > /mnt/serveur_nfs/postes_connectes_nfs/$poste
+	
+if ( test -e /mnt/serveur_oscar )
+then	
+	echo
+	echo
+	echo -e "\033[1;32m`cat $chemin_langue/texte_75` :\033[1;m"
+	echo
+	ls /mnt/serveur_oscar
+	echo
+	echo -e "\033[1;34m  `cat $chemin_langue/texte_19`\033[1;32m $poste \033[1;34m`cat $chemin_langue/texte_34` $ip_installe \033[1;m"
+	echo
+	echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+	echo
+	# sleep 1
+	table_partitions_eventuel
+	
+	# Pour l'installation éventuelle d'OSCAR
+	if ( test -e /mnt/serveur_oscar/date_oscar )
+	then
+		cut -f1 -d"," /mnt/serveur_oscar/date_oscar > /tmp/fichiertmp
+		oscar_dd=`cat /tmp/fichiertmp`
+		rm -f /tmp/fichiertmp
+	else
+		oscar_dd=non
+	fi
+	if ( test -e $partition_linux/etc/programmation_net_programmee )
+	then
+		maj_boot_oscar supprimer_net_programme
+		rm -f $partition_linux/etc/programmation_net_programmee
+	fi
+
+	client_fichiers_oscar=non
+	teste_serveur_oscar
+	if ! ( test -e $partition_linux/oscar )	# possible apres formatage
+	then
+		mkdir -p $partition_linux/oscar/var_poste
+	fi
+	if [ "$client_fichiers_oscar" = "non" ]
+	then
+		if ( test -e $partition_linux/oscar/image.partimage.000 ) || ( test -e $partition_linux/oscar/image.ntfs.00 ) || ( test -e $partition_linux/oscar/image_dar.1.dar ) || ( test -e $partition_linux/oscar/image_fsa.fsa )
+		then
+			cp -f /mnt/serveur_oscar/commentaire_oscar.txt $partition_linux/oscar/commentaire_oscar_envoye.txt
+			echo "$partition_linux" > partition_travail
+			info_image gerer_sauvegardes_client
+			# rm -f $partition_linux/oscar/commentaire_oscar_envoye.txt
+		else
+			cp -f /mnt/serveur_oscar/commentaire_oscar.txt $partition_linux/oscar/commentaire_oscar.txt
+		fi
+	fi
+
+	echo "$poste" > $partition_linux/oscar/var_poste/numero_poste_client
+	
+	if ! ( test -e /mnt/serveur_oscar/partition_sauvegardee ) # lire le nom de la partition sauvegardée
+	then
+		if [ "$client_fichiers_oscar" = "non" ]
+		then
+			demander_partition_a_sauvegarder
+			echo "$base" > $partition_linux/oscar/partition_sauvegardee
+		fi
+	else
+		base=`cat /mnt/serveur_oscar/partition_sauvegardee`
+	fi
+	
+	## décompresser fichiers oscar si besoin
+	if [ "$oscar_dd" = "oui" ]
+	then
+		if ! ( test -e $partition_linux/cd_oscar )
+		then
+			mkdir $partition_linux/cd_oscar
+		fi
+		
+		echo
+		echo -e " \033[1;32m`cat $chemin_langue/Patience` ...\033[1;34m"
+		echo
+		cp -f /mnt/serveur_oscar/oscar_seul_envoi.tar.bz2 $partition_linux/cd_oscar/oscar_seul_recept.tar.bz2
+		taille_fichiers_oscar=`cat /mnt/serveur_oscar/var_poste/taille_fichiers_oscar`
+		taille_fichiers_oscar=$[$taille_fichiers_oscar]
+		echo "$partition_linux" > /tmp/partition_oscar_image
+		echo "$taille_fichiers_oscar" > /tmp/sp_taille_fichiers_oscar
+		fichiers_oscar_clients sp_decompresser_fichiers_oscar
+		rm -f /tmp/partition_oscar_image
+		echo
+		## décompresser fichiers juste_boot
+		if ( test -e /mnt/serveur_oscar/boot/juste_boot_envoi.tar.bz2 )
+		then
+			# pour décompresser plus la partition boot éventuelle
+			partition_juste_boot=`cat /mnt/serveur_oscar/boot/partition_juste_boot`
+			echo -e " `cat $chemin_langue/texte_29` \033[1;34m$partition_juste_boot \033[1;m"
+			echo
+			cp -f /mnt/serveur_oscar/boot/juste_boot_envoi.tar.bz2 $partition_linux/cd_oscar/juste_boot_recept.tar.bz2
+			taille_fichiers_boot=`cat /mnt/serveur_oscar/boot/taille_fichiers_boot`
+			taille_fichiers_boot=$[$taille_fichiers_boot]
+			
+			echo "$partition_linux" > /tmp/partition_oscar_image
+			echo "$partition_juste_boot" > /tmp/sp_partition_juste_boot
+			echo "$taille_fichiers_boot" > /tmp/sp_taille_fichiers_boot
+			fichiers_oscar_clients sp_decompresser_fichiers_boot
+			rm -f /tmp/partition_oscar_image
+			echo "$partition_juste_boot" > /tmp/monter_partition
+			runme autoriser_monter_partition_oscar
+			rm -f /tmp/monter_partition
+			cp -fR $partition_linux/cd_oscar/$partition_juste_boot /mnt/
+		fi
+	fi
+
+	echo "" > /tmp/client_nfs_lance
+	echo "$partition_linux" > /tmp/tempfile # /mnt/sda2
+	perl -pi -e 's/\/mnt\///g;' /tmp/tempfile # sda2
+	repertoire_oscar=`cat /tmp/tempfile`
+	rm -f /tmp/tempfile
+	echo "$repertoire_oscar" > /tmp/partition_oscar_client
+
+	if [ "$client_fichiers_oscar" = "non" ]
+	then
+		ajouter_mac_adresse_au_serveur
+		echo "$base" > /tmp/monter_partition
+		runme autoriser_monter_partition_oscar_montage	# pour démonter /mnt/$base
+		nombpart=`cat /tmp/nombpart`
+		rm -f /tmp/nombpart
+		if ! [ "$nombpart" = 0 ]
+		then
+			umount /mnt/$base 2>/dev/null ; sync
+			echo "/mnt/$base : demonté" >> /tmp/historique
+		fi
+		if ( test -e /dev/evms/$base )
+		then
+		    evms_oscar="evms/"
+		else
+		    evms_oscar=
+		fi
+		
+		restaurer_eventuel
+		if [ "$procedure_serveur" = "petite" ]
+		then
+			copier_sauvegarde_serveur_nfs
+			# installation_eventuelle_cdOSCAR :
+			if [ "$oscar_dd" = "oui" ]
+			then
+				installation_eventuelle_cdOSCAR # sur partition_linux
+			fi
+			poste=`cat $partition_linux/oscar/var_poste/numero_poste_client`
+			echo "\Zb\Z2   `cat $chemin_langue/texte_19` \Z4$nom_poste `cat $chemin_langue/infobox_9`\n
+			\n`cat $chemin_langue/infobox_2`" > /tmp/texte_fin
+			largeur_info=60
+		else
+			sauver_eventuel
+			rm -f /tmp/sauve_ntfs_dar # pour ne pas imposer ce choix a la prochaine sauvegarde
+			rm -f /tmp/sauve_fsa
+			numeroter_poste
+		fi
+	else	# car client_fichiers_oscar=oui
+		installation_eventuelle_cdOSCAR # sur partition_linux
+		ajouter_fichier_mac_adresse_poste
+		poste=`cat $partition_linux/oscar/var_poste/numero_poste_client`
+		echo "\Zb\Z2          `cat $chemin_langue/texte_19` \Z4$poste `cat $chemin_langue/infobox_17` \n
+		\n`cat $chemin_langue/infobox_2`" > /tmp/texte_fin
+		largeur_info=60
+	fi
+	rm -f /tmp/partition_oscar_client
+	rm -f /tmp/client_nfs_lance
+	# eteindre l'ordinateur:
+	if ( test -e /mnt/serveur_oscar/var_poste/reboot_clients )
+	then
+		reboot_clients=`cat /mnt/serveur_oscar/var_poste/reboot_clients`
+	fi
+	ajouter_fichier_mac_adresse_poste
+	umount /mnt/serveur_nfs 2>/dev/null ; sync
+	umount /mnt/serveur_oscar 2>/dev/null ; sync
+	umount /mnt/serveur_partage 2>/dev/null ; sync
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/infobox_1` " \
+	--infobox "\n`cat /tmp/texte_fin`\n" 10 $largeur_info
+	rm -f /tmp/texte_fin
+	for passe in 10 9 8 7 6 5 4 3 2 1 STOP
+	do
+	    sleep 1
+	    echo -en "\033[1;31m  > $passe\033[1;m"
+	done
+	if ( test -e /etc/cdrom_ejecte )
+	then
+		eject -t
+	fi
+	if [ "$reboot_clients" = "oui_reboot" ]
+	then
+		reboot
+	else
+		halt
+	fi
+	sleep 10
+	exit
+else
+	ajouter_fichier_mac_adresse_poste
+	poste=`cat $partition_linux/oscar/var_poste/numero_poste_client`
+	rm -f /tmp/fichiertmp
+	dialog --colors --no-shadow --backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Continuer`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--msgbox "\n\n\Z1   `cat $chemin_langue/texte_19` $poste `cat $chemin_langue/msgbox_25` ...\Zn " 10 60
+        rm -f /tmp/fichiertmp
+fi
+#----------------------------------------------------------------------------------------------------
+#  fin  clients  IMAGE  avec le protocole linux
+#----------------------------------------------------------------------------------------------------

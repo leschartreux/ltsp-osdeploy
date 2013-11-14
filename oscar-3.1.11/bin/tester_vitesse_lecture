@@ -1,0 +1,67 @@
+#!/bin/sh
+
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+# permet de vérifier la version en fonction de la vitesse de lecture d'une partition
+
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+if ( test -e /dev/sda1 )
+then
+	partition_exite=sda1
+elif ( test -e /dev/hda1 )
+then
+	partition_exite=hda1
+else
+	exit 0
+fi
+echo
+# vérifie votre matériel
+echo -e "\033[1;33m OSCAR \033[1;34m`cat $chemin_langue/menu_642` ..."
+echo
+time dd if=/dev/$partition_exite of=/dev/null count=1 bs=15M 2>/tmp/temp_vitesse_lecture
+clear
+grep -i "copied," /tmp/temp_vitesse_lecture > /tmp/temp_vitesse_lecture1
+cut -d"," -f3 /tmp/temp_vitesse_lecture1 > /tmp/temp_vitesse_lecture
+perl -pi -e 's/ /;/g; s/\./;/g;' /tmp/temp_vitesse_lecture
+cut -d";" -f2 /tmp/temp_vitesse_lecture > /tmp/temp_vitesse_lecture1
+rm -f /tmp/temp_vitesse_lecture
+if ( test -e /tmp/temp_vitesse_lecture1 )
+then
+	vitesse_lecture=`cat /tmp/temp_vitesse_lecture1`
+	rm -f /tmp/temp_vitesse_lecture1
+	valeur_vitesse_lecture=`expr $vitesse_lecture - 9`
+	signe_valeur=`expr substr $valeur_vitesse_lecture 1 1`
+	if [ "$signe_valeur" = "-" ]
+	then
+		# ce poste ne convient pas avec cette version : Forcer le démarrage
+		dialog --colors --no-shadow --backtitle "`cat /etc/banniere_oscar`" \
+		--title " \Z1`cat $chemin_langue/menu_646` " --ok-label "`cat $chemin_langue/menu_157`" --cancel-label "`cat $chemin_langue/menu_646`" \
+		--menu "\n\n\Zb\Z1 `cat $chemin_langue/menu_643`, \
+		\n\Zb\Z1 `cat $chemin_langue/menu_644` " 10 72 0 \
+		"" "\Zb\Z2`cat $chemin_langue/menu_645`.  "
+		case $? in
+		    0)  halt
+		    	;;
+		    1) 	;;
+		    255) exit;;
+		esac
+	fi
+else
+	rm -f /tmp/temp_vitesse_lecture1
+fi

@@ -1,0 +1,264 @@
+#!/bin/sh
+
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+
+
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+boite_info_sysprep_oscar()
+{
+# ajouter ces 3 lignes pour oscar_deploie apres ligne (pour XP avec le contenu de sysprep)
+#	"" "" \
+#	"" "\Zb\Z4Pour déployer Windows XP, 7 ou 8 sans sysprep : \Z2" \
+#	"" " \Z2/oscar_deploie/oscar_var.txt" \
+	
+
+# Informations sur la mise a jour sysprep
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors --ok-label "`cat $chemin_langue/Continuer`" \
+	--cancel-label "`cat $chemin_langue/Annuler`" \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/menu_10pb` " \
+	--menu "  " 10 80 0 \
+	"" "" \
+	"" "  \Z2`cat $chemin_langue/menu_10pa` " \
+	"" "" \
+	"" "\Zb\Z4Windows XP, 7 `cat $chemin_langue/ou` 8 `cat $chemin_langue/avec` sysprep : \Z2" \
+	"" " \Z2/sysprep_oscar/sysprep/sysprep_oscar.inf (sysprep_oscar.xml)" \
+	"" " \Z2/sysprep_oscar/sysprep/sysprep_var.inf (sysprep_var.xml) " \
+	"" " \Zn\Z2/sysprep_oscar/sysprep/sysprep.inf (XP `cat $chemin_langue/avec` sysprep)" \
+	"" "" \
+	"" "\Zb\Z4Windows XP, 7 `cat $chemin_langue/ou` 8 `cat $chemin_langue/sans` sysprep : \Z2" \
+	"" " \Z2/oscar_deploie/oscar_var.txt" \
+	"" ""
+case $? in
+	0) 	;;
+	1) 	echo "" > /tmp/sortir
+		exit
+		;;
+	255) 	echo "" > /tmp/sortir
+		exit
+		;;
+esac
+}
+#-----------------------------------------------------------------------------------------------------
+boite_autre_partition()
+{
+runme info_ddialog
+runme prepare_fichier_temptaille
+rm -f /tmp/bozo
+perl -pi -e 's/    Blocks/\\Z1Taille(Ko)\\Zn /g;' /tmp/fichier_disque_dur
+
+# couleurs
+runme colorier_selection_info
+cp -f /tmp/couleurs_info /tmp/bozo
+rm -f /tmp/couleurs_info
+	# Récupérer /sysprep_oscar/sysprep depuis une partition
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`" --ok-label "`cat $chemin_langue/menu_483`" \
+	--extra-button --extra-label "`cat $chemin_langue/menu_484`" \
+	--title " `cat $chemin_langue/menu_668a` " \
+	--menu "\n\Zn`cat /tmp/bozo`" 0 0 0 \
+	"" "\Z2 `cat $chemin_langue/menu_669` :  " \
+	"" "\Z2 `cat $chemin_langue/menu_670` : \Zb\Z4< `cat $chemin_langue/menu_484` >  "
+case $? in
+    0)	rm -f /tmp/bozo	# sur partition vue
+    	chercher_repertoire_sysprep_oscar
+	;;
+    1)	rm -f /tmp/bozo
+    	echo "" > /tmp/sortir
+        exit
+        ;;
+    3)	rm -f /tmp/bozo	# sur autre cle USB
+	echo
+	runme lecture_connecteur_usb
+	boite_autre_partition
+	;;
+    255) rm -f /tmp/bozo
+    	echo "" > /tmp/sortir
+	exit
+	;;
+esac
+if ( test -e /tmp/sortir )
+then
+	rm -f /tmp/tempfile
+	rm -f /tmp/sortir
+	exit
+fi
+}
+#----------------------------------------------------------------------------------------------------
+boucle_partition_sysprep_oscar() # copier le repertoire /sysprep_oscar dans /tmp/tmp_sysprep_oscar
+{
+if [ "$fin_sp_boucle" = oui ]
+then
+	rm -f /tmp/tempfile
+	return
+else
+	rm -f /tmp/tempfile
+	echo "$type" > /tmp/tempfile
+	runme prepare_boucle_partition
+	nombretype=`cat /tmp/nombre`
+	rm -f /tmp/nombre
+	numero=0
+	until  ( test  $numero = $nombretype )
+	do
+		rm -f /tmp/tempfile1
+		numero=$[$numero+1]
+		cut -d":" -f$numero /tmp/tempfile > /tmp/tempfile1
+		reponse=`cat /tmp/tempfile1`
+		reparti=$reponse
+		rm -f /tmp/tempfile1
+		numero_hd=`expr substr $reponse 4 3`
+		disque=`expr substr $reponse 1 3`       #hda
+		
+		# id_type=`sfdisk /dev/$disque -c $numero_hd 2>/dev/null`
+		echo "$reponse" > /tmp/monter_partition
+		runme autoriser_monter_partition_oscar 2>/dev/null
+		partition_montee=`cat /tmp/monter_partition`
+		rm -f /tmp/monter_partition
+		if ( test -e $partition_montee/sysprep_oscar/sysprep/sysprep_var.inf ) || ( test -e $partition_montee/sysprep_oscar/sysprep/sysprep_var.xml )
+		then
+			mkdir -p /tmp/tmp_sysprep_oscar/oscar_sysprep
+			cp -fRp $partition_montee/sysprep_oscar/sysprep/* /tmp/tmp_sysprep_oscar/oscar_sysprep/ 2>/dev/null
+			umount $partition_montee 2>/dev/null ; sync
+			fin_sp_boucle=oui
+			return
+		elif ( test -e /livemnt/boot/sysprep_oscar/sysprep/sysprep_var.inf ) || ( test -e /livemnt/boot/sysprep_oscar/sysprep/sysprep_var.xml )
+		then
+			mkdir -p /tmp/tmp_sysprep_oscar/oscar_sysprep
+			cp -fRp /livemnt/boot/sysprep_oscar/sysprep/* /tmp/tmp_sysprep_oscar/oscar_sysprep/ 2>/dev/null
+			umount $partition_montee 2>/dev/null ; sync
+			fin_sp_boucle=oui
+			return
+		elif ( test -e $partition_montee/oscar_deploie/oscar_var.txt )
+		then
+			mkdir -p /tmp/tmp_sysprep_oscar/oscar_sysprep
+			cp -fRp $partition_montee/oscar_deploie/* /tmp/tmp_sysprep_oscar/oscar_sysprep/ 2>/dev/null
+			umount $partition_montee 2>/dev/null ; sync
+			fin_sp_boucle=oui
+			return
+		elif ( test -e /livemnt/boot/oscar_deploie/oscar_var.txt )
+		then
+			mkdir -p /tmp/tmp_sysprep_oscar/oscar_sysprep
+			cp -fRp /livemnt/boot/oscar_deploie/* /tmp/tmp_sysprep_oscar/oscar_sysprep/ 2>/dev/null
+			umount $partition_montee 2>/dev/null ; sync
+			fin_sp_boucle=oui
+			return
+		fi
+		umount $partition_montee 2>/dev/null ; sync
+	done
+fi
+rm -f /tmp/tempfile
+}
+#----------------------------------------------------------------------------------------------------
+chercher_repertoire_sysprep_oscar()
+{
+	# recherche sur le disque dur la partition où se trouve le repertoire oscar_var_salle et /usr/share/oscar/var_salle
+fin_sp_boucle=non
+type="ntfs"
+echo "ntfs" > /tmp/besoin_type
+boucle_partition_sysprep_oscar
+rm -f  /tmp/besoin_type
+type="Linux"
+boucle_partition_sysprep_oscar
+type="fat32"
+boucle_partition_sysprep_oscar
+type="fat16"
+boucle_partition_sysprep_oscar
+
+#	type="W95 FAT 32 (LBA)"
+#	boucle_partition_sysprep_oscar
+#	type="W95 FAT 16 (LBA)"
+#	boucle_partition_sysprep_oscar
+}
+#----------------------------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------------------------------
+#		Installe le raccourci sysprep oscar pour scribe
+#-----------------------------------------------------------------------------------------------------
+# rechercher la cle USB avec le repertoire sysprep_oscar
+
+boite_info_sysprep_oscar
+
+rm -fR /tmp/tmp_sysprep_oscar
+boite_autre_partition
+if ! ( test -e /tmp/tmp_sysprep_oscar/oscar_sysprep/sysprep_oscar.xml )
+then
+	if ! ( test -e /tmp/tmp_sysprep_oscar/oscar_sysprep/sysprep_oscar.inf )
+	then
+		if ! ( test -e /tmp/tmp_sysprep_oscar/oscar_sysprep/oscar_var.txt )
+		then
+			DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+			--backtitle "`cat /etc/banniere_oscar`" \
+			--title " `cat $chemin_langue/DESOLE` " \
+			--ok-label "`cat $chemin_langue/Continuer`"  \
+			--msgbox "\n\Zb\Z1 OSCAR n'a pas trouvé de répertoire ... " 7 50
+			case $? in
+			    0) 	rm -fR /tmp/tmp_sysprep_oscar
+			    	echo "" > /tmp/sortir
+			    	exit
+			    	;;
+			    255) rm -fR /tmp/tmp_sysprep_oscar
+			    	echo "" > /tmp/sortir
+			    	exit
+			    	;;
+			esac
+		fi
+	fi
+	if ! ( test -e /tmp/tmp_sysprep_oscar/oscar_sysprep/sysprep_var.inf )
+	then
+		if ! ( test -e /tmp/tmp_sysprep_oscar/oscar_sysprep/sysprep_var.xml )
+		then
+			if ! ( test -e /tmp/tmp_sysprep_oscar/oscar_sysprep/oscar_var.txt )
+			then
+				DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+				--backtitle "`cat /etc/banniere_oscar`" \
+				--title " `cat $chemin_langue/DESOLE` " \
+				--ok-label "`cat $chemin_langue/Continuer`"  \
+				--msgbox "\n\Zb\Z1 Il n'y a pas de fichier .inf, xml ou .txt ... " 9 50
+				case $? in
+				    0) 	rm -fR /tmp/tmp_sysprep_oscar
+				    	echo "" > /tmp/sortir
+				    	exit
+				    	;;
+				    255) rm -fR /tmp/tmp_sysprep_oscar
+				    	echo "" > /tmp/sortir
+				    	exit
+				    	;;
+				esac
+			fi
+		fi
+	fi
+fi
+
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/menu_289a` " \
+	--ok-label "`cat $chemin_langue/Continuer`"  \
+	--msgbox "\n\Zb\Z1`cat $chemin_langue/menu_292a` ... " 7 44
+case $? in
+    0) 	;;
+    255) rm -fR /tmp/tmp_sysprep_oscar
+    	echo "" > /tmp/sortir
+    	exit
+    	;;
+esac

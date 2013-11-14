@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Firefox
+Comment=
+Icon=/root/icons/firefox.png
+Exec=/usr/bin/firefox-bin
+Path=
+Terminal=false
+StartupNotify=false
+

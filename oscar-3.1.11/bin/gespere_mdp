@@ -1,0 +1,436 @@
+#!/bin/sh
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+PATH="/usr/share/oscar/bin:$PATH"
+/usr/share/oscar/usr/version_theme_oscar
+
+
+
+#-----------------------------------------------------------------------------------------------------
+boite_info()
+{
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "Annuler" --ok-label "Continuer" \
+	--title " Fichier d'impression des mots de passe GESPERE " \
+	--menu "\n\Zb\Z3   Informations pour réaliser le fichier par classe\n\n" 10 91 0 \
+	"" "" \
+	"" "\Zb\Z4Cette commande réalise un fichier d'impression pour un tableur :" \
+	"" "" \
+	"" "\Zb\Z4Les mots de passe sont classés par division. " \
+	"" "\Zb\Z4Une entête personnalisable est proposée. " \
+	"" "" \
+	"" "\Zb\Z4Le fichier \Z1LogCreate.csv\Zb\Z4 doit être installé dans une partition \Zn\Z2FAT32\Zb\Z4 : " \
+	"" "\Zb\Z4A la racine de la partition \Zn\Z2FAT32\Zb\Z4 créez un répertoire \Zn\Z2gespere\Zb\Z4, " \
+	"" "\Zb\Z4ou dans une partition \Zn\Z2FAT32\Zb\Z4 branchée sur un port \Zn\Z2USB\Zb\Z4, " \
+	"" "" \
+	"" "\Zb\Z4comme par exemple: \Zn\Z2D:\gespere\\\Z1LogCreate.csv\Zn " \
+	"" "" \
+	"" "\Zb\Z4Le fichier d'impression réalisé sera: \Zn\Z2D:\gespere\\\Z1oscar_sortie_date.csv\Zn " \
+	"" ""
+case $? in
+    0)	;;
+    1)	exit;;
+    255) exit;;
+esac
+}
+#-----------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
+boite_partition_fat32ancien() # selectionner seulement les partitions vfat
+{
+rm -f /tmp/bozo
+runme info_ddialog
+egrep -e "^/dev" /tmp/fichier_disque_dur | grep -i "FAT32" | \
+perl -pi -e 's/\*//g;  s/\+/ /g; s/\-/ /g; s/  /:/g; s/:+/:/g;' | \
+awk 'BEGIN { FS=" " } { printf ("%0s %15s %25s\n","\""$1"\" \"",$2,$3"\" \\")}' > /tmp/bozo
+
+runme boite_selection_bozo
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+boite_partition_fat32()
+{
+runme info_ddialog
+runme prepare_fichier_temptaille
+rm -f /tmp/bozo
+perl -pi -e 's/    Blocks/\\Z1Taille(Ko)\\Zn /g;' /tmp/fichier_disque_dur
+#       perl -pi -e 's/  /\\Z0__\\Zn/g;' /tmp/fichier_disque_dur
+
+# couleurs
+runme colorier_selection_info
+cp -f /tmp/couleurs_info /tmp/bozo
+rm -f /tmp/couleurs_info
+
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "Annuler" --ok-label "Sur partition affichée" \
+	--extra-button --extra-label "Autre connecteur USB" \
+	--title " Récupérer LogCreate.csv depuis un connecteur USB " \
+	--menu "\n\Zn`cat /tmp/bozo`" 0 0 0 \
+	"" "\Z2 Vous pouvez récupérer \Z1LogCreate.csv\Z2 depuis un autre connecteur \Z1USB\Z2 :  " \
+	"" "\Z2 Branchez ce connecteur \Z3USB\Z2 puis sélectionnez \Zb\Z4< Autre connecteur USB >  "
+case $? in
+	0) rm -f /tmp/bozo	# sur partition vue
+	;;
+	1) rm -f /tmp/bozo
+	exit;;
+	3) rm -f /tmp/bozo	# sur autre cle USB
+	echo
+	runme lecture_connecteur_usb
+	boite_partition_fat32
+	return;;
+	255) rm -f /tmp/bozo
+	exit;;
+esac
+rm -f /tmp/bozo
+runme info_ddialog
+egrep -e "^/dev" /tmp/fichier_disque_dur | grep -i "FAT32" | \
+perl -pi -e 's/\*//g;  s/\+/ /g; s/\-/ /g; s/  /:/g; s/:+/:/g;' | grep -v "extended" | \
+awk 'BEGIN { FS=" " } { printf ("%0s %15s %25s\n","\""$1"\" \"",$2,$3"\" \\")}' > /tmp/bozo
+
+runme boite_selection_bozo
+}
+#-----------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
+boucle_partition() # sortir la partition dans la reponse
+{
+rm -f /tmp/tempfile
+echo "$type" > /tmp/tempfile
+runme prepare_boucle_partition
+nombretype=`cat /tmp/nombre`
+rm -f /tmp/nombre
+
+numero=0
+cp -f /tmp/tempfile /tmp/temp_ligne_deux_points
+rm -f /tmp/tempfile
+until  ( test  $numero = $nombretype )
+    do
+        rm -f /tmp/temp_ligne_deux_points1
+#       rm -f /tmp/partfile1
+        numero=$[$numero+1]
+        cut -d":" -f$numero /tmp/temp_ligne_deux_points > /tmp/temp_ligne_deux_points1      #hdaiii
+#       cut -d":" -f$numero /tmp/partfile > /tmp/partfile1      #ide/h0/b0/t0/l0/hdaiii
+        reponse=`cat /tmp/temp_ligne_deux_points1`
+        reparti=$reponse
+        rm -f /tmp/temp_ligne_deux_points1
+        numero_hd=`expr substr $reponse 4 3`
+        disque=`expr substr $reponse 1 3`       #hda
+#       disque=`cut -d/ -f1-5 /tmp/partfile1`/disc      #ide/h0/b0/t0/l0/disc
+#       rm -f /tmp/partfile1
+        if [ "$type" = "fat32" ]
+        then
+                partition_vfat_trouvee=oui
+                rm -f /tmp/temp_ligne_deux_points
+        #       rm -f /tmp/partfile
+                return 1
+        fi
+    done
+rm -f /tmp/tempfile
+}
+#---------------------------------------------------------------------------------------------------
+boite_non_partition_fat32()
+{
+        dialog --colors --no-shadow --backtitle "`cat /etc/banniere_oscar`" \
+        --ok-label "Continuer" \
+        --title " DESOLE " \
+        --msgbox "\n\n\Zb\Z1  Il n'y a pas de partition \Z2Fat32 \Zb\Z1installée sur ce poste...\Zn " 9 67	
+        rm -f /tmp/fichiertmp
+        exit
+}
+#---------------------------------------------------------------------------------------------------
+cherche_partition_fat32()               # recherche sur le disque dur la partition fat32
+{
+type="fat32"
+partition_vfat_trouvee=non
+boucle_partition
+
+if [ "$partition_vfat_trouvee" = "oui" ]
+then
+        if [ "$nombretype" = "1" ]
+        then
+                repertoire_vfat=$reponse
+                chemin_repertoire_vfat=$reparti
+                return 1
+        else
+        repertoire_vfat=plus
+        fi
+else
+boite_non_partition_fat32
+fi
+}
+#  fin de recherche de partition fat32
+#---------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+retirer_colonne_3()	# enleve la 3ème colonne du  /tmp/fichier_mdp.cvs
+{
+#lire la premiere valeur
+cut -d";" -f1 /tmp/fichiertemp1 > /tmp/fichiertemp2
+# remplacer cette valeur par rien dans /tmp/fichier_mdp.csv et /tmp/fichiertemp1
+echo "perl -pi -e 's/`cat /tmp/fichiertemp2`/ /g;' /tmp/fichier_mdp.csv
+perl -pi -e 's/`cat /tmp/fichiertemp2`; //g;' /tmp/fichiertemp1" > /tmp/exec_nom
+chmod +x /tmp/exec_nom
+/tmp/exec_nom
+
+cut -d";" -f2 /tmp/fichiertemp1 > /tmp/fichiertemp3
+test_fin=`cat /tmp/fichiertemp3`
+if [ "$test_fin" = "" ] || [ "$test_fin" = " " ] # [ "$test_fin" = ";" ]
+then
+	cut -d";" -f1 /tmp/fichiertemp1 > /tmp/fichiertemp4 # pour le dernier
+	echo "`cat /tmp/fichiertemp4`; fin" > /tmp/fichiertemp1
+	retirer_colonne_3
+elif [ "$test_fin" = "fin" ]
+then
+	rm -f /tmp/fichiertemp4
+	rm -f /tmp/exec_nom 
+	return
+else
+	retirer_colonne_3
+fi
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+extraire_classe_fichier()	# trouve la valeur_classe du  /tmp/fichier_mdp.csv
+{
+# ne prend que la colonne des classes:
+cut -d";" -f4 /tmp/fichier_mdp.csv > /tmp/fichiertemp1
+echo `gawk '{ print $1 ";" } ' /tmp/fichiertemp1` > /tmp/fichiertemp2	# classe1; classe1; classe1; ...
+
+#lire la premiere classe
+cut -d";" -f1 /tmp/fichiertemp2 > /tmp/fichiertemp3
+valeur_classe=`cat /tmp/fichiertemp3`
+}
+#----------------------------------------------------------------------------------------------------
+demande_professeur_classe()
+{
+rm -f /tmp/tempfile
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "Quitter"  --title " Professeur principal " \
+	--inputbox "\n\n\Zb\Z4Donnez le nom du \Z2Professeur\Z4 de la classe \Zb\Z3$valeur_classe \Zn: \n " 0 0 2>/tmp/tempfile
+	case $? in
+	0)  professeur_principal=`cat /tmp/tempfile`
+		DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--ok-label "Accepter" --cancel-label "Quitter" --title " Professeur de la classe $valeur_classe " \
+		--extra-button --extra-label "Modifier" \
+		--menu "\n\Zb\Z1  Vérification du professeur \n" 10 0 0 \
+		"" "" \
+		"" "" \
+		"" "\Zb\Z4Vous avez affecté à la classe \Zn\Z2$valeur_classe : \Zb\Z3$professeur_principal\Zn " \
+		"" "" \
+		"" ""
+		case $? in
+		    0)	;;
+		    3)	demande_professeur_classe;;	# Modifier
+		    255) 
+			rm -f /tmp/tmpfile
+			rm -f /tmp/fichiertemp
+			rm -f /tmp/fichiertemp1
+			rm -f /tmp/fichiertemp2
+			rm -f /tmp/fichiertemp3
+		    	exit;;
+		esac ;;
+	1)  	rm -f /tmp/tmpfile
+		rm -f /tmp/fichiertemp
+		rm -f /tmp/fichiertemp1
+		rm -f /tmp/fichiertemp2
+		rm -f /tmp/fichiertemp3
+        	exit
+		;;
+	255) 	rm -f /tmp/tmpfile
+		rm -f /tmp/fichiertemp
+		rm -f /tmp/fichiertemp1
+		rm -f /tmp/fichiertemp2
+		rm -f /tmp/fichiertemp3
+		exit
+		;;
+esac
+}
+#----------------------------------------------------------------------------------------------------
+ajouter_classe_du_professeur()	# trouve la valeur_classe de la 3ème ligne du  /tmp/fichier_mdp.csv
+{
+	# installer l'entête:
+	echo "$calendrier" > /tmp/valeur_date
+	echo "$valeur_classe" > /tmp/valeur_classe
+	echo "$professeur_principal" > /tmp/professeur_principal
+	echo " " >> /tmp/fichier_sortie.csv
+	echo " " >> /tmp/fichier_sortie.csv
+	echo "Mots de passe réalisés le `cat /tmp/valeur_date`. Classe `cat /tmp/valeur_classe`.
+
+;Professeur principal:; `cat /tmp/professeur_principal`
+
+`cat /etc/texte_mdp_gespere`
+
+Nom;Prénom; ;Login;Pass;" >> /tmp/fichier_sortie.csv
+	
+	# extraire du /tmp/fichier_mdp.csv la classe complète :
+	echo " " > /tmp/fichiertemp1
+	grep -i "`cat /tmp/valeur_classe`" /tmp/fichier_mdp.csv >> /tmp/fichiertemp1
+	echo "perl -pi -e 's/;`cat /tmp/valeur_classe`;/;/g;' /tmp/fichiertemp1" > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+
+	echo "`cat /tmp/fichiertemp1`" >> /tmp/fichier_sortie.csv
+	echo " " >> /tmp/fichier_sortie.csv
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+supprimer_classe_realisee()	# supprime la classe réalisée du fichier  /tmp/fichiertemp
+{
+	# supprimer les lignes $valeur_classe:
+	grep -v "`cat /tmp/valeur_classe`" /tmp/fichier_mdp.csv > /tmp/fichiertemp
+	cp -f /tmp/fichiertemp /tmp/fichier_mdp.csv
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+main()	# programme principal
+{
+	extraire_classe_fichier
+	demande_professeur_classe
+	ajouter_classe_du_professeur
+	supprimer_classe_realisee
+	test_fin=`cat /tmp/fichier_mdp.csv`
+	if [ "$test_fin" = "" ] || [ "$test_fin" = " " ]
+	then
+		boite_fin
+	else
+		main
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+boite_fin()	# fin
+{
+cp /tmp/fichier_sortie.csv $repertoire_vfat_dd/gespere/Oscar_sortie-$calendrier.csv
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors --no-shadow \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "Continuer" \
+	--title " Fichier des mots de passe " \
+	  --exit-label "Continuer" --textbox "/tmp/fichier_sortie.csv" 0 0 \
+	--and-widget --colors --ok-label "Voir le fichier de sortie " --cancel-label "Terminer" \
+	--menu " \Zb\Z3Liste des mots de passe " 0 0 0 "" "" \
+	"" "Le fichier de sortie \Z2Oscar_sortie-$calendrier.csv\Zn est rangé " \
+	"" "dans le répertoire\Z2 $repertoire_vfat_dd/gespere/\Zn " \
+	"" ""
+        case $? in
+	    1)	rm -f /tmp/tmpfile
+		rm -f /tmp/fichiertemp
+		rm -f /tmp/fichiertemp1
+		rm -f /tmp/fichiertemp2
+		rm -f /tmp/fichiertemp3
+		return;;
+	    0) boite_fin;;
+	    255) rm -f /tmp/tmpfile
+		rm -f /tmp/fichiertemp
+		rm -f /tmp/fichiertemp1
+		rm -f /tmp/fichiertemp2
+		rm -f /tmp/fichiertemp3
+		return;;
+	esac
+}
+#----------------------------------------------------------------------------------------------------
+boite_info
+    cherche_partition_fat32
+        if [ "$repertoire_vfat" = "plus" ]
+        then
+                rm -f /tmp/fichier_disque_dur
+                echo " Partition du fichier LogCreate.csv " > /tmp/menu_titre
+                echo "" > /tmp/menu_texte
+                echo "\n\Zb\Z2Sélectionnez la partition \Z4FAT32\Zn \Zb\Z2du fichier \Z1LogCreate.csv \n\n " > /tmp/fichierquestion
+		echo "\Zn\Z4        partition        taille(Ko)               type" >> /tmp/fichierquestion
+		boite_partition_fat32
+                rm -f /tmp/fichierquestion
+                rm -f /tmp/menu_titre
+                rm -f /tmp/menu_texte
+                if ( test -e /tmp/sortir )
+                        then
+                        rm -f /tmp/sortir
+                        exit
+                fi
+
+                perl -pi -e 's/\/dev\///g;' /tmp/tempfile
+                repertoire_vfat=`cat /tmp/tempfile`
+
+#               rm -f /tmp/tempfile
+#               echo "/dev/$repertoire_vfat" > /tmp/tempfile
+#               runme selection_disque
+#               chemin_repertoire_vfat=`cat /tmp/partition`
+#               rm -f /tmp/tempfile
+        fi
+
+        #if ! ( test -e /mnt/$repertoire_vfat )
+        #then mkdir /mnt/$repertoire_vfat
+        #fi
+
+        echo "$repertoire_vfat" > /tmp/monter_partition
+        runme autoriser_monter_partition_oscar
+        repertoire_vfat_dd=`cat /tmp/monter_partition`
+	rm -f /tmp/monter_partition
+
+	if ! ( test -e $repertoire_vfat_dd/gespere/LogCreate.csv )
+	then
+		dialog --colors --no-shadow --ok-label "Continuer" \
+		--backtitle  "`cat /etc/banniere_oscar`" \
+		--exit-label "Continuer" \
+		--title " DESOLE " \
+		--msgbox "\n     \Z1Il n'y a pas de fichier \n\n\Z2$repertoire_vfat_dd/gespere/\Zb\Z3LogCreate.csv\n\n\Zn\Z1          sur ce poste. " 11 40
+		exit
+	fi
+
+	calendrier=$(date +%d-%m-%y)
+	cp $repertoire_vfat_dd/gespere/LogCreate.csv /tmp
+
+	echo "### Vous pouvez modifier cette entête :         (touche F10 pour quitter)" > /tmp/tempfile
+	if ! ( test -e /etc/texte_mdp_gespere )
+	then
+	echo "`cat /tmp/tempfile`
+Login et Mot de passe du réseau pédagogique pour les élèves.
+
+Arborescense :
+Contexte :
+Serveur  :
+
+A la première connexion l'utilisateur doit changer son mot de passe. " > /etc/texte_mdp_gespere
+	else
+	cp -f /etc/texte_mdp_gespere /tmp/tempfile1
+	echo "`cat /tmp/tempfile`
+`cat /tmp/tempfile1`" > /etc/texte_mdp_gespere	
+	fi
+
+	rm -f /tmp/tempfile1
+        mc -e /etc/texte_mdp_gespere
+        clear
+	grep -v "### Vous" /etc/texte_mdp_gespere > /tmp/tempfile
+	cp -f /tmp/tempfile /etc/texte_mdp_gespere
+	rm -f /tmp/tempfile
+ 
+cp -f /tmp/LogCreate.csv /tmp/fichier_mdp.csv
+rm -f /tmp/fichier_sortie.csv
+
+		dialog --colors --no-shadow --ok-label "Attendez" \
+		--backtitle  "`cat /etc/banniere_oscar`"  \
+		--exit-label "Continuer" \
+		--title " OSCAR travaille " \
+		--infobox "\n \Zb\Z4Patience \Zb\Z3OSCAR\Z4 range les colonnes ..." 5 45 2>/dev/null
+
+	# supprime les lignes contenant Division et ;;;;;;;;
+	grep -v "Division" /tmp/fichier_mdp.csv | grep -v ";;;;;;;" > /tmp/fichiertemp
+	# ne prendre que les colonnes utiles:
+	cut -d";" -f2-7 /tmp/fichiertemp > /tmp/fichier_mdp.csv
+
+	# ne prend que la colonne 3:
+	cut -d";" -f3 /tmp/fichier_mdp.csv > /tmp/fichiertemp
+	echo `gawk '{ print $1 ";" } ' /tmp/fichiertemp` > /tmp/fichiertemp1	# CE0999; CE0999; CE0999; ...
+	rm -f /tmp/fichiertemp
+	retirer_colonne_3
+	
+main
+umount $repertoire_vfat_dd 2>/dev/null ; sync
+sleep 4		# obligatoire pour demonter la cle USB ?
+

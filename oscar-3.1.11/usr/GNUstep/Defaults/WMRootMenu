@@ -1,0 +1,166 @@
+(
+  Applications,
+  (XTerm, EXEC, "xterm -sb"),
+  (GParted, EXEC, "/usr/bin/gparted"),
+  (Vnc, EXEC, "/usr/bin/vncviewer"),
+  ("Firefox web browser", EXEC, firefox),
+  ("Dillo web browser", EXEC, "/usr/bin/dillo"),
+  ("GVim editor", EXEC, gvim),
+  ("Leafpad editor", EXEC, "/usr/bin/leafpad"),
+  ("Midnight Commander", EXEC, "xterm /usr/bin/mc"),
+  ("Partimage", EXEC, "xterm /usr/sbin/partimage"),
+  (Run..., EXEC, "%a(Run,Type command to run:)"),
+  (
+    Information,
+    ("Info Panel", INFO_PANEL),
+    (Legal, LEGAL_PANEL),
+    ("Process List", EXEC, "xterm -e top")
+  ),
+  (Bureau, WORKSPACE_MENU),
+  (
+    Selection,
+    (Copy, SHEXEC, "echo '%s' | wxcopy"),
+    ("Mail To", EXEC, "xterm -name mail -T Pine -e pine %s"),
+    (Navigate, EXEC, "mozilla %s"),
+    ("Search in Manual", EXEC, "MANUAL_SEARCH(%s)")
+  ),
+  (
+    Commandes,
+    ("Hide Others", HIDE_OTHERS),
+    ("Show All", SHOW_ALL),
+    ("Arrange Icons", ARRANGE_ICONS),
+    (Refresh, REFRESH),
+    (Lock, EXEC, "xlock -allowroot -usefirst")
+  ),
+  (
+    Apparence,
+    (
+      Themes,
+      OPEN_MENU,
+      "-noext /usr/share/WindowMaker/Themes $HOME/GNUstep/Library/WindowMaker/Themes WITH setstyle"
+    ),
+    (
+      Styles,
+      OPEN_MENU,
+      "-noext /usr/share/WindowMaker/Styles $HOME/GNUstep/Library/WindowMaker/Styles WITH setstyle"
+    ),
+    (
+      "Icones",
+      OPEN_MENU,
+      "-noext /usr/share/WindowMaker/IconSets $HOME/GNUstep/Library/WindowMaker/IconSets WITH seticons"
+    ),
+    (
+     "Fond ecran",
+      (
+        Continu,
+        (Black, EXEC, "wdwrite WindowMaker WorkspaceBack '(solid, black)'"),
+        (
+          Blue,
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(solid, \"#505075\")'"
+        ),
+        (
+          Indigo,
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(solid, \"#243e6c\")'"
+        ),
+        (
+          Bluemarine,
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(solid, \"#224477\")'"
+        ),
+        (
+          Purple,
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(solid, \"#554466\")'"
+        ),
+        (
+          Wheat,
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(solid, wheat4)'"
+        ),
+        (
+          "Dark Gray",
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(solid, \"#333340\")'"
+        ),
+        (
+          Wine,
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(solid, \"#400020\")'"
+        )
+      ),
+      (
+        Degrade,
+        (
+          Sunset,
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(mvgradient, deepskyblue4, black, deepskyblue4, tomato4)'"
+        ),
+        (
+          Sky,
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(vgradient, blue4, white)'"
+        ),
+        (
+          "Blue Shades",
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(vgradient, \"#7080a5\", \"#101020\")'"
+        ),
+        (
+          "Indigo Shades",
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(vgradient, \"#746ebc\", \"#242e4c\")'"
+        ),
+        (
+          "Purple Shades",
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(vgradient, \"#654c66\", \"#151426\")'"
+        ),
+        (
+          "Wheat Shades",
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(vgradient, \"#a09060\", \"#302010\")'"
+        ),
+        (
+          "Grey Shades",
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(vgradient, \"#636380\", \"#131318\")'"
+        ),
+        (
+          "Wine Shades",
+          EXEC,
+          "wdwrite WindowMaker WorkspaceBack '(vgradient, \"#600040\", \"#180010\")'"
+        )
+      ),
+      (
+        Images,
+        OPEN_MENU,
+        "-noext /usr/share/WindowMaker/Backgrounds $HOME/GNUstep/Library/WindowMaker/Backgrounds WITH wmsetbg -u -t"
+      )
+    ),
+    (
+      "Sauver le Theme",
+      SHEXEC,
+      "getstyle -t $HOME/GNUstep/Library/WindowMaker/Themes/\"%a(Theme name)\""
+    ),
+    (
+      "Sauver les Icones",
+      SHEXEC,
+      "geticonset $HOME/GNUstep/Library/WindowMaker/IconSets/\"%a(IconSet name)\""
+    ),
+    (
+      "Utilitaires des Preferences ",
+      EXEC,
+      "/usr/lib/GNUstep/Applications/WPrefs.app/WPrefs"
+    )
+  ),
+  (
+    Session,
+    ("Sauver la Session", SAVE_SESSION),
+    ("Effacer la Session", CLEAR_SESSION),
+    ("Redemarrer WindowMaker", RESTART),
+    ("Eteindre le poste", EXEC, "xterm halt")
+  ),
+  ("Quitter WindowMaker", EXIT)
+)

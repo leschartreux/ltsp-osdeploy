@@ -1,0 +1,83 @@
+#!/bin/bash
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+echo "Prêt à démarrer ? "
+echo avant de formater la partition de travail sda5 copier le fichier /etc/fstab
+echo
+read p
+ifconfig
+echo
+echo "verifier dhcpcd eth0  sinon lancer 'dhcpcd eth0'..."
+echo
+read p
+echo
+echo "vérifier le processeur:  (x86 i686)"
+uname -a
+echo
+
+#mkdir /mnt/gentoo
+#mount /dev/sda10 /mnt/gentoo -t ext3
+
+echo " lancer links pour télécharger stage 3 (pour x86 et) i686 ainsi que snapshots de portage ?"
+echo "S'il existe : http://ftp.club-internet.fr/pub/mirrors/gentoo/ "
+
+read p
+links http://ftp.club-internet.fr/pub/mirrors/gentoo/
+
+echo " appuyer sur une touche"
+read p
+
+echo "installer la date : 09152015352005: "
+echo
+date
+echo " ? "
+read p
+echo " faire tar xvjpf et tar -xvjf:"
+echo " Pour cela changez de console puis faites 'cd /mnt/gentoo' pour la suite: "
+echo
+echo "# cd /mnt/gentoo "
+echo "# tar xvjpf stage3-i686-2006.1.tar.bz2 "
+echo " puis: # tar -xvjf /mnt/gentoo/portage-<date>.tar.bz2 -C /mnt/gentoo/usr "
+echo
+echo "Quand ces 3 commandes sont bien réalisées sur /mnt/gentoo vérifiez puis appuyer sur une 'Entrée' ..."
+read p
+
+echo "ajouter ces 2 lignes dans /mnt/gentoo/etc/make.conf :"
+echo "USE=\"-X -gtk -gnome -kde alsa dvd cdr\""
+echo "MAKEOPTS=\"-j2\""
+
+echo "USE=\"-X -gtk -gnome -kde alsa dvd cdr\"" >> /mnt/gentoo/etc/make.conf
+echo "MAKEOPTS=\"-j2\"" >> /mnt/gentoo/etc/make.conf
+echo
+echo "verifier /mnt/gentoo/etc/make.conf notamment CHOST=\"i686-pc-linux--gnu \" "
+echo
+read " Appuyez sur 'Entrée' pour vérifier ce fichier ... "
+nano /mnt/gentoo/etc/make.conf
+echo
+echo "Pour mirrorselect, appuyer sur une touche... "
+read p
+	mirrorselect -i -o >> /mnt/gentoo/etc/make.conf
+echo " Pour mirrorselect sync, appuyez sur une touche ... "
+read p
+  	mirrorselect -i -r -o >> /mnt/gentoo/etc/make.conf
+echo
+echo "l'information DNS : verifier /mnt/gentoo/etc/resolv.conf"
+cp -L /etc/resolv.conf /mnt/gentoo/etc/resolv.conf
+
+echo "installer les variables dhcp :verifier /mnt/gentoo/etc/conf.d/net"
+ cp -f /etc/conf.d/net /mnt/gentoo/etc/conf.d/
+ echo " Appuyez sur 'Entrée' pour lire le fichier ... installer dhcp: il sera complété avec installer_catalyst_2 "
+ read p
+ nano /mnt/gentoo/etc/conf.d/net
+ echo
+echo "  Monter /proc et /dev :"
+  mount -t proc none /mnt/gentoo/proc
+  mount -o bind /dev /mnt/gentoo/dev
+   
+ echo "change route ? puis lancez ./installer_catalyst_2 "
+ read p
+ chroot /mnt/gentoo /bin/bash

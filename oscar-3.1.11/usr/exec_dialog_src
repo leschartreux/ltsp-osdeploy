@@ -1,0 +1,67 @@
+#!/bin/sh
+
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	traduction
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+if ( test -e /tmp/hauteur )
+then
+    hauteur=`cat /tmp/hauteur`
+    rm -f /tmp/hauteur
+else
+    hauteur=0
+fi
+if ( test -e /tmp/largeur )
+then
+    largeur=`cat /tmp/largeur`
+    rm -f /tmp/largeur
+else
+    largeur=0
+fi
+if ( test -e /tmp/position )
+then
+    position=`cat /tmp/position`
+    rm -f /tmp/position
+else
+    position=0
+fi
+if ( test -e /tmp/menu_titre )
+then
+    menu_titre=`cat /tmp/menu_titre`
+    rm -f /tmp/menu_titre
+else
+    menu_titre=
+fi
+if ( test -e /tmp/menu_texte )
+then
+    menu_texte=`cat /tmp/menu_texte`
+    rm -f /tmp/menu_texte
+else
+    menu_texte=
+fi
+if ( test -e /tmp/fichierquestion )
+then
+    fichierquestion=`cat /tmp/fichierquestion`
+    rm -f /tmp/fichierquestion
+else
+    fichierquestion=
+fi
+
+if ( test -e /tmp/restaure_boot )
+then
+	valeur_timeout="--timeout 13"	# permet le choix par defaut de la restauration au boot
+else
+	valeur_timeout=
+fi
+
+dialog --colors --cancel-label "`cat $chemin_langue/Annuler`" \
+       --backtitle "`cat /etc/banniere_oscar`"\
+       $valeur_timeout --title "$menu_titre" \
+       --menu "$menu_texte\n$fichierquestion" $hauteur $largeur $position \

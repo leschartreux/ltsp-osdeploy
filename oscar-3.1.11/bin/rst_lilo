@@ -1,0 +1,34 @@
+#!/bin/bash
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Cdrom Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+
+
+
+# lancement par l'autorun_rst de ce fichier
+
+#  l'autorun restaure la partition hdax à partir de l'image située sur la partition linux
+
+if ! ( test -e /etc/exec_dialog_src )  # si depart par oscar
+then
+	cp -f /usr/share/oscar/usr/exec_dialog_src /etc		
+	cp -f /usr/share/oscar/usr/dialogrc /etc
+	cp -f /usr/share/oscar/usr/dialogmenu_bloque /etc
+fi
+	setterm -powerdown       # setterm -powersave off   # supprime l'écran de veille
+	setterm -msg off         # n'affiche pas les messages d'erreurs
+
+echo "" > /etc/oscar
+/usr/share/oscar/usr/version_theme_oscar
+
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " RESTAURATION du POSTE " \
+	--msgbox "\n\n\Z2 Pour restaurer ce poste appuyez sur la touche \Zb\Z7Entrée \n\n\Zn " 0 0
+	rst

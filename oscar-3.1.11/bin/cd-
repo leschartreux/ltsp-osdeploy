@@ -1,0 +1,26 @@
+#!/bin/sh
+
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+# démonte le cdrom
+
+
+umount /mnt/cdrom  ; sync
+eject
+
+if ! ( test -e /etc/cdrom_ejecte )
+then
+	if ( test -e /etc/demarrage_cdcache )
+	then
+		echo "" > /etc/cdrom_ejecte	# cd ejecte
+	fi
+fi
+
+echo
+echo -e "Pour monter le cdrom, \033[1;33mcd+\033[1;m"
+ texte_fin

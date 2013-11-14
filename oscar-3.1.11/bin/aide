@@ -1,0 +1,47 @@
+#!/bin/sh
+echo "									Pour descendre: Maj-PgBas
+			Commandes du CD de restauration:
+
+
+Démarrer le poste avec le CD Linux
+
+ %  Entrée    ou    fb800 cdcache  (pour pouvoir enlever le CD linux)
+
+
+
+puis les commandes possibles sont:
+
+%  rst			restaure le poste à partir de son image située sur sa partition linux.
+%  sauve		réalise l'image de sauvegarde d'un poste sur sa partition linux.
+%  test_rst		teste la sauvegarde du poste en simulant sa restauration.
+
+%  serveur_nfs	configure un poste en serveur pour partager son image sur le réseau.
+%  client_nfs		restaure un poste depuis une image partagée sur le réseau.
+
+%  halt			éteindre l'ordinateur.
+
+%  menu			ensemble des commandes permettant la réparation d'un poste.
+
+%  mc			logiciel de gestion des fichiers.
+%  run_qtparted		logiciel de gestion des partitions.
+%  info_dd		montre les partitions du disque dur.
+%  ports_es		montre les ports E/S et les cartes ethernet, son, video...
+%  internet		connexion à internet pour télécharger les fichiers de mise à jour.
+
+%  serveur		configure un poste en serveur avec le protocole réseau de windows.
+%  client		configure un poste en client avec le protocole réseau de windows.
+%  serveur_linux	configure un poste en serveur avec le protocole réseau de linux.
+%  client_linux		configure un poste en client avec le protocole réseau de linux.
+
+%  poste_w98		réalise un poste windows 98 complet:
+			partitionne (2/3,1/3 à la demande) et sauvegarde le poste...
+%  poste_xp		réalise un poste xp, win2000 ou NT complet fat32:
+			partitionne (5go sur C, 5go de sauvegarde linux et le reste en fat32
+			ou 15go sur C,15go de sauvegarde linux et le reste en fat32)
+			et sauvegarde le poste...
+			rq : ne fonctionne pas encore avec NTFS !!!
+
+%  dskboot		réalise une disquette de gestion de boot.
+%  aide			affiche ces commandes.
+									Pour monter: Maj-PgHaut
+" # fin d'affichage

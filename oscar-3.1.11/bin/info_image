@@ -1,0 +1,1978 @@
+#!/bin/sh
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+### gère les sauvegardes en réseau voir si renommer ce fichier en info_image
+
+# informe sur la présence d'une image sur le poste et donne les partitions sauvegardées et de sauvegarde
+
+## INCREMENTER	: pas de commentaire RECHERCHER_TYPE_CONNU, windows, ubuntu, mandriva ... DEMANDER seulement si commentaire non utilisé
+## SERVEUR 	: pas de commentaire RECHERCHER_TYPE_CONNU, windows, ubuntu, mandriva ... DEMANDER seulement si commentaire non utilisé
+
+## CLIENT	: pas de commentaire RECHERCHER_TYPE_CONNU, windows, ubuntu, mandriva ...
+##		: COMPARER commentaire : si identique au serveur ECRASER sinon DEPLACER
+
+PATH="/usr/share/oscar/bin:$PATH"
+choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+boite_partition_linux() # selectionner seulement les partitions linux avec oscar
+{
+if [ "$linux_sauvegarde_serveur" = "" ]	# ce n'est pas un serveur modele
+then
+	# Partition linux de sauvegarde
+	rm -f /tmp/fichier_disque_dur
+	echo " `cat $chemin_langue/selection_20` " > /tmp/menu_titre
+	echo "" > /tmp/menu_texte
+	echo "\n`cat $chemin_langue/selection_21` \n\n " > /tmp/fichierquestion
+	echo "`cat $chemin_langue/selection_22`" >> /tmp/fichierquestion
+
+	cp -f /tmp/partition_linux_oscar_sauvegarde /tmp/bozo
+	perl -pi -e 's/oui//g; s/non//g;' /tmp/bozo
+	
+	# perl -pi -e 's/\/mnt\///g;' /tmp/bozo
+	runme boite_selection_bozo
+
+	rm -f /tmp/menu_titre
+	rm -f /tmp/menu_texte
+	rm -f /tmp/fichierquestion
+	if ( test -e /tmp/sortir )
+	then
+		return
+	fi
+	
+	perl -pi -e 's/\/dev\///g; s/ //g;' /tmp/tempfile
+	if [ "$fonction_demandee" = "gerer_rst" ]	 # debug restaure a partir USB_OSCAR
+	then
+		choix_partition_sauvegarde_recup_fait=oui
+	fi
+else
+	echo "$linux_sauvegarde_serveur" > /tmp/tempfile
+	perl -pi -e 's/\/mnt\///g;' /tmp/tempfile
+fi
+	linux_sauvegarde=`cat /tmp/tempfile`
+	rm -f /tmp/tempfile
+	repertoire_image=$linux_sauvegarde
+	echo "$linux_sauvegarde" > /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	linux_sauvegarde=`cat /tmp/monter_partition`
+	rm -f /tmp/monter_partition
+
+	if ! ( test -e $linux_sauvegarde/oscar )
+	then
+		mkdir $linux_sauvegarde/oscar
+	fi
+}
+#-----------------------------------------------------------------------------------------------------
+boucle_partition() # sortir la partition dans la reponse
+{
+rm -f /tmp/tempfile
+echo "$type" > /tmp/tempfile
+runme prepare_boucle_partition
+nombretype=`cat /tmp/nombre`
+rm -f /tmp/nombre
+
+numero=0
+rm -f /tmp/partition_linux_oscar_sauvegarde
+rm -f /tmp/une_seule_image_trouvee
+cp -f /tmp/tempfile /tmp/temp_ligne_deux_points
+rm -f /tmp/tempfile
+until  ( test  $numero = $nombretype )
+    do
+	rm -f /tmp/temp_ligne_deux_points1
+#	rm -f /tmp/partfile1
+	numero=$[$numero+1]
+	cut -d":" -f$numero /tmp/temp_ligne_deux_points > /tmp/temp_ligne_deux_points1	#hdaiii
+#	cut -d":" -f$numero /tmp/partfile > /tmp/partfile1	#ide/h0/b0/t0/l0/hdaiii
+	reponse=`cat /tmp/temp_ligne_deux_points1`
+#	reparti=`cat /tmp/partfile1`
+	rm -f /tmp/temp_ligne_deux_points1
+	numero_hd=`expr substr $reponse 4 3`
+#	disque=`cut -d/ -f1-5 /tmp/partfile1`/disc	#ide/h0/b0/t0/l0/disc
+	disque=`expr substr $reponse 1 3`	#hda
+#    	rm -f /tmp/partfile1
+        if [ "$type" = "linux" ]
+	then
+		# id_type=`sfdisk /dev/$disque -c $numero_hd 2>/dev/null`
+		grep -i $reponse /tmp/fichier_disque_dur | grep -c Linux > /tmp/nb_partition_linux
+		nb_partition_linux=`cat /tmp/nb_partition_linux`
+		rm -f /tmp/nb_partition_linux
+		if [ "$nb_partition_linux" = "1" ] # partition linux non swap
+		then
+			#sfdisk -s /dev/$reponse > /tmp/taille_partition_linux 2>/dev/null
+			#valeur_Mo_taille=`cat /tmp/taille_partition_linux`
+			#valeur_Mo_taille=$[$valeur_Mo_taille/1024]
+			grep $reponse /tmp/fichier_disque_dur > /tmp/taille_partition_linux
+			cut -d" " -f2 /tmp/taille_partition_linux > /tmp/taille_partition_linux1
+			valeur_Mo_taille=`cat /tmp/taille_partition_linux1`
+			rm -f /tmp/taille_partition_linux
+			rm -f /tmp/taille_partition_linux1
+
+			#if ! ( test -e /mnt/$reponse )
+			#	then	mkdir /mnt/$reponse
+			#fi
+			echo "$reponse" > /tmp/monter_partition
+			runme autoriser_monter_partition_oscar
+			linux_sauvegarde=`cat /tmp/monter_partition`
+			rm -f /tmp/monter_partition
+			
+			type_affiche=Linux
+			if ( test -e $linux_sauvegarde/etc/conf.d/hostname )	# tous les linux installes
+			then
+				cut -d"\"" -f2 $linux_sauvegarde/etc/conf.d/hostname > /tmp/test_partition_gentoo_oscar
+				hostname_oscar=`cat /tmp/test_partition_gentoo_oscar`
+				rm -f /tmp/test_partition_gentoo_oscar
+				if [ "$hostname_oscar" = OSCAR ]	# oscar installe sur le poste
+				then
+					type_affiche=OSCAR
+					if [ "$fonction_demandee" = "gerer_sauve" ] || [ "$fonction_demandee" = "gerer_recup" ]
+					then
+						if ! ( test -e $linux_sauvegarde/oscar/partition_sauvegardee )	# pas de sauvegarde sur oscar
+						then
+							echo "\"non  $reponse\" \"             $valeur_Mo_taille                     $type_affiche  \" \\" >> /tmp/partition_linux_oscar_sauvegarde
+						fi
+					fi
+				fi
+
+			fi
+			if ( test -e $linux_sauvegarde/image.partimage.000 ) ## sauvegarde dans ancienne version
+			then
+				echo "$reponse" > partition_de_sauvegarde
+				changement_version_oscar changement_partition_sauvegarde
+			fi
+			
+			if ( test -e $linux_sauvegarde/oscar/partition_sauvegardee )
+			then
+				if [ "$image_trouvee" = "non" ]	# premiere partition avec oscar
+				then
+					image_trouvee=oui	# une seule partition oscar
+				else
+					image_trouvee=plus	# plusieurs partitions oscar
+				fi
+				echo "\"oui  $reponse\" \"             $valeur_Mo_taille                     $type_affiche  \" \\" >> /tmp/partition_linux_oscar_sauvegarde
+			fi
+			
+			if ! ( test -e $linux_sauvegarde/oscar/partition_sauvegardee )
+			then
+				if ( test -e $linux_sauvegarde/oscar1/partition_sauvegardee )
+				then
+					if [ "$image_trouvee" = "non" ]	# premiere partition avec oscar1 mais sans oscar
+					then
+						image_trouvee=oui_oscar1	# une seule partition oscar1
+					else
+						image_trouvee=plus	# plusieurs partitions oscar
+					fi
+					echo "\"oui  $reponse\" \"             $valeur_Mo_taille                     $type_affiche  \" \\" >> /tmp/partition_linux_oscar_sauvegarde
+
+				#	rm -f /tmp/temp_ligne_deux_points
+				#	return
+				elif ! ( test -e $linux_sauvegarde/etc )	#pas sauvegarde pas oscar
+				then
+					if [ "$fonction_demandee" = "gerer_sauve" ] || [ "$fonction_demandee" = "gerer_recup" ]
+					then
+						echo "\"non  $reponse\" \"             $valeur_Mo_taille                     $type_affiche  \" \\" >> /tmp/partition_linux_oscar_sauvegarde
+					fi
+				fi
+			fi
+
+			if ! ( test -e $linux_sauvegarde/oscar )
+			then
+				umount $linux_sauvegarde 2>/dev/null  ; sync	# pour ne pas démonter la partition des clients ou serveur
+			fi
+		fi
+	fi
+    done
+rm -f /tmp/tempfile
+# rm -f /tmp/partfile
+nombre_partitions_possibles_sauvegarde=0
+nombre_partitions_sans_sauvegarde=0
+nombre_partitions_avec_sauvegarde=0
+if ( test -e /tmp/partition_linux_oscar_sauvegarde )
+then
+	grep -ci "sd" /tmp/partition_linux_oscar_sauvegarde > /tmp/nombre_partitions_possibles_sauvegarde
+	nombre_partitions_possibles_sauvegarde=`cat /tmp/nombre_partitions_possibles_sauvegarde`
+	rm -f /tmp/nombre_partitions_possibles_sauvegarde
+	grep -ci "non" /tmp/partition_linux_oscar_sauvegarde > /tmp/nombre_partitions_sans_sauvegarde
+	nombre_partitions_sans_sauvegarde=`cat /tmp/nombre_partitions_sans_sauvegarde`
+	rm -f /tmp/nombre_partitions_sans_sauvegarde
+	grep -ci "oui" /tmp/partition_linux_oscar_sauvegarde > /tmp/nombre_partitions_avec_sauvegarde
+	nombre_partitions_avec_sauvegarde=`cat /tmp/nombre_partitions_avec_sauvegarde`
+	rm -f /tmp/nombre_partitions_avec_sauvegarde
+fi
+
+if [ "$image_trouvee" = "plus" ]
+then
+	boite_partition_linux
+elif [ "$fonction_demandee" = "gerer_recup" ]
+then
+	if ! [ "$nombre_partitions_possibles_sauvegarde" = "0" ]
+	then
+		if ! [ "$nombre_partitions_possibles_sauvegarde" = "1" ]
+		then
+			boite_partition_linux
+			choix_partition_sauvegarde_recup_fait=oui
+		fi
+	fi
+fi
+if ( test -e /tmp/sortir )
+then
+	return
+fi
+}
+#----------------------------------------------------------------------------------------------------
+deplacement_chronologique()
+{
+	rm -fR $linux_sauvegarde/oscar_x
+	if ( test -e $linux_sauvegarde/oscar )
+	then
+	    mv $linux_sauvegarde/oscar $linux_sauvegarde/oscar_x
+	fi
+	if ( test -e $linux_sauvegarde/$reponse )
+	then
+		mv $linux_sauvegarde/$reponse $linux_sauvegarde/oscar
+	fi
+	if ( test -e $linux_sauvegarde/oscar_x )
+	then
+		if ( test -e $linux_sauvegarde/oscar1 )	# obliger avoir /oscar1 en priorite				
+		then
+			mv $linux_sauvegarde/oscar_x $linux_sauvegarde/$reponse
+			### mettre de nouveau livecd.squashfs dans $linux_sauvegarde/oscar :
+			if ( test -e $linux_sauvegarde/$reponse/var_poste ) # || ( test -e $linux_sauvegarde/$reponse/livecd.squashfs )
+			then
+				if ! ( test -e $linux_sauvegarde/oscar )
+				then
+					mkdir $linux_sauvegarde/oscar
+				fi
+				if ( test -e $linux_sauvegarde/$reponse/var_poste )
+				then
+					mv $linux_sauvegarde/$reponse/var_poste $linux_sauvegarde/oscar
+				fi
+				#	if ( test -e $linux_sauvegarde/$reponse/livecd.squashfs )
+				#	then
+				#		mv $linux_sauvegarde/$reponse/livecd.squashfs $linux_sauvegarde/oscar
+				#	fi
+			fi
+		else
+			mv $linux_sauvegarde/oscar_x $linux_sauvegarde/oscar1
+			### mettre de nouveau livecd.squashfs dans $linux_sauvegarde/oscar :
+			if ( test -e $linux_sauvegarde/oscar1/var_poste ) # || ( test -e $linux_sauvegarde/oscar1/livecd.squashfs )
+			then
+				if ! ( test -e $linux_sauvegarde/oscar )
+				then
+					mkdir $linux_sauvegarde/oscar
+				fi
+				if ( test -e $linux_sauvegarde/oscar1/var_poste )
+				then
+					mv $linux_sauvegarde/oscar1/var_poste $linux_sauvegarde/oscar
+				fi
+				
+				#	if ( test -e $linux_sauvegarde/oscar1/livecd.squashfs )
+				#	then
+				#		mv $linux_sauvegarde/oscar1/livecd.squashfs $linux_sauvegarde/oscar
+				#	fi
+			fi
+		fi
+	fi
+	if ! ( test -e $linux_sauvegarde/oscar/var_poste )
+	then
+		mkdir -p $linux_sauvegarde/oscar/var_poste
+	fi
+	if ! ( test -e $linux_sauvegarde/oscar )
+	then
+		mkdir -p $linux_sauvegarde/oscar/var_poste
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+boite_choix_autre_sauvegarde() #  choisir une autre sauvegarde
+{
+# bug a finir pour changer le + et - exemple accepter ou choisir autre que nouvelle
+
+	#runme prepare_fichier_temptaille
+
+	# pour initialiser:
+	if ( test -e /tmp/autre_sauvegarde )
+	then
+	    grep -v "accepter" /tmp/autre_sauvegarde > /tmp/tempfile
+	    cp -f /tmp/tempfile /tmp/autre_sauvegarde
+	fi
+
+	if ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+	then 
+		echo " : \Zb\Z3`cat $linux_sauvegarde/oscar/commentaire_oscar.txt`" > /tmp/text6
+	else
+		echo " " > /tmp/text6
+	fi
+	rm -f /tmp/tempfile
+	cut -d";" -f1 $linux_sauvegarde/oscar/date_de_sauvegarde > /tmp/tempdate
+	if ! [ "$repertoire_oscar_vide" = "oui" ]
+	then
+		echo "accepter,,, `cat $linux_sauvegarde/oscar/partition_sauvegardee`    `cat /tmp/tempdate`\Zb\Z2    $choix_fonction `cat $chemin_langue/inputbox_15``cat /tmp/text6`,," > /tmp/tempfile
+	fi
+	rm -f /tmp/text6
+	rm -f /tmp/tempdate
+
+	if [ "$fonction_demandee" = "gerer_sauve" ]
+	then
+		echo "nouvelle,,,\Zb\Z2                        `cat $chemin_langue/menu_349` ... ,," >> /tmp/tempfile
+	elif [ "$fonction_demandee" = "gerer_recup" ]
+	then
+		echo "nouvelle,,,\Zb\Z2                        `cat $chemin_langue/menu_350` ... ,," >> /tmp/tempfile
+	fi
+
+	if ( test -e /tmp/autre_sauvegarde )
+	then
+		echo "`cat /tmp/autre_sauvegarde`" >> /tmp/tempfile
+	fi
+	cp -f /tmp/tempfile /tmp/autre_sauvegarde
+
+	# couleurs
+	runme prepare_fichier_temptaille
+	runme colorier_selection_info
+	cp -f /tmp/couleurs_info /tmp/tempdd
+	rm -f /tmp/couleurs_info
+
+	# awk 'BEGIN { FS="," } { printf ("%0s %15s %25s\n","\""$1"\" \"",$4,$6"\" \\")}' /tmp/autre_sauvegarde > /tmp/bozo
+	awk 'BEGIN { FS="," } { printf ("%0s %15s %35s\n","\""$1"\" \"",$4,$6"\" \\")}' /tmp/autre_sauvegarde > /tmp/bozo
+	cp /usr/share/oscar/usr/exec_dialog_src /tmp/exec_dialog -f
+
+	if ! ( test -e /tmp/tempsauve )
+	then
+		echo "" > /tmp/tempsauve
+	fi
+
+	echo "\n`cat /tmp/tempdd` `cat /tmp/tempsauve` " > /tmp/menu_texte
+	if [ "$fonction_demandee" = "supprimer" ]
+	then
+		# SAUVEGARDE de ce poste
+		echo " `cat $chemin_langue/menu_351` " > /tmp/menu_titre
+		# supprimer
+		echo "\n\Zb\Z3 `cat $chemin_langue/menu_352` \Z1`cat $chemin_langue/menu_353`\Z3 : " >> /tmp/menu_texte
+	elif [ "$fonction_demandee" = "gerer_serveur" ]
+	then
+		echo " `cat $chemin_langue/menu_351` " > /tmp/menu_titre
+		if ! ( test -e /tmp/partager_image )
+		then
+			# envoyer
+			action_serveur=`cat $chemin_langue/menu_354`
+		else
+			# partager
+			rm -f /tmp/partager_image
+			action_serveur=`cat $chemin_langue/menu_354`
+		fi
+		echo "\n\Zb\Z3 `cat $chemin_langue/menu_352` \Z1$action_serveur\Z3 : " >> /tmp/menu_texte
+	elif [ "$fonction_demandee" = "gerer_sauve" ]
+	then
+		if [ "$une_seule_sauvegarde" = "oui" ]
+		then
+			echo " `cat $chemin_langue/menu_351` " > /tmp/menu_titre
+			# ecraser
+			echo "\n\Zb\Z3 `cat $chemin_langue/menu_360` : " >> /tmp/menu_texte
+		else
+			echo " `cat $chemin_langue/menu_361` " > /tmp/menu_titre
+			# enregistrer
+			echo "\n\Zb\Z3 `cat $chemin_langue/menu_352` \Z1`cat $chemin_langue/menu_356`\Z3 : " >> /tmp/menu_texte
+		fi
+	elif [ "$fonction_demandee" = "gerer_transfert" ]
+	then
+		echo " `cat $chemin_langue/menu_362` " > /tmp/menu_titre
+		# à copier
+		echo "\n\Zb\Z3 `cat $chemin_langue/menu_365` \Z1`cat $chemin_langue/menu_359`\Z3 : " >> /tmp/menu_texte
+	elif [ "$fonction_demandee" = "gerer_recup" ]
+	then
+		echo " `cat $chemin_langue/menu_363` " > /tmp/menu_titre
+		# écraser
+		echo "\n\Zb\Z3 `cat $chemin_langue/menu_365` \Z1`cat $chemin_langue/menu_357`\Z3 : " >> /tmp/menu_texte
+	elif [ "$fonction_demandee" = "gerer_rst" ]
+	then
+		echo " `cat $chemin_langue/menu_364` " > /tmp/menu_titre
+		# restaurer
+		echo "\n\Zb\Z3 `cat $chemin_langue/menu_352` \Z1`cat $chemin_langue/menu_358`\Z3 : " >> /tmp/menu_texte
+	else
+		echo " `cat $chemin_langue/menu_351` " > /tmp/menu_titre
+		echo "\n\Zb\Z3 `cat $chemin_langue/menu_366`\Z3 : " >> /tmp/menu_texte
+	fi
+	
+	cp -f /tmp/bozo /tmp/bozo1
+	cp -f /tmp/menu_texte /tmp/bozo
+	runme modifier_Linux_en_OSCAR
+	cp -f /tmp/bozo /tmp/menu_texte
+	cp -f /tmp/bozo1 /tmp/bozo
+	rm -f /tmp/bozo1
+	# perl -pi -e 's/        //g;' /tmp/bozo
+	
+	echo "" > /tmp/fichierquestion
+	rm -f /mp/tempdd
+	rm -f /tmp/tempsauve
+	rm -f /tmp/autre_sauvegarde
+	rm -f /tmp/sortir
+	# echo "15" > /tmp/hauteur
+	rm -f /tmp/hauteur
+	
+	# mettre dans exec_dialog_src valeur_timeout="--timeout 15"
+	runme boite_selection_bozo
+	if ( test -e /tmp/sortir )
+	then
+		# rm -f /tmp/sortir
+		return
+	fi
+	reponse=`cat /tmp/tempfile`
+	if [ "$reponse" = "accepter" ]
+	then
+		if [ "$serveur_sauvegarde" = "oui" ] || [ "$fonction_demandee" = "gerer_sauve" ] || [ "$fonction_demandee" = "gerer_recup" ] ||  [ "$fonction_demandee" = "gerer_transfert" ]
+		then
+			serveur_sauvegarde=accepter
+		else
+			exit 0
+		fi
+	elif [ "$reponse" = "nouvelle" ]
+	then
+		serveur_sauvegarde=nouvelle
+	else
+		if [ "$fonction_demandee" = "gerer_sauve" ] || [ "$fonction_demandee" = "gerer_recup" ] ||  [ "$fonction_demandee" = "gerer_transfert" ]
+		then
+			deplacement_chronologique
+			serveur_sauvegarde=accepter
+			cp -f $linux_sauvegarde/oscar/partition_sauvegardee /tmp/partition_base_possible
+		fi
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+autre_sauvegarde()
+{
+rm -f /tmp/sortir
+rm -f /tmp/autre_sauvegarde
+	nombre_sauvegardes_supplementaires=0
+	for x in 1 2 3 4 5 6 7 8 9 10 12 12 13 14 15 16 17 18 19 20
+	do
+		if ( test -e $linux_sauvegarde/oscar$x/date_de_sauvegarde ) || ( test -e $linux_sauvegarde/oscar$x/commentaire_oscar.txt )
+		then
+			    echo "oscar$x,,, `cat $linux_sauvegarde/oscar$x/partition_sauvegardee`    `cat $linux_sauvegarde/oscar$x/date_de_sauvegarde`,,`cat $linux_sauvegarde/oscar$x/commentaire_oscar.txt`" >> /tmp/autre_sauvegarde
+		fi
+	done
+	boite_choix_autre_sauvegarde
+}
+#----------------------------------------------------------------------------------------------------
+mettre_reste_taille_partition_oscar()
+{
+	echo "perl -pi -e 's/OSCAR/$taille_utilisee_partition_oscar/g;' /tmp/bozo" > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+	rm -f /tmp/exec_nom
+	
+	grep -v swap /tmp/bozo | grep -v Extended | grep -v Disque > /tmp/bozo1
+	perl -pi -e 's/\\Z2OSCAR/\\Zb\\Z3OSCAR/g;' /tmp/bozo1
+	perl -pi -e 's/ 1  1  /      /g; s/\,/\\n\,/g;' /tmp/bozo1
+	cut -d"," -f1 /tmp/bozo1 > /tmp/bozo
+	rm -f /tmp/bozo1
+}
+#----------------------------------------------------------------------------------------------------
+boites_sauvegarde() #  boite dialogue de sauvegarde
+{
+if ! [ "$image_trouvee" = "oui_oscar1" ]
+then
+	if ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+	then 
+		echo " : \Zb\Z3`cat $linux_sauvegarde/oscar/commentaire_oscar.txt`" > /tmp/text4
+	else
+		echo ""	> /tmp/text4
+	fi
+	echo ""	> /tmp/text7
+	if ( test -e $linux_sauvegarde/oscar/version_oscar )
+	then
+		version_oscar_sauvegarde=`cat $linux_sauvegarde/oscar/version_oscar`
+		if ! [ "$version_oscar_sauvegarde" = "" ]
+		then
+			echo "`cat $chemin_langue/avec` \Zb\Z3OSCAR `cat $linux_sauvegarde/oscar/version_oscar`" > /tmp/text7
+		fi
+	fi
+	
+	echo "$linux_sauvegarde" > /tmp/temp_partition_linux_oscar
+	perl -pi -e 's/\/mnt\///g;' /tmp/temp_partition_linux_oscar
+	reponse=`cat /tmp/temp_partition_linux_oscar`
+	rm -f /tmp/temp_partition_linux_oscar
+	if [ "$reponse" = "" ]	# demarrage depuis dd
+	then
+		etude_montage donner_partition_oscar_poste
+		reponse=`cat /tmp/partition_oscar_sur_poste`
+		rm -f /tmp/partition_oscar_sur_poste
+	fi
+
+	echo "`cat $chemin_langue/msgbox_30` \Z2$base\Zn `cat $chemin_langue/menu_367` \Z2$reponse\Zn `cat /tmp/text7` " > /tmp/text1
+	echo "\Zn`cat $chemin_langue/menu_369` \Z2$ecrire\Zn`cat /tmp/text4` " > /tmp/text2
+	echo "\Zn`cat $chemin_langue/menu_401` \Z2$base\Zn `cat $chemin_langue/est` \Z1$[taille_image/1024] Mo\Zn. " > /tmp/text3
+	rm -f /tmp/text4
+else
+	if ( test -e $linux_sauvegarde/oscar1/commentaire_oscar.txt )
+	then 
+		echo " : \Zb\Z3`cat $linux_sauvegarde/oscar1/commentaire_oscar.txt`" > /tmp/text4
+	else
+		echo ""	> /tmp/text4
+	fi
+
+        echo "`cat $chemin_langue/menu_370` \Zb\Z3/oscar1\Zn`cat /tmp/text4` " > /tmp/text1
+	echo "`cat $chemin_langue/menu_371` " > /tmp/text2
+        echo "`cat $chemin_langue/menu_372`" > /tmp/text3
+fi
+
+autre_sauvegarde=non
+
+	#rm -f /tmp/bozo
+	#grep -v "heads" /tmp/fichier_disque_dur | grep -v "cylinders" | grep -v "Ext'd" | \
+	#grep -v "Extended" | grep -v "swap" | grep -v "physical" | grep -v "phys=" | grep -v "sectors" | grep -v "^Units" > /tmp/tempdd > /tmp/bozo
+	#perl -pi -e ' s/:/:\\Zb\\Z1/g; s/,/\\Zn,/g; s/_/\\Zn /g;' /tmp/bozo
+	runme prepare_fichier_temptaille
+	runme colorier_selection_info
+	# cp -f /tmp/couleurs_info /tmp/bozo
+	cp -f /tmp/fichier_disque_dur /tmp/bozo
+	rm -f /tmp/couleurs_info
+	############################ fait dans exec_dialog_src
+	#	if ( test -e /tmp/restaure_boot )
+	#	then
+	#		bouton_extra_bouton=
+	#		valeur_timeout="--timeout 15"
+	#	else
+	#		bouton_extra_bouton="--extra-button --extra-label `cat $chemin_langue/menu_379a`"
+	#		valeur_timeout=
+	#	fi
+	############################
+	# Informations sur la SAUVEGARDE de ce poste
+	runme modifier_Linux_en_OSCAR
+	mettre_reste_taille_partition_oscar
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--no-shadow --ok-label "`cat $chemin_langue/Continuer`" \
+	--backtitle  "`cat /etc/banniere_oscar`" \
+	--extra-button --extra-label `cat $chemin_langue/menu_379a` $bouton_sauvegarde \
+	--title " `cat $chemin_langue/msgbox_22` "   \
+	--menu "`cat /tmp/bozo` `cat /tmp/tempsauve`" 20 0 0  2>/tmp/erreur \
+	"" "`cat /tmp/text1`"   \
+	"" "`cat /tmp/text2`" \
+	"" "`cat /tmp/text3`"
+	choix_clavier=$?
+	# perl -pi -e 's/timeout//g;' /tmp/erreur	# cause par timeout
+	erreur_boite=`cat /tmp/erreur`
+	rm -f /tmp/erreur
+	if [ "$erreur_boite" != "" ]
+	then
+		rm -f /tmp/fichiertmp
+		rm -f /tmp/text1
+		rm -f /tmp/text2
+		rm -f /tmp/text3
+		info_erreur_definition_ecran
+		echo "" > /tmp/sortir
+		exit
+	fi
+	case $choix_clavier in
+	    0)	rm -f /tmp/fichiertmp
+	    rm -f /tmp/text1
+	    rm -f /tmp/text2
+	    rm -f /tmp/text3
+		;;
+	    3)  # Partition de sauvegarde Linux
+	    	dialog  --colors --backtitle "`cat /etc/banniere_oscar`" \
+			--title " \Z2 \Zn `cat $chemin_langue/menu_378`\Z2 \Zn " \
+			--exit-label "`cat $chemin_langue/Retour`" --textbox "/tmp/fichiertmp" 0 0
+	    	boites_sauvegarde
+	    	;;
+	    1) autre_sauvegarde=oui
+	    rm -f /tmp/text1
+	    rm -f /tmp/text2
+            rm -f /tmp/text3
+	    return
+	    ;;
+	    255) rm -f /tmp/fichiertmp
+	    rm -f /tmp/text1
+	    rm -f /tmp/text2
+	    rm -f /tmp/text3
+		;;
+	esac 
+	rm -f /tmp/tempsauve
+}
+#----------------------------------------------------------------------------------------------------
+numero_sauvegarde()
+{
+	nombre_sauvegardes=0
+	for x in 1 2 3 4 5 6 7 8 9 10 12 12 13 14 15 16 17 18 19 20
+	do
+		    if ( test -e $linux_sauvegarde/oscar$x )
+		    then
+			nombre_sauvegardes=$x
+		    fi
+	done
+	if [ "$nombre_sauvegardes" = "0" ]
+	then
+	    nombre_sauvegardes=1
+	else
+		terminer=non
+		for x in 1 2 3 4 5 6 7 8 9 10 12 12 13 14 15 16 17 18 19 20
+		do
+		    if [ "$terminer" = "non" ]
+		    then
+			if ! ( test -e $linux_sauvegarde/oscar$x )
+			then
+			    terminer=oui
+			    nombre_sauvegardes=$x
+			fi
+		    fi
+		done    
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+boite_incrementer_sauvegarde() #  boite dialogue d'incrémentation de la sauvegarde
+{
+	numero_sauvegarde
+	if [ "$linux_sauvegarde" = "" ]
+	then
+	    reperoire=/
+	else
+	    reperoire=$linux_sauvegarde
+	fi
+
+	echo "`df $reperoire | grep "$reponse"`" > /tmp/toutes_les_valeurs
+	grep -i "dev" /tmp/toutes_les_valeurs > /tmp/toutes_les_valeurs1
+	
+	valeur_libre==`awk '{print$4}' /tmp/toutes_les_valeurs1`
+	utilise=`awk '{print$5}' /tmp/toutes_les_valeurs1`
+	valeur_totale=`awk '{print$2}' /tmp/toutes_les_valeurs1`
+		
+	rm -f /tmp/toutes_les_valeurs
+	rm -f /tmp/toutes_les_valeurs1
+	
+	#	valeur_libre=`df $reperoire | grep "$reponse" | awk '{print$4}'`
+	#	utilise=`df $reperoire | grep "$reponse" | awk '{print$5}'`
+	#	valeur_totale=`df $reperoire | grep "$reponse" | awk '{print$2}'`
+	
+	valeur_libre=$[$valeur_libre/1024]
+	valeur_totale=$[$valeur_totale/1024]
+	
+deplacer_sauvegarde=non
+
+	rm -f /tmp/bozo
+	grep -v "heads" /tmp/fichier_disque_dur | grep -v "cylinders" | grep -v "Ext'd" | \
+	grep -v "Extended" | grep -v "physical" | grep -v "phys=" | grep -v "sectors" | grep -v "^Units" > /tmp/tempdd > /tmp/bozo
+	perl -pi -e ' s/:/:\\Zb\\Z1/g; s/,/\\Zn,/g; s/_/\\Zn /g;' /tmp/bozo
+
+if ! [ "$image_trouvee" = "oui_oscar1" ]
+then
+	if ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+	then 
+		echo " : \Zb\Z3`cat $linux_sauvegarde/oscar/commentaire_oscar.txt`" > /tmp/text5
+	else
+		echo ""	> /tmp/text5
+	fi
+	# Vous pouvez \Z1déplacer\Z4 cette sauvegarde
+	echo "`cat $chemin_langue/menu_368` \Z2$base\Zn `cat $chemin_langue/menu_367` \Z2$reponse\Zn " > /tmp/text1
+	echo "\Zn`cat $chemin_langue/menu_369` \Z2$ecrire\Zn`cat /tmp/text5` " > /tmp/text2
+	echo "`cat $chemin_langue/menu_375` \Zb\Z2$linux_sauvegarde/oscar$nombre_sauvegardes " > /tmp/text3
+	echo "\Zn`cat $chemin_langue/msgbox_30`\Z2 $reponse\Zn `cat $chemin_langue/de` \Z1$valeur_totale Mo\Zn `cat $chemin_langue/menu_376` \Z1$utilise\Z2 `cat $chemin_langue/menu_377` \Zb\Z3$valeur_libre Mo\Zn. " > /tmp/text4
+	
+	rm -f /tmp/text5
+else
+	# Vous ne pouvez donc pas \Z1déplacer\Z4 la sauvegarde
+        echo "`cat $chemin_langue/menu_370` \Zb\Z3/oscar1\Zn " > /tmp/text1
+	echo "`cat $chemin_langue/menu_374`" > /tmp/text2
+	echo "`cat $chemin_langue/menu_373`" > /tmp/text3
+        echo "`cat $chemin_langue/menu_372`" > /tmp/text4
+	bouton_sauvegarde=--no-cancel
+fi
+	# Informations sur la SAUVEGARDE de ce poste
+	runme modifier_Linux_en_OSCAR
+	mettre_reste_taille_partition_oscar
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--no-shadow --ok-label "`cat $chemin_langue/Annuler`" \
+	--backtitle  "`cat /etc/banniere_oscar`" \
+	--extra-button --extra-label "`cat $chemin_langue/menu_379a`" $bouton_sauvegarde \
+	--title " `cat $chemin_langue/msgbox_22` "   \
+	--menu "\n`cat /tmp/bozo` `cat /tmp/tempsauve`" 0 0 0 \
+	"" "`cat /tmp/text1`"   \
+	"" "`cat /tmp/text2`" \
+	"" "`cat /tmp/text3`" \
+	"" "`cat /tmp/text4`"
+	case $? in
+	    0)	rm -f /tmp/fichiertmp
+		;;
+	    3)  # Partition de sauvegarde Linux
+	    	dialog  --colors --backtitle "`cat /etc/banniere_oscar`" \
+			--title " \Z2 \Zn `cat $chemin_langue/menu_378`\Z2 \Zn " \
+			--exit-label "`cat $chemin_langue/Retour`" --textbox "/tmp/fichiertmp" 0 0
+	    	boite_incrementer_sauvegarde;;
+	    1) deplacer_sauvegarde=oui
+	    rm -f /tmp/fichiertmp
+	    ;;
+	    255) rm -f /tmp/fichiertmp
+		;;
+	esac 
+	rm -f /tmp/tempsauve
+        rm -f /tmp/text1
+	rm -f /tmp/text2
+        rm -f /tmp/text3
+	rm -f /tmp/text4
+}
+#----------------------------------------------------------------------------------------------------
+prepare_boite_information()
+{
+	if ! [ "$nombre_sauvegardes_supplementaires" = "0" ]
+	then
+	        if ( test -e $linux_sauvegarde/oscar )
+		then
+		    nombre_total_sauvegardes=$[$nombre_sauvegardes_supplementaires+$sauvegarde_dans_repertoire_oscar] # car celle par defaut /oscar
+		else
+		    nombre_total_sauvegardes=$nombre_sauvegardes_supplementaires
+		fi
+		if [ "$nombre_total_sauvegardes" = "1" ]	#mettre au singulier
+		then
+			echo "\\n\\Zb\\Z1 `cat $chemin_langue/menu_380` \\Zb\\Z3$nombre_total_sauvegardes\\Zb\\Z1 `cat $chemin_langue/sauvegarde`" > /tmp/tempsauve
+		else
+			if ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+			then
+			    commentaire_existe=`cat $linux_sauvegarde/oscar/commentaire_oscar.txt`
+			    if ! [ "$commentaire_existe" = "" ]
+			    then
+				echo "\\n\\Zb\\Z1 `cat $chemin_langue/menu_380` \\Zb\\Z3$nombre_total_sauvegardes\\Zb\\Z1 `cat $chemin_langue/menu_381` : \Zb\Z3`cat $linux_sauvegarde/oscar/commentaire_oscar.txt` " > /tmp/tempsauve
+			    else
+				echo "\\n\\Zb\\Z1 `cat $chemin_langue/menu_380` \\Zb\\Z3$nombre_total_sauvegardes\\Zb\\Z1 `cat $chemin_langue/menu_382` : " > /tmp/tempsauve
+			    fi
+			else
+				echo "\\n\\Zb\\Z1 `cat $chemin_langue/menu_380` \\Zb\\Z3$nombre_total_sauvegardes\\Zb\\Z1 `cat $chemin_langue/menu_382` : " > /tmp/tempsauve
+			fi
+		fi
+		# pour le bouton de la boite de dialogue remplacer les espaces par _ : Autre_sauvegarde dans menu_383
+		# enlever les espaces :
+		cp -f $chemin_langue/menu_383 /tmp/tempbouton
+		perl -pi -e 's/ /_/g;' /tmp/tempbouton
+		bouton_sauvegarde="--cancel-label `cat /tmp/tempbouton`"
+		rm -f /tmp/tempbouton
+	else
+		if [ "$image_trouvee" = "oui_oscar1" ]
+		then
+			# pour le bouton de la boite de dialogue remplacer les espaces par _ : Autre_sauvegarde dans menu_383
+			# enlever les espaces :
+			cp -f $chemin_langue/menu_383 /tmp/tempbouton
+			perl -pi -e 's/ /_/g;' /tmp/tempbouton
+			bouton_sauvegarde="--cancel-label `cat /tmp/tempbouton`"
+			rm -f /tmp/tempbouton
+			echo "" > /tmp/tempsauve
+		else
+			bouton_sauvegarde=--no-cancel
+			echo "" > /tmp/tempsauve
+		fi
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+principal()
+{
+echo "/mnt/$reponse : monté linux" >> /tmp/historique
+echo
+rm -f /tmp/fichier_disque_dur
+runme info_ddialog
+
+if ! [ "$image_trouvee" = "oui_oscar1" ]
+then
+	if [ "$sp_incrementer" = oui ]
+	then
+		linux_sauvegarde=$linux_sauvegarde_incrementer
+	fi
+	if ( test -e $linux_sauvegarde/oscar/var_poste/oscar.txt )	# ancienne version
+	then
+		if ! ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+		then
+			mv $linux_sauvegarde/oscar/var_poste/oscar.txt $linux_sauvegarde/oscar/commentaire_oscar.txt
+		fi
+	fi
+	cd $linux_sauvegarde
+
+	if ( test -e $linux_sauvegarde/oscar/partition_sauvegardee ) # lire le nom de la partition sauvegardée
+	then
+		base=`cat $linux_sauvegarde/oscar/partition_sauvegardee`
+	else
+		un=1	# par defaut premiere partition
+		base=sda$un
+		echo "$base" > $linux_sauvegarde/oscar/partition_sauvegardee			
+	fi	
+
+	if ! ( test -e $linux_sauvegarde/oscar/partition_lvm ) # dans le fichier sauvegarde /partition_lvm il y a scribe-var}lib
+	then
+		if ! ( test -e $linux_sauvegarde/oscar/taille_partition_$base )
+		then	# installe le fichier de la taille de la partition restaurée
+			# fdisk -s /dev/$base > $linux_sauvegarde/oscar/taille_partition_$base
+			echo "$base" > /tmp/calcul_taille_partition_disque
+			runme calcul_taille_partition_MB
+			cp -f /tmp/calcul_taille_partition_disque $linux_sauvegarde/oscar/taille_partition_$base
+			rm -f /tmp/calcul_taille_partition_disque
+			# df -P | perl -pi -e 's/-/}/g;' | grep /dev/$base | tail -n 1 | awk '{print $2}' > $linux_sauvegarde/oscar/$taille_partition_de_base
+			df -P | grep /dev/$base | tail -n 1 | awk '{print $2}' > $linux_sauvegarde/oscar/$taille_partition_de_base
+		fi
+		taille_partition_de_base=taille_partition_$base
+		sauvegarde_de_base=sauvegarde_$base
+	else
+		taille_partition_de_base=taille_partition_`cat $linux_sauvegarde/oscar/partition_lvm`
+		sauvegarde_de_base=sauvegarde_`cat $linux_sauvegarde/oscar/partition_lvm`
+			# pour partition lvm mais inutile
+			# echo "$base" > /tmp/base
+			# essai : fdisk -l > /tmp/tempbase1 | perl -pi -e 's/-/\//g; s/\+/\//g;' | grep -i "`cat /tmp/base`:" | awk '{print $3}' > $linux_sauvegarde/oscar/$taille_partition_de_base
+			# rm -f /tmp/tempbase1
+	fi
+	
+	grep -ci "," $linux_sauvegarde/oscar/$taille_partition_de_base > /tmp/nbr_valeurs_tailles
+	nbr_valeurs_tailles=`cat /tmp/nbr_valeurs_tailles`
+	rm -f /tmp/nbr_valeurs_tailles
+	if [ "$nbr_valeurs_tailles" = "0" ]
+	then
+		taille_image=`cat $linux_sauvegarde/oscar/$taille_partition_de_base`
+	else
+		cut -d"," -f1 $linux_sauvegarde/oscar/$taille_partition_de_base > /tmp/valeur_taille_image
+		taille_image=`cat /tmp/valeur_taille_image`
+		rm -f /tmp/valeur_taille_image
+	fi
+
+	if ! ( test -e $linux_sauvegarde/oscar/date_de_sauvegarde )
+	then
+		date=$(date +%d-%m-%y)
+		ecrire="avant le $date"
+		echo "$ecrire" > $linux_sauvegarde/oscar/date_de_sauvegarde
+		cp -f $linux_sauvegarde/oscar/$taille_partition_de_base $linux_sauvegarde/oscar/$sauvegarde_de_base:$[$taille_image/1024].Mo_avant_$date
+	else
+		cut -d";" -f1 $linux_sauvegarde/oscar/date_de_sauvegarde > /tmp/tempdate
+		ecrire=`cat /tmp/tempdate`
+		rm -f /tmp/tempdate
+	fi
+fi
+	runme prepare_fichier_temptaille
+
+	perl -pi -e 's/  /\\Z0__\\Zn/g;' /tmp/fichier_disque_dur
+
+	# couleurs
+	
+	runme colorier_selection_info
+	cp -f /tmp/couleurs_info /tmp/fichier_disque_dur
+	rm -f /tmp/couleurs_info
+ 
+	rm -f /tmp/fichiertmp
+	echo " " >> /tmp/fichiertmp	
+	if [ "$linux_sauvegarde" = "" ]
+	then
+	    reperoire=/
+	else
+	    reperoire=$linux_sauvegarde
+	fi
+	
+	reponse=`expr substr $reperoire 6 6`
+	
+	echo "`df $reperoire | grep "$reponse"`" > /tmp/toutes_les_valeurs
+	grep -i "dev" /tmp/toutes_les_valeurs > /tmp/toutes_les_valeurs1
+	
+	valeur1=`awk '{print$2}' /tmp/toutes_les_valeurs1`
+	valeur2=`awk '{print$3}' /tmp/toutes_les_valeurs1`
+	valeur3=`awk '{print$5}' /tmp/toutes_les_valeurs1`
+		
+	rm -f /tmp/toutes_les_valeurs
+	rm -f /tmp/toutes_les_valeurs1
+	
+	#	valeur1=`df $reperoire | grep "$reponse" | awk '{print$2}'`
+	#	valeur2=`df $reperoire | grep "$reponse" | awk '{print$3}'`
+	#	valeur3=`df $reperoire | grep "$reponse" | awk '{print$5}'`
+	
+	valeur1=$[valeur1/1024]
+	valeur2=$[valeur2/1024]
+	valeur2=$[valeur1-valeur2]
+	
+	# contenu
+	echo " " >> /tmp/fichiertmp
+	echo "`cat $chemin_langue/repertoire_1` $linux_sauvegarde/oscar, `cat $chemin_langue/repertoire_2` $valeur3 : " >> /tmp/fichiertmp
+	echo " " >> /tmp/fichiertmp
+	echo "$valeur2 Mo `cat $chemin_langue/repertoire_3` $valeur1 Mo " >> /tmp/fichiertmp
+	echo " " >> /tmp/fichiertmp
+	
+	echo "`cat $chemin_langue/repertoire_2` $valeur3" > /tmp/taille_utilisee_partition_oscar
+	taille_utilisee_partition_oscar="OSCAR `cat /tmp/taille_utilisee_partition_oscar`"
+	rm -f /tmp/taille_utilisee_partition_oscar
+
+if ! [ "$image_trouvee" = "oui_oscar1" ]
+then
+###
+	echo "Mo" >> /tmp/fichiertmp
+
+	echo "`du $linux_sauvegarde/oscar --max-depth=1 -ma`" >> /tmp/fichiertmp
+	perl -pi -e 's/\//--OSCAR--/g;' /tmp/fichiertmp
+	echo "$linux_sauvegarde" > /tmp/fichier_temp
+	perl -pi -e 's/\//--OSCAR--/g;' /tmp/fichier_temp
+	echo "perl -pi -e 's/`cat /tmp/fichier_temp`--OSCAR--oscar--OSCAR--//g;' /tmp/fichiertmp" > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+	
+	echo "perl -pi -e 's/--OSCAR--/\//g;' /tmp/fichiertmp" > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+	rm -f /tmp/exec_nom
+	rm -f /tmp/fichier_temp
+	
+	
+###	ls $linux_sauvegarde/oscar >> /tmp/fichiertmp
+	echo " " >> /tmp/fichiertmp
+fi
+
+	nombre_sauvegardes_supplementaires=0
+	sauvegarde_dans_repertoire_oscar=1
+	if [ "$image_trouvee" = "oui_oscar1" ]
+	then
+		sauvegarde_dans_repertoire_oscar=0
+	fi
+	for x in 1 2 3 4 5 6 7 8 9 10 12 12 13 14 15 16 17 18 19 20
+	do
+		    if ( test -e $linux_sauvegarde/oscar$x )
+		    then
+		    	if ( test -e $linux_sauvegarde/oscar$x/var_poste/oscar.txt )	# ancienne version
+		    	then
+		    		if ! ( test -e $linux_sauvegarde/oscar$x/commentaire_oscar.txt )
+		    		then
+		    			mv $linux_sauvegarde/oscar$x/var_poste/oscar.txt $linux_sauvegarde/oscar$x/commentaire_oscar.txt
+		    		fi
+		    	fi
+		    	if ( test -e $linux_sauvegarde/oscar$x/commentaire_oscar.txt )
+		    	then
+				nombre_sauvegardes_supplementaires=$[$nombre_sauvegardes_supplementaires+$sauvegarde_dans_repertoire_oscar]
+			fi
+		    fi
+	done
+
+}
+#----------------------------------------------------------------------------------------------------
+erreur()
+{
+# Informations sur la SAUVEGARDE de ce poste : pas de sauvegarde
+rm -f /tmp/fichiertmp
+echo " " >> /tmp/fichiertmp
+echo "\n\n`cat $chemin_langue/msgbox_2`" >> /tmp/fichiertmp
+echo " " >> /tmp/fichiertmp
+	dialog --colors --no-shadow --ok-label "`cat $chemin_langue/Continuer`" \
+	--backtitle  "`cat /etc/banniere_oscar`" \
+	--exit-label "`cat $chemin_langue/Continuer`" \
+	--title " `cat $chemin_langue/msgbox_22` " \
+	--msgbox "`cat /tmp/fichiertmp`" 9 60
+rm -f /tmp/fichiertmp
+echo "" > /tmp/sortir
+}
+#----------------------------------------------------------------------------------------------------
+boite_commentaire()
+{
+    if ! [ "$fonction_demandee" = "supprimer" ]
+    then
+        rm -f /tmp/tempfile
+        # Commentaire de la sauvegarde
+        DIALOGRC="/etc/dialogrc" dialog --colors \
+        --backtitle "`cat /etc/banniere_oscar`" \
+        --cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/menu_384` " \
+        --inputbox "`cat /tmp/text_commentaire`" 12 60 2>/tmp/tempfile
+        valeur_reponse=$?
+        if [ "$valeur_reponse" = "0" ] || [ "$valeur_reponse" = "1" ] ||[ "$valeur_reponse" = "255" ]
+        then
+		 case $valeur_reponse in
+	            0)  reponse=`cat /tmp/tempfile`
+	            	if [ "$reponse" = "" ] || [ "$reponse" = " " ]
+	            	then
+	            		boite_commentaire
+	            	else
+		            	rm -f /tmp/text_commentaire
+		                rm -f /tmp/tempfile
+				if ! ( test -e $linux_sauvegarde/oscar )
+				then
+				    mkdir $linux_sauvegarde/oscar
+				fi
+			#	if [ "$nombre_partitions_avec_sauvegarde" = "0" ]
+			#	then
+					echo "$reponse"  > $linux_sauvegarde/oscar/commentaire_oscar.txt
+					# enlever éventuellement les virgules, séparateur utilisé par le fichier d'envoi, fichiers_root_envoi, les remplacer par un espace
+					perl -pi -e 's/,/ /g; s/;/ /g;' $linux_sauvegarde/oscar/commentaire_oscar.txt
+			#	else
+			#		echo "$reponse"  > /tmp/commentaire_oscar_a_installer.txt
+			#		# enlever éventuellement les virgules, séparateur utilisé par le fichier d'envoi, fichiers_root_envoi, les remplacer par un espace
+			#		perl -pi -e 's/,/ /g;' /tmp/commentaire_oscar_a_installer.txt
+			#	fi
+			fi
+	                return ;;
+	            1)  rm -f /tmp/tempfile
+	            	rm -f /tmp/text_commentaire
+			echo "" > /tmp/sortir
+	#		exit
+			return ;;
+	            255) rm -f /tmp/tempfile
+	            	rm -f /tmp/text_commentaire
+			echo "" > /tmp/sortir
+	#		exit
+	               return ;;
+	        esac
+	else
+		boite_commentaire
+	fi
+    fi
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+boite_commentaire_deplacer()
+{
+        rm -f /tmp/tempfile
+        # Commentaire de la sauvegarde à déplacer des clients
+        DIALOGRC="/etc/dialogrc" dialog --colors \
+        --backtitle "`cat /etc/banniere_oscar`" \
+        --cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/inputbox_40` " \
+        --inputbox "\n\n\Zb\Z4`cat $chemin_langue/inputbox_41` \Zb\Z4:" 12 60 2>/tmp/tempfile
+        valeur_reponse=$?
+        if [ "$valeur_reponse" = "0" ] || [ "$valeur_reponse" = "1" ] ||[ "$valeur_reponse" = "255" ]
+        then
+		 case $valeur_reponse in
+	            0)  reponse=`cat /tmp/tempfile`
+	            	if [ "$reponse" = "" ] || [ "$reponse" = " " ]
+	            	then
+	            		boite_commentaire_deplacer
+	            	else
+		                rm -f /tmp/tempfile
+				echo "$reponse"  > /tmp/oscar_client_a_deplacer.txt
+				# enlever éventuellement les virgules, et ; séparateurs utilisés par le fichier d'envoi, fichiers_root_envoi, les remplacer par un espace
+				perl -pi -e 's/,/ /g;' /tmp/oscar_client_a_deplacer.txt
+				perl -pi -e 's/;/ /g;' /tmp/oscar_client_a_deplacer.txt
+			fi
+	                return ;;
+	            1)  rm -f /tmp/tempfile
+			echo "" > /tmp/sortir
+			return ;;
+	            255) rm -f /tmp/tempfile
+			echo "" > /tmp/sortir
+	                return ;;
+	        esac
+	else
+		boite_commentaire_deplacer
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+boite_autre_commentaire_client_ancien()
+{
+	# Choix du commentaire de la sauvegarde client avant déplacement
+        DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`" --ok-label "`cat $chemin_langue/Accepter`" --extra-button --extra-label "`cat $chemin_langue/menu_385`" \
+        --title " `cat $chemin_langue/menu_386` " \
+	--menu "\n`cat $chemin_langue/menu_387` :\n  " 10 100 0 \
+	"" "" \
+	"" "`cat $chemin_langue/menu_388` :  " \
+	"" "\Zb\Z3         `cat $linux_sauvegarde/oscar/commentaire_oscar.txt`" \
+	"" "" \
+	"" "\Z2 `cat $chemin_langue/menu_389`" \
+	"" "\Z2 `cat $chemin_langue/menu_390` : " \
+	"" "\Z2 --> \Zb\Z4`cat $chemin_langue/Accepter`\Zn\Z2          : \Zb\Z3`cat $chemin_langue/menu_391` $calendrier" \
+	"" "\Z2 --> \Zb\Z4`cat $chemin_langue/menu_385`\Zn\Z2 : `cat $chemin_langue/menu_392` ..." \
+	"" ""
+
+	 case $? in
+            0)  # Accepter
+            	position_sauvegarde=_deplace	# seulement si pas d'autre commentaire
+            	echo "_accepter" > /tmp/oscar_client_a_deplacer.txt
+	        ;;
+            1)  # Annuler
+		echo "" > /tmp/sortir
+		;;
+	    3)	# Autre commentaire
+	    	boite_commentaire_deplacer
+		;;
+            255) # echappement
+		echo "" > /tmp/sortir
+        esac
+
+}
+#----------------------------------------------------------------------------------------------------
+boite_choix_procedure_client_ancien()
+{
+	# Choix de procédure sur les postes clients
+        DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`" --ok-label "`cat $chemin_langue/Defaut`" --extra-button --extra-label "`cat $chemin_langue/Deplacer`" \
+        --title " `cat $chemin_langue/menu_393` " \
+	--menu "\n\Zb\Z3`cat $chemin_langue/menu_394` :\n  " 10 100 0 \
+	"" "" \
+	"" "\Z1`cat $chemin_langue/menu_395` :  " \
+	"" "\Zb\Z3         `cat $linux_sauvegarde/oscar/commentaire_oscar.txt`" \
+	"" "" \
+	"" "\Z2 `cat $chemin_langue/menu_396` : " \
+	"" "\Z2 --> \Zb\Z4`cat $chemin_langue/Defaut`\Zn\Z2   : `cat $chemin_langue/menu_397` \Zb\Z3/oscar"   \
+	"" "\Z2                `cat $chemin_langue/menu_398`. " \
+	"" "\Z2 --> \Zb\Z4`cat $chemin_langue/Deplacer`\Zn\Z2 : `cat $chemin_langue/menu_389`" \
+	"" "\Z2                `cat $chemin_langue/menu_399` : " \
+	"" "\Z2                --> \Zb\Z3`cat $chemin_langue/menu_391` $calendrier" \
+	"" "\Z2                --> \Zb\Z3`cat $chemin_langue/menu_400` ..." \
+	"" ""
+
+	 case $? in
+            0)  # defaut
+		position_sauvegarde=_defaut
+	        ;;
+            1)  # Annuler
+		echo "" > /tmp/sortir
+		;;
+	    3)	# deplacer
+	    	boite_autre_commentaire_client
+		;;
+            255) # echappement
+		echo "" > /tmp/sortir
+        esac
+}
+#----------------------------------------------------------------------------------------------------
+choisir_autre_sauvegarde_pour_serveur()
+{
+	serveur_sauvegarde=oui
+	autre_sauvegarde
+	if ( test -e /tmp/sortir )
+        then
+		exit
+        fi
+	if [ "$serveur_sauvegarde" = "accepter" ]
+	then
+	    return
+	else
+	    deplacement_chronologique
+	fi	
+}
+#----------------------------------------------------------------------------------------------------
+rechercher_type_sauvegarde_connue()
+{
+	if ( test -e $linux_sauvegarde/oscar/image.ntfs.00 ) || ( test -e $linux_sauvegarde/oscar/image_fsa.fsa )
+	then
+		commentaire=windows
+	elif ( test -e $linux_sauvegarde/oscar/image_dar.1.dar )
+	then
+    		if ( test -e $linux_sauvegarde/oscar/partition_sauvegardee )
+    		then
+			echo "`cat $linux_sauvegarde/oscar/partition_sauvegardee`" > /tmp/monter_partition
+			runme autoriser_monter_partition_oscar
+			partition_base=`cat /tmp/monter_partition`
+			rm -f /tmp/monter_partition
+			if ( test -e $partition_base/etc/lsb-release )
+			then
+				grep -i "DISTRIB_ID=Ubuntu" $partition_base/etc/lsb-release > /tmp/tempfile
+				test_systeme=`cat /tmp/tempfile`
+				if [ "$test_systeme" = "DISTRIB_ID=Ubuntu" ]
+				then
+					commentaire=ubuntu
+				fi
+			elif ( test -e $partition_base/etc/release )
+			then
+				grep -i "Mandriva" $partition_base/etc/release > /tmp/tempfile
+				test_systeme=`cat /tmp/tempfile`
+				if ! [ "$test_systeme" = "" ]
+				then
+					commentaire=mandriva
+				fi
+			fi
+			umount $partition_base 2>/dev/null ; sync
+		fi
+	fi
+	if ! [ "$commentaire" = "_rien_commentaire_" ]	# trouver type connu
+	then	# installé ce commentaire si non déjà utilisé
+		reponse_commentaire=non
+		for x in 1 2 3 4 5 6 7 8 9 10 12 12 13 14 15 16 17 18 19 20
+		do
+			if ( test -e $linux_sauvegarde/oscar$x/commentaire_oscar.txt )
+			then
+				commentaire_utilise=`cat $linux_sauvegarde/oscar$x/commentaire_oscar.txt`
+				if [ "$commentaire" = $commentaire_utilise ]
+				then
+					reponse_commentaire=oui
+				fi
+			fi
+		done
+		if [ "$reponse_commentaire" = "non" ]	# trouver type connu non utilisé
+		then
+			echo "$commentaire" > $linux_sauvegarde/oscar/commentaire_oscar.txt
+		fi
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+gerer_sauvegardes_serveur()
+{
+	calendrier=$(date +%d/%m/%y)
+	fonction_demandee=gerer_serveur
+	type=linux
+	image_trouvee=non
+	boucle_partition
+	if ( test -e /tmp/sortir )
+	then
+		return
+	fi
+	if [ "$image_trouvee" = "oui" ] || [ "$image_trouvee" = "oui_oscar1" ]
+	then
+		perl -pi -e 's/oui//g; s/non//g; s/ //g;' /tmp/partition_linux_oscar_sauvegarde
+		cut -d"\"" -f2 /tmp/partition_linux_oscar_sauvegarde > /tmp/temp_partition_linux_oscar
+		linux_sauvegarde=`cat /tmp/temp_partition_linux_oscar`
+		rm -f /tmp/temp_partition_linux_oscar
+		echo "$linux_sauvegarde" > /tmp/monter_partition
+		runme autoriser_monter_partition_oscar
+		linux_sauvegarde=`cat /tmp/monter_partition`
+		rm -f /tmp/monter_partition
+	fi
+	if [ "$image_trouvee" = "oui" ] || [ "$image_trouvee" = "plus" ]
+	then
+		# principal
+		# echo "" > position_sauvegarde
+		nombre_sauvegardes_supplementaires=0
+		for x in 1 2 3 4 5 6 7 8 9 10 12 12 13 14 15 16 17 18 19 20
+		do
+			if ( test -e $linux_sauvegarde/oscar$x )
+			then
+				nombre_sauvegardes_supplementaires=$x
+			fi
+		done
+		choix_fonction=`cat $chemin_langue/envoyer`		
+		if ! ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+		then
+			commentaire="_rien_commentaire_"
+			rechercher_type_sauvegarde_connue
+		else
+			commentaire=`cat $linux_sauvegarde/oscar/commentaire_oscar.txt`
+		fi
+		if ! ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+	    	then
+		    	echo "\n\n\Zb\Z4`cat $chemin_langue/inputbox_42` \Zb\Z4:" > /tmp/text_commentaire
+			boite_commentaire
+    			if ( test -e /tmp/sortir )
+    			then
+			    # rm -f /tmp/sortir le mettre au programme de lancement
+    			    exit 0
+			fi
+		fi
+		if ! [ "$nombre_sauvegardes_supplementaires" = "0" ]
+		then
+			choisir_autre_sauvegarde_pour_serveur
+		    	if ( test -e /tmp/sortir )
+			then
+				return
+			fi
+		fi
+		
+	elif [ "$image_trouvee" = "oui_oscar1" ]	# pas de sauvegarde sur oscar mais le repertoire oscar1 existe
+	then
+		repertoire_oscar_vide=oui
+		choisir_autre_sauvegarde_pour_serveur
+		if ( test -e /tmp/sortir )
+		then
+			return
+		fi
+	else
+		erreur
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+gerer_sauvegardes_client()
+{
+	calendrier=$(date +%d/%m/%y)
+	linux_sauvegarde=`cat partition_travail`
+	rm -f partition_travail
+
+
+	commentaire="_rien_commentaire_" 	# peut-être pas de commentaire identique sur le client
+	commentaire_envoye=`cat $linux_sauvegarde/oscar/commentaire_oscar_envoye.txt`
+	rm -f $linux_sauvegarde/oscar/commentaire_oscar_envoye.txt
+	
+	if ! ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+	then
+		rechercher_type_sauvegarde_connue
+	else
+		commentaire=`cat $linux_sauvegarde/oscar/commentaire_oscar.txt`
+	fi
+	if [ "$commentaire_envoye" = "$commentaire" ]	# sauvegarde identique au serveur trouvée connue
+	then
+		echo "$commentaire"  > $linux_sauvegarde/oscar/commentaire_oscar.txt
+		exit 0	# pour ecraser la sauvegarde par défaut
+	fi
+	# si pas même commentaire déplacer:
+	for x in 1 2 3 4 5 6 7 8 9 10 12 12 13 14 15 16 17 18 19 20
+	do
+		if ( test -e $linux_sauvegarde/oscar$x )
+		then
+			numero_suivant=$[$x+1]
+			commentaire=`cat $linux_sauvegarde/oscar$x/commentaire_oscar.txt`
+			if [ "$commentaire" = $commentaire_envoye ]
+			then
+				reponse=oscar$x
+				deplacement_chronologique
+				exit 0
+			fi
+		fi
+	done
+
+	reponse=oscar$numero_suivant
+	deplacement_chronologique
+	echo "$commentaire_envoye" > $linux_sauvegarde/oscar/commentaire_oscar.txt	    
+}
+#----------------------------------------------------------------------------------------------------
+incrementer_sauvegarde_si_besoin()
+{
+		nombre_sauvegardes_supplementaires=0
+		for x in 1 2 3 4 5 6 7 8 9 10 12 12 13 14 15 16 17 18 19 20
+		do
+			if ( test -e $linux_sauvegarde/oscar$x )
+			then
+				nombre_sauvegardes_supplementaires=$x
+			fi
+		done
+
+		if ! ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+		then
+			commentaire="_rien_commentaire_"
+			rechercher_type_sauvegarde_connue
+		fi
+		
+		if [ "$nombre_sauvegardes_supplementaires" = "0" ]
+		then
+			une_seule_sauvegarde=oui
+		else
+			une_seule_sauvegarde=non
+		fi
+		# proposer toutes les sauvegardes pour l'enregistrement:
+		# choix_fonction=Ecraser
+
+		if ! ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+		then
+		    	echo "\n\n\Zb\Z4`cat $chemin_langue/inputbox_42` \Zb\Z4:" > /tmp/text_commentaire
+			boite_commentaire
+	    		if ( test -e /tmp/sortir )
+    	    		then
+    			    # rm -f /tmp/sortir le mettre au programme de lancement
+    	    		    exit 0
+    			fi
+		fi
+		if [ "$fonction_demandee" = gerer_transfert ]
+		then
+			echo "$linux_sauvegarde" > /tmp/linux_sauvegarde_choisie
+		fi
+		if [ "$fonction_demandee" = gerer_rst ]
+		then
+			echo "$linux_sauvegarde" > /tmp/linux_sauvegarde_rst
+		fi
+
+		serveur_sauvegarde=oui # a laisser pour gerer_sauve
+		if ! ( test -e /tmp/pas_repertoire_oscar_par_defaut )	# depuis le fichier sauve
+		then
+			autre_sauvegarde
+			if ( test -e /tmp/sortir )
+		        then
+				return
+		        fi
+			if [ "$serveur_sauvegarde" = "accepter" ]
+			then
+				# rm -f /tmp/sortir #  le mettre au programme de lancement
+		    		exit 0
+			elif [ "$serveur_sauvegarde" = "nouvelle" ]
+			then
+				echo "" > /tmp/nouvelle_sauvegarde
+			        echo "" > /tmp/incrementer_sauvegarde # pour lancer info_image avec incrementer_sauvegarde
+			       	nouvelle_sauvegarde=oui
+				deplacer_sauvegarde=oui
+				numero_sauvegarde
+			        deplacer_pour_nouvelle_sauvegarde
+				exit 0		
+			fi
+			deplacement_chronologique
+		else
+			rm -f /tmp/pas_repertoire_oscar_par_defaut
+		fi
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+gerer_sauvegardes_sauve()
+{
+	calendrier=$(date +%d/%m/%y)
+	type=linux
+	linux_seul=non
+	image_trouvee=non
+	boucle_partition
+	if ( test -e /tmp/sortir )
+	then
+		return
+	fi
+
+if [ "$fonction_demandee" = "gerer_sauve" ] || [ "$fonction_demandee" = "gerer_recup" ] ||  [ "$fonction_demandee" = "gerer_transfert" ]
+then
+	if [ "$nombre_partitions_possibles_sauvegarde" = "0" ]
+	then
+		echo "non_linux" > /tmp/sauvegarde_trouvee
+		cp -f /tmp/sauvegarde_trouvee /tmp/sauvegarde_trouvee_apres_gerer
+		exit 0
+	elif [ "$nombre_partitions_possibles_sauvegarde" = "1" ]
+	then
+		echo "$image_trouvee" > /tmp/une_seule_image_trouvee
+		echo "$image_trouvee" > /tmp/sauvegarde_trouvee
+		cp -f /tmp/sauvegarde_trouvee /tmp/sauvegarde_trouvee_apres_gerer
+		image_trouvee=oui
+		perl -pi -e 's/non/oui/g;' /tmp/partition_linux_oscar_sauvegarde
+	fi
+fi
+
+if [ "$image_trouvee" = "plus" ] || [ "$fonction_demandee" = "gerer_sauve" ] || [ "$fonction_demandee" = "gerer_transfert" ] || [ "$fonction_demandee" = "gerer_rst" ] || [ "$fonction_demandee" = "gerer_recup" ]
+then
+	if [ "$image_trouvee" = "oui" ] || [ "$image_trouvee" = "plus" ] || [ "$image_trouvee" = "oui_oscar1" ]
+	then
+			if ! [ "$choix_partition_sauvegarde_recup_fait" = "oui" ]
+			then
+				# prendre la sauvegarde choisie dans la boucle :
+				grep -i "oui" /tmp/partition_linux_oscar_sauvegarde > /tmp/temp_partition_linux_oscar
+				grep -n "oui" /tmp/temp_partition_linux_oscar > /tmp/temp_partition_linux_oscar1
+				grep -i "1:" /tmp/temp_partition_linux_oscar1 > /tmp/temp_partition_linux_oscar
+				perl -pi -e 's/1://g; s/oui//g; s/ //g;' /tmp/temp_partition_linux_oscar
+				cut -d"\"" -f2 /tmp/temp_partition_linux_oscar > /tmp/temp_partition_linux_oscar1
+				linux_sauvegarde=`cat /tmp/temp_partition_linux_oscar1`
+				rm -f /tmp/temp_partition_linux_oscar
+				rm -f /tmp/temp_partition_linux_oscar1
+			fi
+		echo "$linux_sauvegarde" > /tmp/monter_partition
+		perl -pi -e 's/\/mnt\///g;' /tmp/monter_partition
+		runme autoriser_monter_partition_oscar
+		linux_sauvegarde=`cat /tmp/monter_partition`
+		rm -f /tmp/monter_partition
+		
+		if [ "$choix_partition_sauvegarde_recup_fait" = "oui" ]
+		then
+			# choix_partition_sauvegarde_recup_fait=$linux_sauvegarde
+			echo "$linux_sauvegarde" > /tmp/choix_partition_sauvegarde_recup_fait
+			echo "$linux_sauvegarde" > /tmp/temp1
+			perl -pi -e 's/\/mnt\///g;' /tmp/temp1
+
+			cut -d" " -f1 /tmp/temp1 > /tmp/temp2
+			part_recup=`cat /tmp/temp2`
+			grep -i "$part_recup" /tmp/partition_linux_oscar_sauvegarde > /tmp/test_sauvegarde
+			grep -ci "non" /tmp/test_sauvegarde > /tmp/nb_sauvegarde_non
+			nb_sauvegarde_non=`cat /tmp/nb_sauvegarde_non`
+			rm -f /tmp/nb_sauvegarde_non
+			grep -ci "oui" /tmp/test_sauvegarde > /tmp/nb_sauvegarde_oui
+			nb_sauvegarde_oui=`cat /tmp/nb_sauvegarde_oui`
+			rm -f /tmp/nb_sauvegarde_oui
+			rm -f /tmp/test_sauvegarde
+			if [ "$nb_sauvegarde_non" = "1" ]
+			then
+				existe_sauvegarde_sur_recup=non
+				nombre_partitions_possibles_sauvegarde=1
+				sauvegarde_trouvee=non
+				echo "non" > /tmp/une_seule_image_trouvee
+			elif [ "$nb_sauvegarde_oui" = "1" ]
+			then
+			# a voir si necessaire
+				existe_sauvegarde_sur_recup=oui
+				nombre_partitions_avec_sauvegarde=1
+			fi
+
+		fi
+
+	fi
+
+	if [ "$image_trouvee" = "oui" ] || [ "$image_trouvee" = "plus" ]  || [ "$image_trouvee" = "oui_oscar1" ]|| [ "$fonction_demandee" = "gerer_sauve" ] || [ "$fonction_demandee" = "gerer_recup" ] || [ "$fonction_demandee" = "gerer_transfert" ]
+	then
+		if [ "$fonction_demandee" = "gerer_sauve" ] || [ "$fonction_demandee" = "gerer_recup" ] || [ "$fonction_demandee" = "gerer_transfert" ]
+		then
+			if [ "$nombre_partitions_possibles_sauvegarde" = "1" ]
+			then
+				echo "une_seule_partition_possible" > /tmp/sauvegarde_trouvee
+				cp -f /tmp/sauvegarde_trouvee /tmp/sauvegarde_trouvee_apres_gerer
+				echo "$linux_sauvegarde" > /tmp/partition_possible_sauvegarde
+				sauvegarde_trouvee=`cat /tmp/une_seule_image_trouvee`	# si une seule partition sans image :non
+				if [ "$sauvegarde_trouvee" = "non" ] || [ "$fonction_demandee" = "gerer_transfert" ] || [ "$fonction_demandee" = "gerer_recup" ]
+				then
+					if [ "$fonction_demandee" = "gerer_transfert" ] || [ "$fonction_demandee" = "gerer_recup" ]
+					then
+						if [ "$sauvegarde_trouvee" = "non" ]
+						then
+							if [ "$fonction_demandee" = "gerer_transfert" ]
+							then
+								echo "non" > /tmp/sauvegarde_trouvee
+							elif [ "$fonction_demandee" = "gerer_recup" ]
+							then
+								echo "une_seule_sauvegarde_possible" > /tmp/sauvegarde_trouvee
+							fi
+							cp -f /tmp/sauvegarde_trouvee /tmp/sauvegarde_trouvee_apres_gerer
+							exit 0
+						fi
+					else
+						exit 0
+					fi
+				fi
+			elif [ "$nombre_partitions_avec_sauvegarde" = "0" ]	# si plusieurs partitions
+			then
+				# prendre la sauvegarde choisie dans la boucle :
+					grep -i "non" /tmp/partition_linux_oscar_sauvegarde > /tmp/temp_partition_linux_oscar
+					grep -n "non" /tmp/temp_partition_linux_oscar > /tmp/temp_partition_linux_oscar1
+					grep -i "1:" /tmp/temp_partition_linux_oscar1 > /tmp/temp_partition_linux_oscar
+					perl -pi -e 's/1://g; s/non//g; s/ //g;' /tmp/temp_partition_linux_oscar
+					cut -d"\"" -f2 /tmp/temp_partition_linux_oscar > /tmp/temp_partition_linux_oscar1
+					linux_sauvegarde=`cat /tmp/temp_partition_linux_oscar1`
+					rm -f /tmp/temp_partition_linux_oscar
+					rm -f /tmp/temp_partition_linux_oscar1
+				echo "$linux_sauvegarde" > /tmp/partition_possible_sauvegarde
+				echo "toutes_partitions_sauvegarde_vides" > /tmp/sauvegarde_trouvee
+				cp -f /tmp/sauvegarde_trouvee /tmp/sauvegarde_trouvee_apres_gerer
+				if [ "$fonction_demandee" = "gerer_recup" ]
+				then
+					echo "$linux_sauvegarde" > /tmp/monter_partition
+					perl -pi -e 's/\/mnt\///g;' /tmp/monter_partition
+					runme autoriser_monter_partition_oscar
+					linux_sauvegarde=`cat /tmp/monter_partition`
+					rm -f /tmp/monter_partition
+					
+					echo "nouvelle_sauvegarde_recup" > /tmp/sauvegarde_trouvee
+					echo "$linux_sauvegarde" > /tmp/partition_linux_recuperer
+				fi
+				exit 0
+			elif [ "$nombre_partitions_avec_sauvegarde" = "1" ]	# si un seule partition avec sauvegarde
+			then
+				echo "plusieurs_partitions_sauvegarde" > /tmp/sauvegarde_trouvee
+				cp -f /tmp/sauvegarde_trouvee /tmp/sauvegarde_trouvee_apres_gerer
+				echo "$linux_sauvegarde" > /tmp/partition_possible_sauvegarde
+				if ( test -e $linux_sauvegarde/oscar/partition_sauvegardee )
+				then
+					base=`cat $linux_sauvegarde/oscar/partition_sauvegardee`
+					echo "$base" > /tmp/partition_base_possible
+				fi
+			elif [ "$image_trouvee" = "plus" ]	# si plusieurs partitions avec sauvegarde
+			then
+				# prendre la sauvegarde choisie dans la boucle :
+					echo "$repertoire_image" > /tmp/partition_possible_sauvegarde
+					echo "partition_sauvegarde_choisie" > /tmp/sauvegarde_trouvee
+					cp -f /tmp/sauvegarde_trouvee /tmp/sauvegarde_trouvee_apres_gerer
+					echo "$repertoire_image" > /tmp/monter_partition
+				
+				
+				runme autoriser_monter_partition_oscar
+				linux_sauvegarde=`cat /tmp/monter_partition`
+				rm -f /tmp/monter_partition
+			fi
+			
+			autre_sauvegarde
+			if ( test -e /tmp/sortir )
+		        then
+				exit 0
+		        fi
+			if [ "$serveur_sauvegarde" = "accepter" ]
+			then
+				echo "$serveur_sauvegarde" > /tmp/commande_sauvegarde
+				if [ "$fonction_demandee" = "gerer_recup" ] ||  [ "$fonction_demandee" = "gerer_transfert" ]
+				then
+					echo "une_seule_sauvegarde_possible" > /tmp/sauvegarde_trouvee
+					cp -f /tmp/sauvegarde_trouvee /tmp/sauvegarde_trouvee_apres_gerer
+					echo "$linux_sauvegarde" > /tmp/partition_possible_sauvegarde
+				fi
+		    		exit 0
+			elif [ "$serveur_sauvegarde" = "nouvelle" ]
+			then
+				########################
+				if [ "$choix_partition_sauvegarde_recup_fait" = "oui" ]
+				then
+					nombre_partitions_possibles_sauvegarde=1
+					echo "une_seule_sauvegarde_possible" > /tmp/sauvegarde_trouvee
+					cp -f /tmp/sauvegarde_trouvee /tmp/sauvegarde_trouvee_apres_gerer
+					echo "$linux_sauvegarde" > /tmp/partition_possible_sauvegarde
+					echo "oui" > /tmp/nouveau_commentaire
+				fi
+				########################
+				echo "$serveur_sauvegarde" > /tmp/commande_sauvegarde
+				if [ "$nombre_partitions_possibles_sauvegarde" = "1" ] || [ "$image_trouvee" = "plus" ] || [ "$fonction_demandee" = "gerer_recup" ]
+				then
+					echo "" > /tmp/nouvelle_sauvegarde
+					echo "" > /tmp/incrementer_sauvegarde # pour lancer info_image avec incrementer_sauvegarde
+					nouvelle_sauvegarde=oui
+					deplacer_sauvegarde=oui
+					numero_sauvegarde
+					deplacer_pour_nouvelle_sauvegarde
+				fi
+				exit 0		
+			fi
+		else
+			incrementer_sauvegarde_si_besoin
+			if ( test -e /tmp/sortir )
+			then
+				return
+			fi
+		fi
+	fi
+fi
+}
+#----------------------------------------------------------------------------------------------------
+deplacer_pour_nouvelle_sauvegarde()
+{
+	    if [ "$deplacer_sauvegarde" = "oui" ]
+	    then
+		if ( test -e $linux_sauvegarde/oscar )
+		then
+			if ! ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+			then
+				commentaire="_rien_commentaire_"
+				rechercher_type_sauvegarde_connue
+			fi
+			
+			if ! ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+			then
+				cp -f $linux_sauvegarde/oscar/commentaire_oscar.txt /tmp/text_commentaire_avant_mv
+				echo "\n\n\Zb\Z4`cat $chemin_langue/inputbox_44` \Zb\Z4:" > /tmp/text_commentaire
+				boite_commentaire
+				if ( test -e /tmp/sortir )
+				then
+				    # rm -f /tmp/sortir
+	        		    cp -f /tmp/text_commentaire_avant_mv $linux_sauvegarde/oscar/commentaire_oscar.txt
+	        		    rm -f /tmp/text_commentaire_avant_mv
+    	        		    exit 0
+				fi
+			fi
+		fi
+		if [ "$nouvelle_sauvegarde" = "oui" ]
+		then
+			if ! ( test -e $linux_sauvegarde/oscar )
+			then
+			    mkdir $linux_sauvegarde/oscar
+			fi
+    			cp -f $linux_sauvegarde/oscar/commentaire_oscar.txt /tmp/text_commentaire_avant_mv
+			echo "\n\n\Zb\Z4`cat $chemin_langue/inputbox_45` \Zb\Z4:" > /tmp/text_commentaire
+			boite_commentaire
+	    		if ( test -e /tmp/sortir )
+    	    		then
+        		    # rm -f /tmp/sortir
+        		    cp -f /tmp/text_commentaire_avant_mv $linux_sauvegarde/oscar/commentaire_oscar.txt
+        		    rm -f /tmp/text_commentaire_avant_mv
+    	    		    exit 0
+    			fi
+			echo "$linux_sauvegarde" > /tmp/partition_oscar_sauvegarde
+		fi
+		cp -f $linux_sauvegarde/oscar/commentaire_oscar.txt /tmp/text_commentaire_apres_boite
+		cp -f /tmp/text_commentaire_avant_mv $linux_sauvegarde/oscar/commentaire_oscar.txt
+		rm -f /tmp/text_commentaire_avant_mv
+		mv $linux_sauvegarde/oscar $linux_sauvegarde/oscar$nombre_sauvegardes
+
+		if ! ( test -e $linux_sauvegarde/oscar )
+		then
+			mkdir $linux_sauvegarde/oscar
+		fi
+		### mettre de nouveau livecd.squashfs dans $linux_sauvegarde/oscar :
+		if ( test -e $linux_sauvegarde/oscar$nombre_sauvegardes/var_poste ) # || ( test -e $linux_sauvegarde/oscar$nombre_sauvegardes/livecd.squashfs )
+		then
+			if ( test -e $linux_sauvegarde/oscar$nombre_sauvegardes/var_poste )
+			then
+				mv $linux_sauvegarde/oscar$nombre_sauvegardes/var_poste $linux_sauvegarde/oscar
+			fi
+			#	if ( test -e $linux_sauvegarde/oscar$nombre_sauvegardes/livecd.squashfs )
+			#	then
+			#		mv $linux_sauvegarde/oscar$nombre_sauvegardes/livecd.squashfs $linux_sauvegarde/oscar
+			#	fi
+		fi
+	        cp -f /tmp/text_commentaire_apres_boite $linux_sauvegarde/oscar/commentaire_oscar.txt
+		rm -f /tmp/text_commentaire_apres_boite
+		echo "" > /tmp/lancer_info	# pour lancer une nouvelle fois la commande info_image
+	    fi
+}
+#----------------------------------------------------------------------------------------------------
+incrementer_sauvegarde()
+{
+	fonction_demandee=incrementer
+	type=linux
+	image_trouvee=non
+	boucle_partition
+	if ( test -e /tmp/sortir )
+	then
+		return
+	fi
+	if [ "$image_trouvee" = "oui" ] || [ "$image_trouvee" = "oui_oscar1" ] || [ "$image_trouvee" = "plus" ]
+	then
+	    principal
+	    	if ( test -e /tmp/sortir )
+		then
+			return
+		fi
+	    prepare_boite_information
+
+	    if ! ( test -e /tmp/nouvelle_sauvegarde )
+	    then
+		    bouton_sauvegarde="--cancel-label `cat $chemin_langue/Deplacer`"
+    		    boite_incrementer_sauvegarde
+		    	if ( test -e /tmp/sortir )
+			then
+				return
+			fi
+	    else
+		    rm -f /tmp/nouvelle_sauvegarde
+		    nouvelle_sauvegarde=oui
+		    deplacer_sauvegarde=oui
+		    numero_sauvegarde
+	    fi
+
+deplacer_pour_nouvelle_sauvegarde
+
+	else
+	    erreur
+	fi
+        exit 0
+}
+#----------------------------------------------------------------------------------------------------
+nettoyer_fin()
+{
+	rm -f /tmp/sortir
+	rm -f /tmp/partition_oscar_sauvegarde
+	rm -f /tmp/partition_linux_oscar_sauvegarde
+	rm -f /tmp/une_seule_image_trouvee
+	rm -f /tmp/partition_possible_sauvegarde
+	rm -f /tmp/sauvegarde_trouvee
+	rm -f /tmp/nouvelle_sauvegarde
+	rm -f /tmp/incrementer_sauvegarde
+	rm -f /tmp/pas_repertoire_oscar_par_defaut
+	rm -f /tmp/recup_sauvegarde_lance
+	rm -f /tmp/choix_partition_sauvegarde_recup_fait
+	rm -f /tmp/sysprep_new_lance
+	exit
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+main()
+{
+type=linux
+image_trouvee=non
+boucle_partition
+	if ( test -e /tmp/sortir )
+	then
+		nettoyer_fin
+	fi
+	
+if [ "$image_trouvee" = "oui" ] || [ "$image_trouvee" = "oui_oscar1" ]
+then
+	perl -pi -e 's/oui//g; s/non//g; s/ //g;' /tmp/partition_linux_oscar_sauvegarde
+	cut -d"\"" -f2 /tmp/partition_linux_oscar_sauvegarde > /tmp/temp_partition_linux_oscar
+	linux_sauvegarde=`cat /tmp/temp_partition_linux_oscar`
+	rm -f /tmp/temp_partition_linux_oscar
+	echo "$linux_sauvegarde" > /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	linux_sauvegarde=`cat /tmp/monter_partition`
+	rm -f /tmp/monter_partition
+fi
+if [ "$image_trouvee" = "oui" ] || [ "$image_trouvee" = "oui_oscar1" ] || [ "$image_trouvee" = "plus" ]
+then
+	principal
+	if ( test -e /tmp/sortir )
+	then
+		nettoyer_fin
+	fi
+	prepare_boite_information
+
+	boites_sauvegarde
+	if ( test -e /tmp/sortir )
+	then
+		nettoyer_fin
+	fi
+
+	if [ "$autre_sauvegarde" = "oui" ]
+	then
+		if ! ( test -e $linux_sauvegarde/oscar/commentaire_oscar.txt )
+	    	then
+			if ( test -e $linux_sauvegarde/oscar )
+			then
+			    	if ! [ "$image_trouvee" = "oui_oscar1" ]
+			    	then
+				    	echo "\n\n\Zb\Z4`cat $chemin_langue/inputbox_42` \Zb\Z4:" > /tmp/text_commentaire
+					boite_commentaire
+		    			if ( test -e /tmp/sortir )
+		    			then
+		    				nettoyer_fin
+					fi
+				fi
+			fi
+		fi
+		rm -f /tmp/lancer_info
+	        choix_fonction=`cat $chemin_langue/conserver`
+		autre_sauvegarde
+		if ( test -e /tmp/sortir )
+	        then
+	        	nettoyer_fin
+	        fi
+		deplacement_chronologique
+		echo "" > /tmp/lancer_info
+	fi
+	nettoyer_fin
+fi
+erreur
+nettoyer_fin
+}
+#----------------------------------------------------------------------------------------------------
+# procedures externes :
+case "$1" in
+
+boite_commentaire)
+	cp -f /tmp/partition_nouvelle_sauvegarde /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	linux_sauvegarde=`cat /tmp/monter_partition`
+	rm -f /tmp/monter_partition
+	rm -f /tmp/partition_nouvelle_sauvegarde
+
+	boite_commentaire
+	exit 0
+	;;
+
+deplacer_pour_nouvelle_sauvegarde) # essai plusieurs sauvegardes
+	if ( test -e /tmp/recup_sauvegarde_lance )
+	then
+		recup_sauvegarde_lance=oui
+	fi
+	cp -f /tmp/partition_nouvelle_sauvegarde /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	linux_sauvegarde=`cat /tmp/monter_partition`
+	rm -f /tmp/monter_partition
+	rm -f /tmp/partition_nouvelle_sauvegarde
+
+	echo "" > /tmp/nouvelle_sauvegarde
+        echo "" > /tmp/incrementer_sauvegarde # pour lancer info_image avec incrementer_sauvegarde
+       	nouvelle_sauvegarde=oui
+	deplacer_sauvegarde=oui
+	numero_sauvegarde
+	deplacer_pour_nouvelle_sauvegarde
+	exit 0
+	;;
+
+    incrementer_sauvegarde)
+	cp -f /tmp/autre_partition_oscar /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	linux_sauvegarde_incrementer=`cat /tmp/monter_partition`
+	
+	rm -f /tmp/monter_partition
+	rm -f /tmp/autre_partition_oscar
+	sp_incrementer=oui
+    	incrementer_sauvegarde
+	rm -f /tmp/partition_linux_oscar_sauvegarde
+        exit 0
+       ;;
+    supprimer_sauvegarde)
+    	runme test_cdrom_sysresccd
+	if ( test -e /tmp/sortir_commande )
+	then
+		exit 0
+	fi
+
+	rm -f /tmp/nouvelle_sauvegarde
+	rm -f /tmp/incrementer_sauvegarde
+	fonction_demandee=supprimer
+	type=linux
+	image_trouvee=non
+	boucle_partition
+	if ( test -e /tmp/sortir )
+	then
+		exit 0
+	fi
+		
+	if [ "$image_trouvee" = "oui" ] || [ "$image_trouvee" = "oui_oscar1" ]
+	then
+		perl -pi -e 's/oui//g; s/non//g; s/ //g;' /tmp/partition_linux_oscar_sauvegarde
+		cut -d"\"" -f2 /tmp/partition_linux_oscar_sauvegarde > /tmp/temp_partition_linux_oscar
+		linux_sauvegarde=`cat /tmp/temp_partition_linux_oscar`
+		rm -f /tmp/temp_partition_linux_oscar
+		echo "$linux_sauvegarde" > /tmp/monter_partition
+		runme autoriser_monter_partition_oscar
+		linux_sauvegarde=`cat /tmp/monter_partition`
+		rm -f /tmp/monter_partition
+	fi
+
+	if [ "$image_trouvee" = "oui" ] || [ "$image_trouvee" = "oui_oscar1" ] || [ "$image_trouvee" = "plus" ]
+	then
+	    principal
+	    prepare_boite_information
+	    bouton_sauvegarde="--cancel-label `cat $chemin_langue/Supprimer`"
+	    choix_fonction=`cat $chemin_langue/conserver`
+	    autre_sauvegarde
+		if ( test -e /tmp/sortir )
+		then
+			exit 0
+		fi
+	    rm -fR $linux_sauvegarde/$reponse
+	    if [ "$reponse" = "oscar1" ]
+	    then
+		derniere_sauvegarde=0
+		for x in 1 2 3 4 5 6 7 8 9 10 12 12 13 14 15 16 17 18 19 20
+		do
+		    if ( test -e $linux_sauvegarde/oscar$x )
+		    then
+			derniere_sauvegarde=$x
+		    fi
+		done
+		if ! [ "$derniere_sauvegarde" = "0" ]
+		then
+		    mv $linux_sauvegarde/oscar$derniere_sauvegarde $linux_sauvegarde/oscar1
+		fi
+	    fi
+	else
+	    erreur
+	fi
+	rm -f /tmp/partition_linux_oscar_sauvegarde
+        exit 0
+        ;;   
+    gerer_sauvegardes_serveur)
+	linux_sauvegarde_serveur=`cat /tmp/linux_sauvegarde_serveur`
+	gerer_sauvegardes_serveur
+			if ( test -e /tmp/sortir )
+			then
+				exit 0
+			fi
+	echo "$linux_sauvegarde" > /tmp/linux_sauvegarde_serveur
+	echo "`cat $linux_sauvegarde/oscar/partition_sauvegardee`" > /tmp/base_sauvegarde_serveur
+	rm -f /tmp/partition_linux_oscar_sauvegarde
+	rst serveur
+	exit 0
+	;;
+    gerer_sauvegardes_client)
+	gerer_sauvegardes_client
+	rm -f /tmp/partition_linux_oscar_sauvegarde
+    	exit 0
+	;;
+    incrementer_sauvegarde_si_besoin)
+	fonction_demandee=gerer_sauve
+	choix_fonction=`cat $chemin_langue/Ecraser`
+	cp -f /tmp/autre_partition_oscar /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	linux_sauvegarde=`cat /tmp/monter_partition`
+	rm -f /tmp/monter_partition
+	rm -f /tmp/autre_partition_oscar
+	incrementer_sauvegarde_si_besoin
+	rm -f /tmp/partition_linux_oscar_sauvegarde
+	exit 0
+	;;
+    gerer_sauvegardes_sauve)
+	fonction_demandee=gerer_sauve
+	choix_fonction=`cat $chemin_langue/Ecraser`
+	gerer_sauvegardes_sauve
+	# rm -f /tmp/partition_linux_oscar_sauvegarde
+	exit 0
+	;;
+    gerer_sauvegardes_transfert)
+	fonction_demandee=gerer_transfert
+	choix_fonction=`cat $chemin_langue/Copier`
+	gerer_sauvegardes_sauve
+	# rm -f /tmp/partition_linux_oscar_sauvegarde
+	exit 0
+	;;
+    gerer_sauvegardes_recup)
+	fonction_demandee=gerer_recup
+	choix_fonction=`cat $chemin_langue/Ecraser`
+	gerer_sauvegardes_sauve
+	rm -f /tmp/partition_linux_oscar_sauvegarde
+	exit 0
+	;;
+    gerer_sauvegardes_rst)
+	fonction_demandee=gerer_rst
+	choix_fonction=`cat $chemin_langue/Restaurer`
+	gerer_sauvegardes_sauve
+			if ( test -e /tmp/sortir )
+			then
+				exit 0
+			fi
+	if [ "$image_trouvee" = "non" ]
+	then
+		echo "$image_trouvee" > /tmp/linux_sauvegarde_rst
+	fi
+	if ! ( test -e /tmp/sysprep_new_lance )
+	then
+		rm -f /tmp/partition_linux_oscar_sauvegarde
+	fi
+	exit 0
+	;;
+esac
+main

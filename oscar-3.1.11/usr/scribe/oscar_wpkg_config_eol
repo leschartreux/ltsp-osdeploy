@@ -1,0 +1,310 @@
+[wpkg_sendStatus]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkgcli_shutdown_delay]
+valdefault = []
+valprec = ['3']
+val = ['20']
+
+[wpkgcli_laptop_mode]
+valdefault = []
+valprec = []
+val = ['NO']
+
+[wpkg_noreboot]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkgcli_exec_password]
+valdefault = []
+valprec = []
+val = ['']
+
+[wpkg_caseSensitivity]
+valdefault = []
+valprec = []
+val = ['oui']
+
+[wpkgcli_log_file]
+valdefault = []
+valprec = []
+val = ['']
+
+[wpkgcli_path_password]
+valdefault = []
+valprec = []
+val = ['']
+
+[wpkg_rebootCmd]
+valdefault = []
+valprec = []
+val = ['standard']
+
+[wpkgcli_priority]
+valdefault = []
+valprec = []
+val = ['normal']
+
+[wpkg_sRegWPKG_Running]
+valdefault = []
+valprec = []
+val = ['HKLM\\\\Software\\\\WPKG\\\\running']
+
+[wpkgcli_logon_message_1]
+valdefault = []
+valprec = []
+val = ['WPKG installe les applications et applique les param\xc3\xa8tres...']
+
+[wpkg_quiet]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkgcli_logon_message_2]
+valdefault = []
+valprec = []
+val = ['Veuillez patienter et ne pas red\xc3\xa9marrer votre ordinateur...']
+
+[wpkgcli_server_connecting_script_file]
+valdefault = []
+valprec = []
+val = ['']
+
+[wpkgcli_script_variable_val]
+valdefault = []
+valprec = []
+val = ['\\\\IP_SERVEUR_SCRIBE\\wpkg\\softwares']
+
+[wpkg_dryrun]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkg_sRegPath]
+valdefault = []
+valprec = []
+val = ['SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall']
+
+[wpkg_quitonerror]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkg_force]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkgcli_pre_action]
+valdefault = []
+valprec = []
+val = ['\\\\IP_SERVEUR_SCRIBE\\wpkg\\preinstall.bat']
+
+[wpkg_volatileReleaseMarker]
+valdefault = []
+valprec = []
+val = ['[built-in]']
+
+[wpkg_logLevel]
+valdefault = []
+valprec = []
+val = ['0']
+
+[wpkgcli_exec_user]
+valdefault = []
+valprec = []
+val = ['SYSTEM']
+
+[wpkgcli_net_use_machine_account]
+valdefault = []
+valprec = []
+val = ['NO']
+
+[wpkgcli_silent]
+valdefault = []
+valprec = []
+val = ['YES']
+
+[wpkgcli_server_connecting_script_timeout]
+valdefault = []
+valprec = []
+val = ['3']
+
+[wpkg_web_hosts_file_name]
+valdefault = []
+valprec = []
+val = ['hosts_xml_out.php']
+
+[wpkgcli_server_connecting_method]
+valdefault = []
+valprec = []
+val = ['standard']
+
+[wpkg_log_file_path]
+valdefault = []
+valprec = []
+val = ['%TEMP%']
+
+[wpkg_notificationDisplayTime]
+valdefault = []
+valprec = []
+val = ['10']
+
+[wpkg_logAppend]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkg_settings_file_name]
+valdefault = []
+valprec = []
+val = ['wpkg.xml']
+
+[wpkgcli_server_connecting_timeout]
+valdefault = []
+valprec = []
+val = ['3']
+
+[wpkg_packages_file_name]
+valdefault = []
+valprec = []
+val = ['packages.xml']
+
+[wpkgcli_show_GUI]
+valdefault = []
+valprec = []
+val = ['NO']
+
+[wpkg_noRemove]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkg_nonotify]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkgcli_script_variable_name]
+valdefault = []
+valprec = []
+val = ['SOFTWARE']
+
+[wpkg_wpkg_base]
+valdefault = []
+valprec = []
+val = ['']
+
+[wpkgcli_logon_message_logo_picture]
+valdefault = []
+valprec = []
+val = ['']
+
+[wpkgcli_run_on_shutdown]
+valdefault = []
+valprec = []
+val = ['YES']
+
+[wpkg_hosts_file_name]
+valdefault = []
+valprec = []
+val = ['hosts.xml']
+
+[wpkg_noRunningState]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkgcli_post_action]
+valdefault = []
+valprec = []
+val = ['\\\\IP_SERVEUR_SCRIBE\\wpkg\\postinstall.bat']
+
+[wpkg_logfilePattern]
+valdefault = []
+valprec = []
+val = ['wpkg-[HOSTNAME].log']
+
+[wpkgcli_logon_delay]
+valdefault = []
+valprec = []
+val = ['1']
+
+[wpkgcli_logon_message_title]
+valdefault = []
+valprec = []
+val = ["D\xc3\xa9ploiement d'application WPKG"]
+
+[wpkgcli_file]
+valdefault = []
+valprec = []
+val = ['\\\\IP_SERVEUR_SCRIBE\\wpkg\\wpkg.js']
+
+[wpkg_debug]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkg_noForcedRemove]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkgcli_parameters]
+valdefault = []
+valprec = []
+val = ['/synchronize /nonotify /quiet']
+
+[wpkgcli_path_user]
+valdefault = []
+valprec = []
+val = ['']
+
+[wpkgcli_stop_service_after_done]
+valdefault = []
+valprec = []
+val = ['YES']
+
+[wpkg_forceInstall]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkgcli_server_connecting_ip]
+valdefault = []
+valprec = []
+val = ['']
+
+[wpkg_settings_file_path]
+valdefault = []
+valprec = []
+val = ['%SystemRoot%\\\\system32']
+
+[wpkg_noUpgradeBeforeRemove]
+valdefault = []
+valprec = []
+val = ['non']
+
+[wpkg_profiles_file_name]
+valdefault = []
+valprec = []
+val = ['profiles.xml']
+
+[wpkgcli_logon_interrupt_password]
+valdefault = []
+valprec = []
+val = ['']
+
+[wpkg_web_packages_file_name]
+valdefault = []
+valprec = []
+val = ['packages_xml_out.php']
+
+[wpkg_web_profiles_file_name]
+valdefault = []
+valprec = []
+val = ['profiles_xml_out.php']
+

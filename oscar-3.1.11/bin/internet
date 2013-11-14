@@ -1,0 +1,18 @@
+#!/bin/sh
+
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+###links -driver fb -language french -mode 1024*768*16M32 -g favoris.htm
+if ( test -e /root/sysresccd-pkg.txt )	# démarrage cd sysrcd avec ou sans option cdcache ou démarrage sur le poste si sysrcd
+then	# menu pour sysrcd:
+	# links  -language french /usr/share/oscar/usr/favoris.htm -g -driver fb -mode 1024x768x16M32
+	links  -language french /usr/share/oscar/usr/favoris.htm -g
+else
+	links  -language french -g /usr/share/oscar/usr/favoris.htm
+fi

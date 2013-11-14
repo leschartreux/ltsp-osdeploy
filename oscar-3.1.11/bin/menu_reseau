@@ -1,0 +1,337 @@
+#!/bin/bash
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+#   programme de menu administrateur réseau pour l'autorun
+
+#----------------------------------------------------------------------------------------------------
+eteindre_le_poste()
+{
+runme boite_eteindre_le_poste
+if ( test -e /tmp/annuler_eteindre )
+then
+	rm -f /tmp/annuler_eteindre
+	main
+	return
+fi
+
+runme boite_eteindre_ordinateur
+}
+#----------------------------------------------------------------------------------------------------
+boucle()  # retour au programme principal
+{
+echo
+echo
+echo -e "`cat $chemin_langue/boucle_1`"
+echo -ne "`cat $chemin_langue/boucle_2`"
+read reponse
+main
+}
+#----------------------------------------------------------------------------------------------------
+test_partition_lvm()
+{
+# sfdisk -l 2>/dev/null | grep -ci LVM > /tmp/nb_test_partition_lvm
+parted -l 2>/dev/null | grep -ci lvm > /tmp/nb_test_partition_lvm
+nb_test_partition_lvm=`cat /tmp/nb_test_partition_lvm`
+rm -f /tmp/nb_test_partition_lvm
+if [ "$nb_test_partition_lvm" != "0" ]
+then
+	# erreur plusieurs partitions LVM
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--ok-label "`cat $chemin_langue/Continuer`"  \
+	--msgbox "\n\n `cat $chemin_langue/msgbox_56a`\n\n\n" 16 58
+	case $? in
+	    0) 	echo "" > /tmp/sortir
+	    return
+	    ;;
+	    255) echo "" > /tmp/sortir
+	    return
+	    ;;
+	esac
+fi
+}
+#----------------------------------------------------------------------------------------------------
+main()
+{
+rm -f /tmp/sortir
+	#	serveur_multi "\Z1SERVEUR \Z2synchrone\Zn qui envoie sa sauvegarde." \
+	#	client_multi "\Z1Restaure \Znce poste depuis la sauvegarde reçue du \Z1SERVEUR\Zn." \
+	#	aide_multi "Synoptique de la \Z1procédure\Zn \Z2serveur_multi\Zn." \
+	#	" " "" \
+	#	" " "\Zb\Z4Envoi en synchrone des PARTITIONS et de la SAUVEGARDE :" \
+	#	" " "" \
+	#	serveur_clone "\Z2SERVEUR MODELE synchrone\Zn." \
+	#	client_cloné "\Zb\Z1DANGER FORMATE \Znet \Z1restaure\Zn comme le \Z2SERVEUR MODELE\Zn." \
+	#	aide_clone "Synoptique de la \Z1procédure\Zn \Z2serveur_clone\Zn." \
+	#	" " "" \
+	#	" " "\Zb\Z4Copie d'un disque dur complet en mode synchrone :" \
+	#	" " "" \
+	#	serveur_disque "\Z1SERVEUR \Z2synchrone\Zn qui envoie un disque dur complet." \
+	#       client_disque "\Z1CLIENT\Zn qui reçoit le disque du \Z2serveur_disque\Zn." \
+	#	aide_disque "Synoptique de la \Z1procédure\Zn \Z2serveur_disque\Zn." \
+	#       " " "" \
+
+	#	serveur_table "\Z1SERVEUR\Zn qui envoie la table des partitions d'un disque." \
+	#       client_table "\Z1CLIENT\Zn qui reçoit la table des partitions du \Z2serveur_table\Zn." \
+	#	aide_table "Synoptique de la \Z1procédure\Zn \Z2serveur_table\Zn." \
+	#	" " "" \
+
+	#	aide_image "Synoptique des \Z1procédures\Zn \Z2serveur_nfs\Zn en protocole \Z2NFS\Zn." \
+	#	aide_choix "Synoptique des \Z1procédures\Zn réalisées par les \Z2serveurs\Zn." \
+	
+	#	"test_connexion" "`cat $chemin_langue/menu_37`" \
+	
+rm -f /tmp/tempfile # des menus precedents sauf celui-ci tempfile____
+rm -f /tmp/tempfile__
+rm -f /tmp/tempfile___
+
+rm -f /tmp/tempfile_____
+rm -f /tmp/tempfile______
+rm -f /tmp/tempfile_______
+
+calendrier=$(date +%d/%m/%y)
+heure=$(date +%kh%Mmin)
+rm -f /tmp/rien
+echo "  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn \Zn  \Zn  \Zn  \Zn  " > /tmp/rien
+output=exit
+	#	" " "`cat $chemin_langue/menu_31`" \
+	#	"client_synchrone" "`cat $chemin_langue/menu_33`" \
+	#	" " "`cat $chemin_langue/menu_34`" \
+	#	" " "" \
+dialog  --begin 2 0 --no-cancel --colors --no-shadow \
+	--backtitle "`cat /etc/banniere_oscar`" --title " `cat $chemin_langue/menu_30` " \
+	--menu  "  `cat $chemin_langue/menu_1` `cat /tmp/rien`  le $calendrier à $heure " 5 0 0  \
+	" " "" \
+	"mode_synchrone" "`cat $chemin_langue/menu_32`" \
+	"mode_asynchrone" "`cat $chemin_langue/menu_35`" \
+	" " "" \
+	"client" "`cat $chemin_langue/menu_36a`" \
+	" " "" \
+	"connecte_dhcp" "`cat $chemin_langue/menu_44`" \
+	"adresse_ip" "`cat $chemin_langue/menu_41`" \
+	"installe_ip" "`cat $chemin_langue/menu_42`" \
+	"supprime_ip" "`cat $chemin_langue/menu_43`" \
+	"serveur_PXE" "`cat $chemin_langue/menu_38`" \
+	"menu_domaine" "`cat $chemin_langue/menu_20c`" \
+	"NetworkManager+" "`cat $chemin_langue/menu_43a`" \
+	"NetworkManager-" "`cat $chemin_langue/menu_43b`" \
+        "info_sauvegarde" "`cat $chemin_langue/menu_12`" \
+	"partitions" "`cat $chemin_langue/menu_20`" \
+        "cable_croisé" "`cat $chemin_langue/menu_40`" \
+        " " "" \
+        "halt" "`cat $chemin_langue/menu_8`" \
+	"oscar" "`cat $chemin_langue/menu_21`" \
+	" " "" 2>/tmp/tempfile____
+	
+if [ $? = "255" ]
+then
+    rm -f /tmp/tempfile____
+    rm -f /tmp/rien
+    exit
+fi
+output=`cat /tmp/tempfile____`
+rm -f /tmp/rien
+rm -f /tmp/serveur_pxe_seul
+
+if [ "$output" = " " ]
+	then
+	main
+elif [ "$output" = "" ]
+	then
+	main
+elif [ "$output" = "mode_synchrone" ]
+then
+	test_partition_lvm
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		exit
+	fi
+	if ! ( test -e /etc/serveur_pxe_lance )
+	then
+		# supprime_IP :
+		runme supprimer_ip_ethernet
+		echo "" > /tmp/serveur_lance_pxe_pour_client
+		serveur_pxe
+		rm -f /tmp/serveur_lance_pxe_pour_client
+	fi
+	rm -f /etc/serveur_pxe_lance
+        serveur_synchrone
+        if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	fi
+	main
+elif [ "$output" = "client" ]
+then
+	lancer_avahi client
+	rm -f /tmp/sortir
+	main
+elif [ "$output" = "client_synchrone" ]
+then
+        client_synchrone
+	main
+elif [ "$output" = "serveur_clone" ]
+then
+        serveur_clone
+elif [ "$output" = "serveur_multi" ]
+then
+        serveur_multi
+elif [ "$output" = "client_cloné" ]
+then
+	client_clone
+elif [ $output = "aide_choix" ]
+then
+	aide_serveur
+	main
+elif [ $output = "aide_multi" ]
+then
+	aide_serveur serveur_client_multi
+	main
+elif [ $output = "aide_clone" ]
+then
+	aide_serveur serveur_client_clone
+	main
+elif [ $output = "aide_disque" ]
+then
+	aide_serveur serveur_client_disque
+	main
+elif [ $output = "aide_table" ]
+then
+	aide_serveur serveur_client_table
+	main
+elif [ $output = "aide_image" ]
+then
+	aide_serveur serveur_client_nfs
+	main
+elif [ $output = "serveur_PXE" ]
+then
+	echo "" > /tmp/serveur_pxe_seul
+	serveur_pxe 
+	main
+elif [ $output = "info_sauvegarde" ]
+then
+	info_image
+	main
+elif [ $output = "partitions" ]
+then
+	runme information_dd
+	main
+elif [ $output = "menu_domaine" ]
+then
+	menu_domaine
+	main
+elif [ $output = "client_disque" ]
+then
+	client_disque
+        main
+elif [ $output = "serveur_disque" ]
+then
+	serveur_disque
+        main
+elif [ $output = "cable_croisé" ]
+then
+	runme boite_aide_cable_croise
+	main
+elif [ $output = "mode_asynchrone" ]
+then
+	test_partition_lvm
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		exit
+	fi
+	if ! ( test -e /etc/serveur_pxe_lance )
+	then
+		# supprime_IP :
+		runme supprimer_ip_ethernet
+		echo "" > /tmp/serveur_lance_pxe_pour_client
+		serveur_pxe
+		rm -f /tmp/serveur_lance_pxe_pour_client
+	fi
+	rm -f /etc/serveur_pxe_lance
+	serveur_nfs
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	fi
+	main
+elif [ $output = "client_asynchrone" ]
+then
+	client_nfs
+	main
+elif [ $output = "test_connexion" ]
+then
+	client_verif
+	main 
+elif [ $output = "adresse_ip" ]
+then  
+	runme afficher_IP
+	main
+elif [ $output = "installe_ip" ]
+then 
+	echo
+	runme ip_poste
+	rm -f /tmp/sortir
+	main
+elif [ $output = "supprime_ip" ]
+then 
+	echo
+	runme supprimer_ip_ethernet
+	runme afficher_IP
+	main
+elif [ $output = "NetworkManager+" ]
+then 
+	/etc/init.d/NetworkManager start
+	main
+elif [ $output = "NetworkManager-" ]
+then
+	runme sp_arreter_NetworkManager
+	main
+elif [ "$output" = "connecte_dhcp" ]
+then
+	runme lancer_dhcp
+	runme afficher_IP
+	rm -f /tmp/sortir
+	main
+elif [ "$output" = "halt" ]
+then
+	rm -f /tmp/tempfile____
+        eteindre_le_poste
+elif [ $output = "oscar" ]
+then
+	rm -f /tmp/tempfile____
+	exit
+else
+$output
+fi
+rm -f /tmp/tempfile____
+boucle
+}
+#----------------------------------------------------------------------------------------------------
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+rm -f /tmp/serveur_lance_pxe_pour_client
+
+#  commandes externes de procédures
+case "$1" in
+	test_partition_lvm)
+		test_partition_lvm
+		exit 0
+	;;
+esac
+main

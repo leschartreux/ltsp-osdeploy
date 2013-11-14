@@ -1,0 +1,236 @@
+#!/bin/sh
+
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+# récupère l'adresse ip du fichier ip_format pour mettre l'ip dans oscar_modifstartup_nom.reg
+
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+
+#----------------------------------------------------------------------------------------------------
+decortique_ip_poste()	# met dans le fichier oscar_modifstartup_ip.reg l'IP du poste
+{
+	rm -f /tmp/nombre
+	rm -f /tmp/fichiertmp
+	rm -f /tmp/fichiertmp1
+	cut -f1 -d. ip_poste > /tmp/fichiertmp
+	reponse=`cat /tmp/fichiertmp`
+	unite_un=`expr substr $reponse 3 1`
+	if [ "$unite_un" = "" ]
+	then
+	cent_un="0"
+		diz_un=`expr substr $reponse 2 1`
+		if [ "$diz_un" = "" ]
+		then diz_un="0"
+			unite_un=`expr substr $reponse 1 1`
+		else
+			unite_un=`expr substr $reponse 2 1`
+			diz_un=`expr substr $reponse 1 1`
+		fi
+	else
+		diz_un=`expr substr $reponse 2 1`
+		if [ "$diz_un" = "" ]
+		then diz_un="0"
+			unite_un=`expr substr $reponse 1 1`
+		fi
+		cent_un=`expr substr $reponse 1 1`
+	fi
+
+	rm -f /tmp/fichiertmp
+	cut -f2 -d. ip_poste > /tmp/fichiertmp
+	reponse=`cat /tmp/fichiertmp`
+	unite_deux=`expr substr $reponse 3 1`
+	if [ "$unite_deux" = "" ]
+	then
+		cent_deux="0"
+		diz_deux=`expr substr $reponse 2 1`
+		if [ "$diz_deux" = "" ]
+		then diz_deux="0"
+			unite_deux=`expr substr $reponse 1 1`
+		else
+			unite_deux=`expr substr $reponse 2 1`
+			diz_deux=`expr substr $reponse 1 1`
+		fi
+	else
+		diz_deux=`expr substr $reponse 2 1`
+		if [ "$diz_deux" = "" ]
+		then diz_deux="0"
+			unite_deux=`expr substr $reponse 1 1`
+		fi
+		cent_deux=`expr substr $reponse 1 1`
+	fi
+
+	rm -f /tmp/fichiertmp
+	cut -f3 -d. ip_poste > /tmp/fichiertmp
+	reponse=`cat /tmp/fichiertmp`
+	unite_trois=`expr substr $reponse 3 1`
+	if [ "$unite_trois" = "" ]
+	then
+		cent_trois="0"
+		diz_trois=`expr substr $reponse 2 1`
+		if [ "$diz_trois" = "" ]
+		then diz_trois="0"
+			unite_trois=`expr substr $reponse 1 1`
+		else
+			unite_trois=`expr substr $reponse 2 1`
+			diz_trois=`expr substr $reponse 1 1`
+		fi
+	else
+		diz_trois=`expr substr $reponse 2 1`
+		if [ "$diz_trois" = "" ]
+		then diz_trois="0"
+			unite_trois=`expr substr $reponse 1 1`
+		fi
+		cent_trois=`expr substr $reponse 1 1`
+	fi
+
+	rm -f /tmp/fichiertmp
+	cut -f4 -d.  ip_poste > /tmp/fichiertmp
+	reponse=`cat /tmp/fichiertmp`
+	unite_quat=`expr substr $reponse 3 1`
+	if [ "$unite_quat" = "" ]
+	then
+		cent_quat="0"
+		diz_quat=`expr substr $reponse 2 1`
+		if [ "$diz_quat" = "" ]
+		then diz_quat="0"
+			unite_quat=`expr substr $reponse 1 1`	
+		else
+			unite_quat=`expr substr $reponse 2 1`
+			diz_quat=`expr substr $reponse 1 1`
+		fi
+	else
+		diz_quat=`expr substr $reponse 2 1`
+		if [ "$diz_quat" = "" ]
+		then diz_quat="0"
+			unite_quat=`expr substr $reponse 1 1`
+		fi
+		cent_quat=`expr substr $reponse 1 1`
+	fi
+
+	#echo "$unite_un"	
+	#echo "$diz_un"
+	#echo "$cent_un"
+	
+	#echo "$unite_deux"	
+	#echo "$diz_deux"
+	#echo "$cent_deux"
+	
+	#echo "$unite_trois"	
+	#echo "$diz_trois"
+	#echo "$cent_trois"
+	
+	#echo "$unite_quat"	
+	#echo "$diz_quat"
+	#echo "$cent_quat"
+
+    rm -f oscar_modifstartup_ip.reg
+
+premier="3$cent_un,3$diz_un,3$unite_un"
+if [ "$cent_un" = "0" ]
+then
+	premier="3$diz_un,3$unite_un"
+	# echo "$premier"
+	if [ "$diz_un" = "0" ]
+	then
+		premier="3$unite_un"
+	fi
+fi
+deuxieme="3$cent_deux,3$diz_deux,3$unite_deux"
+if [ "$cent_deux" = "0" ]
+then
+	deuxieme="3$diz_deux,3$unite_deux"
+	if [ "$diz_deux" = "0" ]
+	then
+		deuxieme="3$unite_deux"
+	fi
+fi
+troisieme="3$cent_trois,3$diz_trois,3$unite_trois"
+if [ "$cent_trois" = "0" ]
+then
+	troisieme="3$diz_trois,3$unite_trois"
+	if [ "$diz_trois" = "0" ]
+	then
+		troisieme="3$unite_trois"
+	fi
+fi
+quatrieme="3$cent_quat,3$diz_quat,3$unite_quat"
+if [ "$cent_quat" = "0" ]
+then
+	quatrieme="3$diz_quat,3$unite_quat"
+	if [ "$diz_quat" = "0" ]
+	then
+		quatrieme="3$unite_quat"
+	fi
+fi
+
+echo "[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\{3CA64AE0-4AA3-41C0-9C59-C24BB839A94A}\Parameters\Tcpip]
+\"IPAddress\"=hex(7):$premier,2e,$deuxieme,2e,$troisieme,2e,$quatrieme,00,00,00
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{3CA64AE0-4AA3-41C0-9C59-C24BB839A94A}]
+\"IPAddress\"=hex(7):$premier,2e,$deuxieme,2e,$troisieme,2e,$quatrieme,00,00,00" > oscar_modifstartup_ip.reg
+}
+#----------------------------------------------------------------------------------------------------
+plusieurs_cartes_reseau()  ## si plusieurs cartes réseaux commande en ligne IP pour XP
+{
+rm -f /tmp/netsh_oscar_bat
+echo "
+cls
+echo.
+echo `cat $chemin_langue/texte_93`
+# attention bien conserver ces caracteres pour netsh : 'Connexion au r�seau local' caracteres francais mais windows en anglais je ne sais pas
+netsh interface ip set address name=\"Connexion au r�seau local\" static `cat ip_poste` `cat /tmp/ip_masque` `cat /tmp/ip_passerelle` 1" > /tmp/netsh_oscar_bat
+}
+#----------------------------------------------------------------------------------------------------
+# récupère l'adresse ip du fichier ip_format pour mettre l'ip dans oscar_modifstartup_nom.reg
+
+	rm -f /tmp/netsh_oscar_bat
+	echo "echo." > /tmp/netsh_oscar_bat
+	poste=`cat /tmp/numero_poste_client`
+	rm -f ip_poste
+	rm -f /tmp/ip_oscar_bat
+	rm -f /tmp/fichiertmp
+	cut -f5 -d. /tmp/ip_format > /tmp/fichiertmp
+	format=`cat /tmp/fichiertmp`
+	rm -f /tmp/fichiertmp
+	### dans ip_format: XXX.XXX.XXX.XXX.lettre
+	if [ "$format" = "a" ]
+	then
+		cut -f4 -d. /tmp/ip_format > /tmp/fichiertmp
+		vvv=`cat /tmp/fichiertmp`
+		yyy=$[$vvv+$poste]
+		echo "`cut -f1-3 -d. /tmp/ip_format`.$yyy" > ip_poste
+		plusieurs_cartes_reseau
+	elif [ "$format" = "b" ]
+	then
+		cut -f3 -d. /tmp/ip_format > /tmp/fichiertmp
+		vvv=`cat /tmp/fichiertmp`
+		yyy=$[$vvv+$poste]
+		echo "`cut -f1-2 -d. /tmp/ip_format`.$yyy.`cut -f4 -d. /tmp/ip_format`" > ip_poste
+		plusieurs_cartes_reseau
+	else	# ne pas installer l'ip
+		rm -f oscar_modifstartup_ip.reg
+		echo "." > /tmp/ip_oscar_bat
+		echo "" > oscar_modifstartup_ip.reg
+		rm -f ip_poste
+		exit
+	fi
+	echo "                    `cat $chemin_langue/texte_94` `cat ip_poste`" > /tmp/ip_oscar_bat
+	decortique_ip_poste
+	rm -f ip_poste
+	exit
+

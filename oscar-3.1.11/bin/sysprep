@@ -1,0 +1,822 @@
+#!/bin/sh
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+# realise le fichier sysprep.inf par poste a partir du fichier sysprep.var
+# realise aussi les fichiers du poste local pour oscar_deploie
+
+
+#----------------------------------------------------------------------------------------------------
+supprimer_fichiers_sysprep_win7_premier_demarrage()
+{
+# ATTENTION format en microsoft
+echo "@echo off
+echo.
+del %windir%\Panther\unattend.xml
+del %windir%\Panther\Unattend.xml
+del %windir%\Panther\Unattend\Unattend.xml
+del %windir%\Panther\Unattend\unattend.xml
+del %windir%\System32\sysprep\unattend.xml
+del %windir%\System32\sysprep\Unattend.xml
+del %windir%\System32\sysprep\sysprep_var.xml
+del %windir%\System32\sysprep\sysprep_oscar.xml
+del %windir%\System32\sysprep\joindre_domaine.ps1
+del %windir%\System32\sysprep\delay.vbs
+cls
+del %windir%\System32\sysprep\joindre_domaine.bat
+del %windir%\oscar_deploie\Wpkg-GP_x64.exe
+del %windir%\oscar_deploie\Wpkg-GP_x86.exe
+del %windir%\oscar_deploie\wpkg-gp.ini
+del %windir%\System32\sysprep\oscar_nettoie_sysprep.bat
+" > /mnt/$base/Windows/System32/sysprep/oscar_nettoie_sysprep.bat
+echo "WScript.Sleep(1000)" > /mnt/$base/Windows/System32/sysprep/delay.vbs
+}
+#----------------------------------------------------------------------------------------------------
+remplacer_sysprep_oscar_par_var()	# dans /tmp/sysprepvar_temp1 : NOM_POSTE=Poste1_103,MOT_PASSE_ADMIN_POSTE=essai,DOMAINE_RESEAU=CRDP_69,CLE_WIN=111-XXX-YYY-ttt-UUUU,
+{
+# le resultat est dans /mnt/$base/sysprep/sysprep.inf
+cut -d"=" -f1 /tmp/sysprepvar_temp1 | perl -pi -e 's/ //g;' > /tmp/variable_a_remplacer
+variable_a_remplacer=`cat /tmp/variable_a_remplacer`
+if [ "$variable_a_remplacer" != "" ]
+then
+	cut -d"=" -f2 /tmp/sysprepvar_temp1 > /tmp/sysprepvar_temp2
+	cut -d"," -f1 /tmp/sysprepvar_temp2 > /tmp/valeur_reelle
+	echo "perl -pi -e 's/`cat /tmp/variable_a_remplacer`/`cat /tmp/valeur_reelle`/g;' /tmp/sysprep_oscar.inf " > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+		
+	# supprimer le premier terme du remplacement :
+	cut -d"," -f1 /tmp/sysprepvar_temp1 > /tmp/sysprepvar_temp2
+	echo "perl -pi -e 's/`cat /tmp/sysprepvar_temp2`,//g;' /tmp/sysprepvar_temp1 " > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+	remplacer_sysprep_oscar_par_var
+fi
+rm -f /tmp/sysprepvar_temp
+rm -f /tmp/sysprepvar_temp1
+rm -f /tmp/sysprepvar_temp2
+rm -f /tmp/variable_a_remplacer
+rm -f /tmp/valeur_reelle
+
+if ( test -e /mnt/$base/Windows/System32/sysprep/sysprep_var.xml )
+then
+	rm -f /mnt/$base/Windows/System32/sysprep/unattend.xml
+	rm -f /mnt/$base/Windows/System32/sysprep/Unattend.xml
+	cp -f /tmp/sysprep_oscar.inf /mnt/$base/Windows/System32/sysprep/unattend.xml 2>/dev/null
+	rm -f /mnt/$base/Windows/Panther/unattend.xml
+	rm -f /mnt/$base/Windows/Panther/Unattend.xml
+	cp -f /tmp/sysprep_oscar.inf /mnt/$base/Windows/Panther/unattend.xml 2>/dev/null
+	supprimer_fichiers_sysprep_win7_premier_demarrage
+elif ( test -e /mnt/$base/sysprep/sysprep_var.inf )
+then
+	rm -f /mnt/$base/sysprep/sysprep.inf
+	cp -f /tmp/sysprep_oscar.inf /mnt/$base/sysprep/sysprep.inf 2>/dev/null
+fi
+}
+#----------------------------------------------------------------------------------------------------
+boite_demande_poste_sysprep()
+{
+grep -v "IP_SERVEUR_ETABLISSEMENT=" /tmp/liste_postes_sysprep > /tmp/bozo1
+awk 'BEGIN { FS=":" } { printf ("%0s\n","\""$1"\" \"\" \\")}' /tmp/bozo1 > /tmp/bozo
+rm -f /tmp/bozo1
+rm -f /tmp/sysprepvar_temp2
+rm -f /tmp/sysprepvar_temp3
+if ! [ "$sp_boite_demande_poste_sysprep" = "oui" ]
+then
+	rm -f /tmp/liste_postes_sysprep
+fi
+
+# boite : Choix du numéro de poste pour sysprep
+echo " `cat $chemin_langue/selection_15` " > /tmp/menu_titre
+echo "\n`cat $chemin_langue/selection_16`\n" > /tmp/menu_texte
+echo "`cat $chemin_langue/selection_17` : " > /tmp/fichierquestion
+
+echo "15" > /tmp/hauteur
+echo "50" > /tmp/largeur
+echo "0" > /tmp/position
+runme boite_selection_bozo
+rm -f /tmp/hauteur
+rm -f /tmp/largeur
+rm -f /tmp/position
+rm -f /tmp/texte
+}
+#----------------------------------------------------------------------------------------------------
+tester_liste_postes_sysprep_vide()
+{
+test_liste_postes_sysprep_vide=`cat /tmp/liste_postes_sysprep`
+if [ "$test_liste_postes_sysprep_vide" = "" ] || [ "$test_liste_postes_sysprep_vide" = " " ]
+then
+	dialog --colors --no-shadow --ok-label "`cat $chemin_langue/Continuer`" \
+	--backtitle  "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--msgbox "\n\n\Zb`cat $chemin_langue/msgbox_2d`" 10 75
+fi
+}
+#----------------------------------------------------------------------------------------------------
+afficher_sans_NOM_POSTE()
+{
+# si nom des postes avec Poste-
+perl -pi -e 's/=Poste-/=__OSCAR__RACSO__/g;' /tmp/sysprepvar_temp2
+
+perl -pi -e 's/Poste-/:Poste-/g;' /tmp/sysprepvar_temp2
+# remettre si nom des postes avec Poste-
+perl -pi -e 's/=__OSCAR__RACSO__/=Poste-/g;' /tmp/sysprepvar_temp2
+
+cut -d":" -f2 /tmp/sysprepvar_temp2 > /tmp/sysprepvar_temp3
+cut -d"-" -f1-2 /tmp/sysprepvar_temp3 > /tmp/liste_postes_sysprep
+
+tester_liste_postes_sysprep_vide
+
+if [ "$sp_fichier_correspondance_oscar_win" = "oui" ]
+then
+	return
+fi
+
+boite_demande_poste_sysprep
+if ( test -e /tmp/sortir )
+then
+	rm -f /tmp/tempfile
+	rm -f /tmp/sortir
+	exit
+fi
+cut -d"-" -f2 /tmp/tempfile > $partition_linux/oscar/var_poste/numero_poste_client
+rm -f /tmp/tempfile
+}
+#----------------------------------------------------------------------------------------------------
+afficher_avec_NOM_POSTE()
+{
+# si nom des postes avec Poste-
+perl -pi -e 's/=Poste-/=__OSCAR__RACSO__/g;' /tmp/sysprepvar_temp2
+
+# nettoyer aussi les fins de lignes msdos
+perl -pi -e 's/^Poste-/
+:Poste-/g;' /tmp/sysprepvar_temp2
+perl -pi -e 's/,Poste-/
+:Poste-/g;' /tmp/sysprepvar_temp2
+grep -i ":Poste-" /tmp/sysprepvar_temp2 > /tmp/sysprepvar_temp3
+perl -pi -e  's/NOM_POSTE=/
+ > /g; s/-\(/,/g; s/,:/:/g;'  /tmp/sysprepvar_temp3
+cut -d"," -f1 /tmp/sysprepvar_temp3 > /tmp/sysprepvar_temp2
+
+# mettre sur une ligne
+perl -pi -e 's/\n//g; s/,:/:/g;' /tmp/sysprepvar_temp2
+# mettre les bonnes lignes
+perl -pi -e 's/:/
+/g;' /tmp/sysprepvar_temp2
+# supprimer les lignes vides
+grep -i "Poste-" /tmp/sysprepvar_temp2 > /tmp/liste_postes_sysprep
+perl -pi -e 's/Poste-//g;' /tmp/liste_postes_sysprep
+
+# remettre si nom des postes avec Poste-
+perl -pi -e 's/__OSCAR__RACSO__/Poste-/g;' /tmp/liste_postes_sysprep
+
+tester_liste_postes_sysprep_vide
+
+if [ "$sp_fichier_correspondance_oscar_win" = "oui" ]
+then
+	return
+fi
+
+boite_demande_poste_sysprep
+if ( test -e /tmp/sortir )
+then
+	rm -f /tmp/tempfile
+	rm -f /tmp/sortir
+	exit
+fi
+perl -pi -e 's/ //g;' /tmp/tempfile
+cut -d">" -f1 /tmp/tempfile > $partition_linux/oscar/var_poste/numero_poste_client
+rm -f /tmp/tempfile
+}
+#----------------------------------------------------------------------------------------------------
+supprimer_les_retours_a_la_ligne_et_faire_une_ligne_par_poste()
+{
+grep -ci "IP_SERVEUR_ETABLISSEMENT=" /tmp/sysprepvar_temp > /tmp/nb_ip_serveur_etablissement_var_temp
+nb_ip_serveur_etablissement_var_temp=`cat /tmp/nb_ip_serveur_etablissement_var_temp`
+rm -f /tmp/nb_ip_serveur_etablissement_var_temp
+if [ "$nb_ip_serveur_etablissement_var_temp" != 0 ]
+then
+	grep -i "IP_SERVEUR_ETABLISSEMENT=" /tmp/sysprepvar_temp > /tmp/ip_serveur_etablissement_var_temp
+fi
+perl -pi -e 's/\n/;/g; s/\)/,\)
+/g; s/;/,/g; ' /tmp/sysprepvar_temp	# forme : Poste-1-(NOM_POSTE=Poste1_103,MOT_PASSE_ADMIN_POSTE=essai,DOMAINE_RESEAU=CRDP_69,CLE_WIN=111-XXX-YYY-ttt-UUUU,)
+}
+#----------------------------------------------------------------------------------------------------
+faire_liste_des_postes()
+{
+cp -f /tmp/sysprepvar_temp /tmp/sysprepvar_temp2
+grep -ci "NOM_POSTE" /tmp/sysprepvar_temp > /tmp/nb_NOM_POSTE
+test_nb_NOM_POSTE=`cat /tmp/nb_NOM_POSTE`
+rm -f /tmp/nb_NOM_POSTE
+if [ "$test_nb_NOM_POSTE" = "0" ]
+then
+	afficher_sans_NOM_POSTE
+else
+	afficher_avec_NOM_POSTE
+fi
+}
+#----------------------------------------------------------------------------------------------------
+fichier_nom_poste_local_reg()
+{
+echo "REGEDIT4
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName]
+\"ComputerName\"=\"Poste_OSCAR\"
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName]
+\"ComputerName\"=\"Poste_OSCAR\"
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters]
+\"Hostname\"=\"Poste_OSCAR\"
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters]
+\"NV Hostname\"=\"Poste_OSCAR\"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+\"DefaultDomainName\"=\"Poste_OSCAR\"
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\VxD\VNETSUP]
+\"ComputerName\"=\"Poste_OSCAR\"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce]
+\"oscarC\"=\"C:\\\\Windows\\\\oscar_deploie\\\\installe_domaine.bat\"
+" > /tmp/fichier_nom_poste_local.reg
+}
+#----------------------------------------------------------------------------------------------------
+fichier_cle_poste_local()
+{
+echo "cscript slmgr.vbs /ipk CLE_WIN" > /tmp/fichier_cle_poste_local
+}
+#----------------------------------------------------------------------------------------------------
+fichier_adresse_ip_local()
+{
+# attention bien conserver ces caracteres OEM (pas ANSI) pour netsh : 'Connexion au r�seau local' caracteres francais
+echo "netsh interface ip set address \"`cat $chemin_langue/textbash_1`\" static ADRESSE_IP MASQUE_IP PASSERELLE_IP 1" > /tmp/fichier_adresse_ip_local
+}
+#----------------------------------------------------------------------------------------------------
+fichier_adresse_ip_local_dhcp()
+{
+# attention bien conserver ces caracteres OEM (pas ANSI) pour netsh : 'Connexion au r�seau local' caracteres francais
+echo "netsh interface ip set address \"`cat $chemin_langue/textbash_1`\" dhcp" > /tmp/fichier_adresse_ip_local
+}
+#----------------------------------------------------------------------------------------------------
+fichier_adresse_ip_local_dns()
+{
+# attention bien conserver ces caracteres OEM (pas ANSI) pour netsh : 'Connexion au r�seau local' caracteres francais
+echo "netsh interface ip set dns \"`cat $chemin_langue/textbash_1`\" static ADRESSE_IP_DNS" > /tmp/fichier_adresse_ip_local_dns
+}
+#----------------------------------------------------------------------------------------------------
+faire_fichier_local_joindre_domaine_bat()
+{
+# le premier demarrage configure le poste
+echo "@echo off
+rem ## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+rem ## Outil Système Complet d'Assistance Réseau: OSCAR
+rem ## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+rem ## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation
+echo.
+echo.
+echo.
+echo           `cat $chemin_langue/texte_32a` `cat /tmp/var_temp_NOM`.
+echo.
+echo.
+echo.
+echo  Le poste va redemarrer ...
+echo.
+echo.
+`cat /tmp/powershell`
+regedit /s %windir%\oscar_deploie\local_poste.reg
+regedit /s %windir%\oscar_deploie\fichier_nom_poste_local.reg
+regedit /s %windir%\oscar_deploie\demarre_poste.reg
+cd %windir%\System32
+`cat /tmp/fichier_cle_poste_local`
+`cat /tmp/fichier_adresse_ip_local`
+`cat /tmp/fichier_adresse_ip_local_dns`
+if exist %windir%\oscar_deploie\oscar1.bat call %windir%\oscar_deploie\oscar1.bat
+if exist %windir%\System32\oscar_down.exe goto continuer
+%windir%\System32\shutdown.exe -r -t 3
+goto fin
+:continuer
+%windir%\System32\oscar_down.exe -r -t 3
+goto fin
+:fin
+del %windir%\oscar_deploie\local_poste.reg
+del %windir%\oscar_deploie\fichier_nom_poste_local.reg
+del %windir%\oscar_deploie\demarre_poste.reg
+del %windir%\oscar_deploie\fichier_cle_poste_local
+del %windir%\oscar_deploie\fichier_adresse_ip_local
+del %windir%\oscar_deploie\fichier_adresse_ip_local_dns
+" > /tmp/temp_joindre_domaine
+if ( test -e /mnt/$base/Windows/oscar_deploie )
+then
+	cp -f /tmp/temp_joindre_domaine /mnt/$base/Windows/oscar_deploie/joindre_domaine.bat
+elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+then
+	cp -f /tmp/temp_joindre_domaine /mnt/$base/WINDOWS/oscar_deploie/joindre_domaine.bat
+fi
+rm -f /tmp/temp_joindre_domaine
+}
+#----------------------------------------------------------------------------------------------------
+faire_fichier_installe_domaine_bat()
+{
+if [ "$groupe_de_travail" = non ]
+then
+	texte_computer="OSCAR inscrit ce poste %ComputerName% au domaine"
+	texte_joindre_ps1="powershell %windir%\oscar_deploie\joindre_domaine.ps1"
+	texte_del_joindre_domaine_ps1="del %windir%\oscar_deploie\joindre_domaine.ps1"
+else
+	texte_computer=`cat $chemin_langue/texte_84`
+	texte_joindre_ps1=
+	texte_del_joindre_domaine_ps1=
+fi
+# le deuxieme demarrage integre au domaine
+echo "@echo off
+cls
+echo.
+echo.
+echo.
+echo           $texte_computer.
+echo.
+echo.
+echo  Le poste va redemarrer ...
+echo.
+echo.
+`cat /tmp/powershell`
+cscript slmgr.vbs /ato
+$texte_joindre_ps1
+regedit /s %windir%\oscar_deploie\fin_integre_poste.reg
+echo.
+if exist %windir%\oscar_deploie\wpkg-gp_install.bat call %windir%\oscar_deploie\wpkg-gp_install.bat
+if exist %windir%\oscar_deploie\oscar2.bat call %windir%\oscar_deploie\oscar2.bat
+if exist %windir%\System32\oscar_down.exe goto continuer
+%windir%\System32\shutdown.exe -r -t 3
+goto fin
+:continuer
+%windir%\System32\oscar_down.exe -r -t 3
+goto fin
+:fin
+$texte_del_joindre_domaine_ps1
+del %windir%\oscar_deploie\joindre_domaine.bat
+del %windir%\oscar_deploie\fin_integre_poste.reg
+del %windir%\oscar_deploie\oscar_var.txt
+del %windir%\oscar_deploie\delay.vbs
+call %windir%\oscar_deploie\oscar_nettoie_deploie.bat
+" > /tmp/temp_installe_domaine
+if ( test -e /mnt/$base/Windows/oscar_deploie )
+then
+	cp -f /tmp/temp_installe_domaine /mnt/$base/Windows/oscar_deploie/installe_domaine.bat
+elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+then
+	cp -f /tmp/temp_installe_domaine /mnt/$base/WINDOWS/oscar_deploie/installe_domaine.bat
+fi
+rm -f /tmp/temp_installe_domaine
+}
+#----------------------------------------------------------------------------------------------------
+faire_oscar_nettoie_deploie_bat()
+{
+echo "@echo off
+echo.
+cls
+del %windir%\oscar_deploie\installe_domaine.bat
+del %windir%\oscar_deploie\Wpkg-GP_x64.exe
+del %windir%\oscar_deploie\Wpkg-GP_x86.exe
+del %windir%\oscar_deploie\wpkg-gp.ini
+del %windir%\oscar_deploie\oscar_nettoie_deploie.bat
+" > /tmp/temp_oscar_nettoie_deploie
+if ( test -e /mnt/$base/Windows/oscar_deploie )
+then
+	cp -f /tmp/temp_oscar_nettoie_deploie /mnt/$base/Windows/oscar_deploie/oscar_nettoie_deploie.bat
+elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+then
+	cp -f /tmp/temp_oscar_nettoie_deploie /mnt/$base/WINDOWS/oscar_deploie/oscar_nettoie_deploie.bat
+fi
+rm -f /tmp/temp_oscar_nettoie_deploie
+}
+#----------------------------------------------------------------------------------------------------
+faire_fin_integre_poste_reg()
+{
+echo "REGEDIT4
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+\"DefaultPassword\"=\"\"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+\"DefaultUserName\"=\"\"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+\"AutoAdminLogon\"=\"0\"
+" > /tmp/temp_fin_integre_poste
+if ( test -e /mnt/$base/Windows/oscar_deploie )
+then
+	cp -f /tmp/temp_fin_integre_poste /mnt/$base/Windows/oscar_deploie/fin_integre_poste.reg
+elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+then
+	cp -f /tmp/temp_fin_integre_poste /mnt/$base/WINDOWS/oscar_deploie/fin_integre_poste.reg
+fi
+rm -f /tmp/temp_fin_integre_poste
+}
+#----------------------------------------------------------------------------------------------------
+faire_demarre_poste_reg()
+{
+# joindre_domaine.bat est lanc� par le poste modele au premier demarrage
+echo "REGEDIT4
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+\"AutoAdminLogon\"=\"1\"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce]
+\"oscarC\"=\"C:\\\\Windows\\\\oscar_deploie\\\\installe_domaine.bat\"
+" > /tmp/temp_demarre_poste
+if ( test -e /mnt/$base/Windows/oscar_deploie )
+then
+	cp -f /tmp/temp_demarre_poste /mnt/$base/Windows/oscar_deploie/demarre_poste.reg
+elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+then
+	cp -f /tmp/temp_demarre_poste /mnt/$base/WINDOWS/oscar_deploie/demarre_poste.reg
+fi
+rm -f /tmp/temp_demarre_poste
+}
+#----------------------------------------------------------------------------------------------------
+faire_fichiers_oscar_deploie_poste()
+{
+# la ligne dans /tmp/sysprepvar_temp1	# NOM_POSTE=Poste1_103,MOT_PASSE_ADMIN_POSTE=essai, DOMAINE_RESEAU=CRDP_69, CLE_WIN=111-XXX-YYY-ttt-UUUU,
+cp -f /tmp/sysprepvar_temp1 /tmp/sysprepvar_temp4
+# mettre le nom du poste
+perl -pi -e 's/NOM_POSTE=/{/g;' /tmp/sysprepvar_temp4
+cut -d"{" -f2 /tmp/sysprepvar_temp4 > /tmp/var_temp_NOM1
+cut -d"," -f1 /tmp/var_temp_NOM1 > /tmp/var_temp_NOM
+rm -f /tmp/var_temp_NOM1
+rm -f /tmp/sysprepvar_temp4
+fichier_nom_poste_local_reg
+echo "perl -pi -e 's/Poste_OSCAR/`cat /tmp/var_temp_NOM`/g; ' /tmp/fichier_nom_poste_local.reg " > /tmp/exec_nom
+chmod +x /tmp/exec_nom
+/tmp/exec_nom
+rm -f /tmp/exec_nom
+
+if ( test -e /mnt/$base/Windows/oscar_deploie )
+then
+	cp -f /tmp/fichier_nom_poste_local.reg /mnt/$base/Windows/oscar_deploie/
+elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+then
+	cp -f /tmp/fichier_nom_poste_local.reg /mnt/$base/WINDOWS/oscar_deploie/
+fi
+rm -f /tmp/fichier_nom_poste_local.reg
+
+# mettre la licence
+grep -ci CLE_WIN= /tmp/sysprepvar_temp1 > /tmp/nb_CLE_WIN
+nb_CLE_WIN=`cat /tmp/nb_CLE_WIN`
+rm -f /tmp/nb_CLE_WIN
+echo "" > /tmp/fichier_cle_poste_local
+if [ "$nb_CLE_WIN" = 1 ]
+then
+	cp -f /tmp/sysprepvar_temp1 /tmp/sysprepvar_temp4
+	perl -pi -e 's/CLE_WIN=/{/g;' /tmp/sysprepvar_temp4
+	cut -d"{" -f2 /tmp/sysprepvar_temp4 > /tmp/var_temp_CLE_WIN1
+	cut -d"," -f1 /tmp/var_temp_CLE_WIN1 > /tmp/var_temp_CLE_WIN
+	rm -f /tmp/var_temp_CLE_WIN1
+	rm -f /tmp/sysprepvar_temp4
+	fichier_cle_poste_local
+	echo "perl -pi -e 's/CLE_WIN/`cat /tmp/var_temp_CLE_WIN`/g; ' /tmp/fichier_cle_poste_local " > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+	rm -f /tmp/exec_nom
+fi
+if ( test -e /mnt/$base/Windows/oscar_deploie )
+then
+	cp -f /tmp/fichier_cle_poste_local /mnt/$base/Windows/oscar_deploie/
+elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+then
+	cp -f /tmp/fichier_cle_poste_local /mnt/$base/WINDOWS/oscar_deploie/
+fi
+
+# mettre la IP fixe
+grep -ci ADRESSE_IP= /tmp/sysprepvar_temp1 > /tmp/nb_ADRESSE_IP
+nb_ADRESSE_IP=`cat /tmp/nb_ADRESSE_IP`
+rm -f /tmp/nb_ADRESSE_IP
+echo "" > /tmp/fichier_adresse_ip_local
+if [ "$nb_ADRESSE_IP" = 1 ]
+then
+	cp -f /tmp/sysprepvar_temp1 /tmp/sysprepvar_temp4
+	perl -pi -e 's/ADRESSE_IP=/{/g;' /tmp/sysprepvar_temp4
+	cut -d"{" -f2 /tmp/sysprepvar_temp4 > /tmp/var_temp_ADRESSE_IP1
+	cut -d"," -f1 /tmp/var_temp_ADRESSE_IP1 > /tmp/var_temp_ADRESSE_IP
+	rm -f /tmp/var_temp_ADRESSE_IP1
+	rm -f /tmp/sysprepvar_temp4
+	cp -f /tmp/sysprepvar_temp1 /tmp/sysprepvar_temp4
+	perl -pi -e 's/MASQUE_IP=/{/g;' /tmp/sysprepvar_temp4
+	cut -d"{" -f2 /tmp/sysprepvar_temp4 > /tmp/var_temp_MASQUE_IP1
+	cut -d"," -f1 /tmp/var_temp_MASQUE_IP1 > /tmp/var_temp_MASQUE_IP
+	rm -f /tmp/var_temp_MASQUE_IP1
+	rm -f /tmp/sysprepvar_temp4
+	cp -f /tmp/sysprepvar_temp1 /tmp/sysprepvar_temp4
+	perl -pi -e 's/PASSERELLE_IP=/{/g;' /tmp/sysprepvar_temp4
+	cut -d"{" -f2 /tmp/sysprepvar_temp4 > /tmp/var_temp_PASSERELLE_IP1
+	cut -d"," -f1 /tmp/var_temp_PASSERELLE_IP1 > /tmp/var_temp_PASSERELLE_IP
+	rm -f /tmp/var_temp_PASSERELLE_IP1
+	rm -f /tmp/sysprepvar_temp4
+	
+	fichier_adresse_ip_local
+	echo "perl -pi -e 's/ADRESSE_IP/`cat /tmp/var_temp_ADRESSE_IP`/g; s/MASQUE_IP/`cat /tmp/var_temp_MASQUE_IP`/g; s/PASSERELLE_IP/`cat /tmp/var_temp_PASSERELLE_IP`/g; ' /tmp/fichier_adresse_ip_local " > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+	rm -f /tmp/exec_nom
+fi
+# mettre IP dhcp au lieu de fixe
+grep -ci DHCP_IP=OUI /tmp/sysprepvar_temp1 > /tmp/nb_DHCP_IP
+nb_DHCP_IP=`cat /tmp/nb_DHCP_IP`
+rm -f /tmp/nb_DHCP_IP
+if [ "$nb_DHCP_IP" = 1 ]
+then
+	fichier_adresse_ip_local_dhcp
+fi
+if ( test -e /mnt/$base/Windows/oscar_deploie )
+then
+	cp -f /tmp/fichier_adresse_ip_local /mnt/$base/Windows/oscar_deploie/
+elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+then
+	cp -f /tmp/fichier_adresse_ip_local /mnt/$base/WINDOWS/oscar_deploie/
+fi
+
+# mettre la IP dns
+grep -ci ADRESSE_IP_DNS= /tmp/sysprepvar_temp1 > /tmp/nb_ADRESSE_IP_DNS
+nb_ADRESSE_IP_DNS=`cat /tmp/nb_ADRESSE_IP_DNS`
+rm -f /tmp/nb_ADRESSE_IP_DNS
+echo "" > /tmp/fichier_adresse_ip_local_dns
+if [ "$nb_ADRESSE_IP_DNS" = 1 ]
+then
+	cp -f /tmp/sysprepvar_temp1 /tmp/sysprepvar_temp4
+	perl -pi -e 's/ADRESSE_IP_DNS=/{/g;' /tmp/sysprepvar_temp4
+	cut -d"{" -f2 /tmp/sysprepvar_temp4 > /tmp/var_temp_ADRESSE_IP_DNS1
+	cut -d"," -f1 /tmp/var_temp_ADRESSE_IP_DNS1 > /tmp/var_temp_ADRESSE_IP_DNS
+	rm -f /tmp/var_temp_ADRESSE_IP_DNS1
+	rm -f /tmp/sysprepvar_temp4
+	fichier_adresse_ip_local_dns
+	echo "perl -pi -e 's/ADRESSE_IP_DNS/`cat /tmp/var_temp_ADRESSE_IP_DNS`/g; ' /tmp/fichier_adresse_ip_local_dns " > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+	rm -f /tmp/exec_nom
+fi
+if ( test -e /mnt/$base/Windows/oscar_deploie )
+then
+	cp -f /tmp/fichier_adresse_ip_local_dns /mnt/$base/Windows/oscar_deploie/
+elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+then
+	cp -f /tmp/fichier_adresse_ip_local_dns /mnt/$base/WINDOWS/oscar_deploie/
+fi
+
+echo "powershell -command Set-ExecutionPolicy unrestricted" > /tmp/powershell
+faire_fin_integre_poste_reg
+faire_fichier_local_joindre_domaine_bat
+faire_fichier_installe_domaine_bat
+faire_demarre_poste_reg
+faire_oscar_nettoie_deploie_bat
+rm -f /tmp/powershell
+rm -f /tmp/var_temp_NOM
+rm -f /tmp/var_temp_CLE_WIN
+rm -f /tmp/var_temp_ADRESSE_IP
+rm -f /tmp/var_temp_MASQUE_IP
+rm -f /tmp/var_temp_PASSERELLE_IP
+rm -f /tmp/var_temp_ADRESSE_IP_DNS
+rm -f /tmp/fichier_cle_poste_local
+rm -f /tmp/fichier_adresse_ip_local
+rm -f /tmp/fichier_adresse_ip_local_dns
+}
+#----------------------------------------------------------------------------------------------------
+recuperer_oscar_var_serveur_etablissement()
+{
+grep -ci "sysprep\" , " $chemin_oscar_var/joindre_domaine.ps1 > /tmp/nb_oscar_var_sysprep
+grep -ci "admin\" , " $chemin_oscar_var/joindre_domaine.ps1 > /tmp/nb_oscar_var_admin
+nb_oscar_var_sysprep=`cat /tmp/nb_oscar_var_sysprep`
+nb_oscar_var_admin=`cat /tmp/nb_oscar_var_admin`
+rm -f /tmp/nb_oscar_var_sysprep
+rm -f /tmp/nb_oscar_var_admin
+
+if [ "$nb_oscar_var_sysprep" = 1 ] || [ "$nb_oscar_var_admin" = 1 ]
+then
+	if [ "$nb_oscar_var_sysprep" = 1 ]
+	then
+		grep -i "sysprep\" , " $chemin_oscar_var/joindre_domaine.ps1 > /tmp/m_d_p_etablissement
+		perl -pi -e 's/ConvertTo-SecureString /{/g;' /tmp/m_d_p_etablissement
+		cut -d"{" -f2 /tmp/m_d_p_etablissement > /tmp/m_d_p_etablissement1
+		cut -d"\"" -f2 /tmp/m_d_p_etablissement1 > /tmp/m_d_p_etablissement
+		rm -f /tmp/m_d_p_etablissement1
+		nom_utilisateur_etablissement=sysprep
+	elif [ "$nb_oscar_var_admin" = 1 ]
+	then
+		grep -i "admin\" , " $chemin_oscar_var/joindre_domaine.ps1 > /tmp/m_d_p_etablissement
+		perl -pi -e 's/ConvertTo-SecureString /{/g;' /tmp/m_d_p_etablissement
+		cut -d"{" -f2 /tmp/m_d_p_etablissement > /tmp/m_d_p_etablissement1
+		cut -d"\"" -f2 /tmp/m_d_p_etablissement1 > /tmp/m_d_p_etablissement
+		rm -f /tmp/m_d_p_etablissement1
+		nom_utilisateur_etablissement=admin
+	fi
+
+	echo "$ip_serveur_etablissement" > /tmp/ip_serveur_distant
+	echo "$nom_utilisateur_etablissement" > /tmp/repertoire_distant
+	echo "$ip_serveur_etablissement-$nom_utilisateur_etablissement" > /tmp/repertoire_utilisateur_poste
+	echo "$nom_utilisateur_etablissement" > /tmp/username_distant
+	cp -f /tmp/m_d_p_etablissement /tmp/password_distant
+	rm -f /tmp/m_d_p_etablissement
+	echo "" > /tmp/mise_a_jour_oscar_var_txt
+	runme montage_serveur_samba_distant
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	fi
+	if ( test -e /mnt/$ip_serveur_etablissement-$nom_utilisateur_etablissement/perso/oscar_deploie/oscar_var.txt )
+	then
+		cp -f /mnt/$ip_serveur_etablissement-$nom_utilisateur_etablissement/perso/oscar_deploie/oscar_var.txt /tmp/sysprepvar_temp
+		cp -f /mnt/$ip_serveur_etablissement-$nom_utilisateur_etablissement/perso/oscar_deploie/oscar_var.txt $chemin_oscar_var/oscar_var.txt
+	fi
+	umount /mnt/$ip_serveur_etablissement-$nom_utilisateur_etablissement 2>/dev/null
+fi
+}
+#----------------------------------------------------------------------------------------------------
+main()
+{
+partition_linux=`cat /tmp/partition_linux_pour_sysprep`
+
+if ( test -e /tmp/client_nfs_sysprep )
+then
+	base=`cat /mnt/serveur_oscar/partition_sauvegardee`
+else
+	base=`cat $partition_linux/oscar/partition_sauvegardee`
+fi
+rm -f /tmp/client_nfs_sysprep
+
+faire_fichiers_personnaliser_poste=non
+if ( test -e /mnt/$base/Windows/System32/sysprep/sysprep_var.xml )
+then
+	cp -f /mnt/$base/Windows/System32/sysprep/sysprep_var.xml /tmp/sysprepvar_temp
+	cp -f /mnt/$base/Windows/System32/sysprep/sysprep_oscar.xml /tmp/sysprep_oscar.inf
+elif ( test -e /mnt/$base/sysprep/sysprep_var.inf )
+then
+	cp -f /mnt/$base/sysprep/sysprep_var.inf /tmp/sysprepvar_temp
+	cp -f /mnt/$base/sysprep/sysprep_oscar.inf /tmp/sysprep_oscar.inf
+elif ( test -e /mnt/$base/Windows/oscar_deploie/oscar_var.txt ) || ( test -e /mnt/$base/WINDOWS/oscar_deploie/oscar_var.txt )
+then
+	faire_fichiers_personnaliser_poste=oui
+	if ( test -e /mnt/$base/Windows/oscar_deploie )
+	then
+		cp -f /mnt/$base/Windows/oscar_deploie/oscar_var.txt /tmp/sysprepvar_temp
+		chemin_oscar_var=/mnt/$base/Windows/oscar_deploie
+	elif ( test -e /mnt/$base/WINDOWS/oscar_deploie )
+	then
+		cp -f /mnt/$base/WINDOWS/oscar_deploie/oscar_var.txt /tmp/sysprepvar_temp
+		chemin_oscar_var=/mnt/$base/WINDOWS/oscar_deploie
+	fi
+	groupe_de_travail=non
+	grep -c "Groupe de travail" /tmp/sysprepvar_temp > /tmp/nb_groupe_de_travail
+	grep -c "Workgroup" /tmp/sysprepvar_temp > /tmp/nb_groupe_de_travail1
+	nb_groupe_de_travail=`cat /tmp/nb_groupe_de_travail`
+	nb_groupe_de_travail1=`cat /tmp/nb_groupe_de_travail1`
+	rm -f /tmp/nb_groupe_de_travail
+	rm -f /tmp/nb_groupe_de_travail1
+	if [ "$nb_groupe_de_travail" = 1 ] || [ "$nb_groupe_de_travail1" = 1 ]
+	then
+		groupe_de_travail=oui
+	fi
+	ip_serveur_etablissement=non
+	grep -ci "IP_SERVEUR_ETABLISSEMENT=" /tmp/sysprepvar_temp > /tmp/nb_ip_serveur_etablissement
+	nb_ip_serveur_etablissement=`cat /tmp/nb_ip_serveur_etablissement`
+	rm -f /tmp/nb_ip_serveur_etablissement
+	if [ "$nb_ip_serveur_etablissement" = 1 ]
+	then
+		grep -i "IP_SERVEUR_ETABLISSEMENT=" /tmp/sysprepvar_temp > /tmp/ip_serveur_etablissement
+		cut -d"=" -f2 /tmp/ip_serveur_etablissement > /tmp/ip_serveur_etablissement1
+		ip_serveur_etablissement=`cat /tmp/ip_serveur_etablissement1`
+		rm -f /tmp/ip_serveur_etablissement
+		rm -f /tmp/ip_serveur_etablissement1
+		recuperer_oscar_var_serveur_etablissement
+	fi
+else
+	exit
+fi
+
+# nettoyer eventuellement les fichiers OSCAR
+rm -f /mnt/$base/oscar.bat
+rm -f /mnt/$base/fin_numero_poste_oscar.reg
+rm -fR /mnt/$base/demarre_oscar
+
+if ! ( test -e $partition_linux/oscar/var_poste )
+then
+	mkdir $partition_linux/oscar/var_poste
+fi
+if ! ( test -e $partition_linux/oscar/var_poste/numero_poste_client )
+then
+	echo "" > $partition_linux/oscar/var_poste/numero_poste_client
+fi
+
+supprimer_les_retours_a_la_ligne_et_faire_une_ligne_par_poste
+
+# prendre la ligne du numero de poste:
+echo "grep -i \"Poste-`cat $partition_linux/oscar/var_poste/numero_poste_client`-\" /tmp/sysprepvar_temp > /tmp/sysprepvar_temp1 " > /tmp/exec_nom
+chmod +x /tmp/exec_nom
+/tmp/exec_nom
+test_numero_poste_existe=`cat /tmp/sysprepvar_temp1`
+if [ "$test_numero_poste_existe" = "" ]
+then
+	faire_liste_des_postes
+	# prendre la ligne du numero de poste choisi :
+	echo "grep -i \"Poste-`cat $partition_linux/oscar/var_poste/numero_poste_client`-\" /tmp/sysprepvar_temp > /tmp/sysprepvar_temp1 " > /tmp/exec_nom
+	chmod +x /tmp/exec_nom
+	/tmp/exec_nom
+fi
+rm -f /tmp/exec_nom
+# dans /tmp/sysprepvar_temp1 : Poste-i-(NOM_POSTE=Poste1_103,MOT_PASSE_ADMIN_POSTE=essai,DOMAINE_RESEAU=CRDP_69,CLE_WIN=111-XXX-YYY-ttt-UUUU,)
+cut -d"(" -f2 /tmp/sysprepvar_temp1 > /tmp/sysprepvar_temp2
+cut -d")" -f1 /tmp/sysprepvar_temp2 | perl -pi -e 's/,/\n/g;' > /tmp/sysprepvar_temp1
+grep -i "=" /tmp/sysprepvar_temp1 > /tmp/sysprepvar_temp2
+echo `gawk '{ print $1 "," } ' /tmp/sysprepvar_temp2 ` > /tmp/sysprepvar_temp1	# NOM_POSTE=Poste1_103,MOT_PASSE_ADMIN_POSTE=essai, DOMAINE_RESEAU=CRDP_69, CLE_WIN=111-XXX-YYY-ttt-UUUU,
+
+if [ "$faire_fichiers_personnaliser_poste" = oui ]
+then
+	faire_fichiers_oscar_deploie_poste
+else
+	remplacer_sysprep_oscar_par_var
+fi
+rm -f /tmp/sysprep_oscar.inf
+
+# par securit� :
+if [ "$restaure_avec_new_sysprep" != oui ]
+then
+	rm -f /mnt/$base/sysprep/sysprep_var.inf
+	rm -f /mnt/$base/sysprep/sysprep_oscar.inf
+	rm -f /mnt/$base/Windows/System32/sysprep/sysprep_var.xml
+	rm -f /mnt/$base/Windows/System32/sysprep/sysprep_oscar.xml
+	rm -f /mnt/$base/Windows/oscar_deploie/oscar_var.txt
+	rm -f /mnt/$base/WINDOWS/oscar_deploie/oscar_var.txt
+else
+	sysprep fichier_correspondance_oscar_win
+fi
+}
+#----------------------------------------------------------------------------------------------------
+sp_boite_demande_poste_sysprep()
+{
+sp_boite_demande_poste_sysprep=oui
+boite_demande_poste_sysprep
+if ( test -e /tmp/sortir )
+then
+	rm -f /tmp/sortir
+	sp_boite_demande_poste_sysprep
+	return
+fi
+}
+#----------------------------------------------------------------------------------------------------
+ajouter_ip_serveur_etablissement()
+{
+# /tmp/liste_postes_sysprep
+if [ "$nb_ip_serveur_etablissement_var_temp" != 0 ]
+then
+	echo `cat /tmp/ip_serveur_etablissement_var_temp` >> /tmp/liste_postes_sysprep
+fi
+rm -f /tmp/ip_serveur_etablissement_var_temp
+}
+#----------------------------------------------------------------------------------------------------
+PATH="/usr/share/oscar/bin:$PATH"
+
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+sp_fichier_correspondance_oscar_win=non
+sp_boite_demande_poste_sysprep=non
+
+#  commandes externes de procédures
+case "$1" in
+	fichier_correspondance_oscar_win)
+		supprimer_les_retours_a_la_ligne_et_faire_une_ligne_par_poste
+		sp_fichier_correspondance_oscar_win=oui
+		faire_liste_des_postes
+		ajouter_ip_serveur_etablissement
+		rm -f /tmp/sysprepvar_temp1
+		rm -f /tmp/sysprepvar_temp2
+		rm -f /tmp/sysprepvar_temp3
+		rm -f /tmp/sysprepvar_temp
+		exit 0
+	;;
+	boite_liste_des_postes_sysprep)
+		grep -ci "^Poste-" /tmp/liste_postes_sysprep > /tmp/nb_NOM_POSTE
+		test_nb_NOM_POSTE=`cat /tmp/nb_NOM_POSTE`
+		rm -f /tmp/nb_NOM_POSTE
+		if [ "$test_nb_NOM_POSTE" = "0" ]
+		then # avec_NOM_POSTE
+			sp_boite_demande_poste_sysprep
+			perl -pi -e 's/ //g;' /tmp/tempfile
+			cut -d">" -f1 /tmp/tempfile > /tmp/tempfile_sysprep
+		else # sans_NOM_POSTE
+			sp_boite_demande_poste_sysprep
+			cut -d"-" -f2 /tmp/tempfile > /tmp/tempfile_sysprep
+		fi
+		rm -f /tmp/tempfile
+		exit 0
+	;;
+esac
+restaure_avec_new_sysprep=
+if ! ( test -e /tmp/rst_new_sysprep )
+then
+	rm -f /tmp/rst_new_sysprep
+	restaure_avec_new_sysprep=oui
+fi
+main

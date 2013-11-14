@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Comment=
+Icon=/usr/share/oscar/icones/pengu.gif
+Exec=/usr/bin/terminal -e oscar
+Path=
+StartupNotify=false

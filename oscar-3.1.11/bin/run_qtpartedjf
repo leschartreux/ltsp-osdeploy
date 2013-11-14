@@ -1,0 +1,103 @@
+#!/bin/sh
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+
+
+souris_par_defaut()
+{
+export QWS_MOUSE_PROTO=Auto
+}
+
+getmousetype()
+{
+	local mymouse
+#echo
+#	echo "Choisissez le type de votre souris"
+#echo
+#	echo "0) automatique"
+#	echo "1) usb"
+#	echo "2) série"
+#	echo "3) ps/2"
+#	echo "4) aucune"
+#echo
+#echo
+#	read -p "Votre sélection: " mymouse
+
+mymouse=0
+
+	if [ "$mymouse" = "0" ]
+	then
+#		echo "autodetect mouse"
+		export QWS_MOUSE_PROTO=Auto
+	elif [ "$mymouse" = "1" ]
+	then
+		echo "USB mouse"
+		export QWS_MOUSE_PROTO=MouseMan:/dev/input/mouse0
+	elif [ "$mymouse" = "2" ]
+	then
+		echo "Serial mouse"
+		export QWS_MOUSE_PROTO=Microsoft:/dev/ttyS0
+	elif [ "$mymouse" = "3" ]
+	then
+		echo "PS/2 mouse"
+		export QWS_MOUSE_PROTO=IntelliMouse:/dev/psaux
+	else
+		echo "No mouse"
+		export QWS_MOUSE_PROTO=
+	fi
+}
+
+# Warn if frame buffer not running
+#if [ ! -f /dev/fb0 ] ; then
+#  echo "You need the Frame Buffer in order to run QtParted"
+#  echo "Cannot continue."
+#  exit 1
+#fi
+
+# defines environment variables
+variables()
+{
+
+export QTDIR=/usr/qt/3-embedded
+export LD_LIBRARY_PATH="$QTDIR/lib:$LD_LIBRARY_PATH"
+export PATH=/sbin:/usr/sbin:/bin:/usr/bin:$PATH
+}
+
+lancer_qtparted()
+{
+# run qtparted
+
+if ! fbset > /dev/null 2>&1 ; then 
+   echo "Frame buffer not loaded, cannot run QT/Embedded." 
+   echo "You may need to choose a different vga video mode "
+   echo "at the boot prompt."
+   exit 1
+fi
+
+# disable kernel messages
+echo 0 > /proc/sys/kernel/printk
+
+qtparted 2> /dev/null
+clear
+reset
+/etc/init.d/gpm start
+}
+case "$1" in
+        souris_par_defaut)
+	variables
+	souris_par_defaut
+	lancer_qtparted
+    exit 0
+    ;;
+esac
+
+
+variables
+getmousetype
+
+# show environment variables
+#echo "QTDIR=$QTDIR"
+#echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
+lancer_qtparted

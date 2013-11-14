@@ -1,0 +1,422 @@
+#!/bin/sh
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+# demande l'ip pour envoyer le fichier ip_format aux clients
+
+	# Choisissez le format d'IP pour le réseau:
+	#  A: XXX.XXX.XXX.YYY  ou B: XXX.XXX.YYY.XXX avec   VVV = valeur   et YYY = numero de poste + VVV 
+	# entrez XXX.XXX.XXX.VVV , XXX.XXX.VVV.XXX,   Annuler "
+
+#----------------------------------------------------------------------------------------------------
+boites_choix_format_ip()	# Choisissez le format d'IP pour le réseau
+{
+	rm -f /tmp/fichiertmp
+	# Choix du format d'affectation des IP des postes clients
+        echo  "\n\Zb\Z3 `cat $chemin_langue/menu_503` :\Zn\n " > /tmp/fichiertmp
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Format` XXX.XXX.XXX.YYY" --cancel-label "`cat $chemin_langue/Annuler`" --title " `cat $chemin_langue/menu_504` " \
+	--extra-button --extra-label "`cat $chemin_langue/Format` XXX.XXX.YYY.XXX" \
+	--menu "`cat /tmp/fichiertmp`" 0 0 0 \
+	"" "" \
+	"" "`cat $chemin_langue/menu_505` :" \
+	"" "" \
+	"" "`cat $chemin_langue/Format` \Z2 XXX.XXX.XXX.\Z3YYY \Zn " \
+	"" "`cat $chemin_langue/Format` \Z2 XXX.XXX.\Z3YYY\Z2.XXX \Zn  " \
+	"" "" \
+	"" "`cat $chemin_langue/avec`   \Z3YYY \Zn= \Z2`cat $chemin_langue/menu_506` + \Z3VVV\Zn " \
+	"" "       \Z3VVV\Zn = `cat $chemin_langue/menu_507` " \
+	"" "" \
+	"" "\Z1`cat $chemin_langue/Remarque` : \Z3VVV\Zn `cat $chemin_langue/menu_508`, \Z30 \Zn " \
+	"" "" \
+	"" "" \
+	"" "\Zb\Z4`cat $chemin_langue/menu_509` : "
+       case $? in
+	    0)	rm -f /tmp/fichiertmp
+		rm -f ip_format
+		reponse=
+		format_ip=format_a	# format a
+		boites_choix_ip
+		echo "$reponse.a" > ip_format
+		return;;
+	    3)  rm -f /tmp/fichiertmp
+		rm -f ip_format	
+		reponse=
+		format_ip=		# format b
+		boites_choix_ip
+		echo "$reponse.b" > ip_format
+		return;;
+	    1)	rm -f /tmp/fichiertmp
+	    	rm -f ip_format
+		echo "non_ip" > ip_format
+		exit;;
+	    255) rm -f /tmp/fichiertmp
+	    	rm -f ip_format
+		echo "non_ip" > ip_format
+		exit;;
+	esac 
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+boites_choix_ip()  # choix des valeurs IP
+{
+	rm -f /tmp/fichiertmp1
+	rm -f /tmp/fichiertmp2
+	rm -f /tmp/ch1
+	rm -f /tmp/ch10
+	rm -f /tmp/ch2
+	rm -f /tmp/ch20
+	if [ "$format_ip" = "format_a" ]
+	then
+	echo "`cat $chemin_langue/menu_510` : \Z2 XXX.XXX.XXX.\Z3VVV \Zn " > /tmp/fichiertmp1
+	echo "`cat $chemin_langue/menu_511`\Z2 XXX.XXX.XXX.\Z3VVV \Zn" > /tmp/fichiertmp2
+	echo "\Z31\Zn" > /tmp/ch1
+	echo "\Z3254\Zn" > /tmp/ch2
+	echo "0" > /tmp/ch10
+	echo "255" > /tmp/ch20
+	else	# format b
+	echo "`cat $chemin_langue/menu_510` : \Z2 XXX.XXX.\Z3VVV\Z2.XXX \Zn " > /tmp/fichiertmp1
+	echo "`cat $chemin_langue/menu_511`\Z2 XXX.XXX.\Z3VVV\Z2.XXX \Zn" > /tmp/fichiertmp2
+	echo "1" > /tmp/ch1
+	echo "254" > /tmp/ch2
+	echo "\Z30\Z2" > /tmp/ch10
+	echo "\Z3255\Z2" > /tmp/ch20
+	fi
+    rm -f /tmp/tempfile
+    # Choix des valeurs d'IP
+    DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+    --backtitle "`cat /etc/banniere_oscar`" \
+    --cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/menu_512` " \
+    --inputbox "\n\n\Zn `cat /tmp/fichiertmp1` \
+    \n\n\Zn `cat $chemin_langue/menu_513` \Z3VVV\Zn, `cat $chemin_langue/menu_514` : \
+    \n\n --> `cat $chemin_langue/de`     \Z210.0.`cat /tmp/ch10`.`cat /tmp/ch1` \Zn `cat $chemin_langue/a`  \Z2 10.255.`cat /tmp/ch20`.`cat /tmp/ch2` \
+    \n\Zn --> `cat $chemin_langue/de`   \Z2172.16.`cat /tmp/ch10`.`cat /tmp/ch1` \Zn `cat $chemin_langue/a`   \Z2172.31.`cat /tmp/ch20`.`cat /tmp/ch2`\Zn \
+    \n\Zn --> `cat $chemin_langue/de`  \Z2192.168.`cat /tmp/ch10`.`cat /tmp/ch1` \Zn `cat $chemin_langue/a`  \Z2192.168.`cat /tmp/ch20`.`cat /tmp/ch2` \
+    \n\n\n\Zb\Z4`cat $chemin_langue/menu_515` :  " 0 0 $reponse 2>/tmp/tempfile
+        case $? in
+	    0)  reponse=`cat /tmp/tempfile`
+	    	rm -f /tmp/tempfile3
+	    	cut -f4 -d. /tmp/tempfile > /tmp/tempfile3
+		valeur_test=`cat /tmp/tempfile3`
+		rm -f /tmp/tempfile3
+	    	if [ "$valeur_test" = "" ]
+	 	   	then
+	    		rm -f /tmp/tempfile
+			rm -f /tmp/fichiertmp2
+		        reponse=non_ip
+			boites_choix_format_ip
+	    	fi
+		rm -f /tmp/tempfile1
+		rm -f /tmp/ch1
+		rm -f /tmp/ch2
+		cut -f1-2 -d. /tmp/tempfile > /tmp/ch1
+		if [ "$format_ip" = "format_a" ]
+		then
+		    cut -f4 -d. /tmp/tempfile > /tmp/fichiertmp1
+		    cut -f3 -d. /tmp/tempfile > /tmp/ch2
+		    unite_af=\\Z3`cat /tmp/fichiertmp1`
+		    diz_af=\\Z2`cat /tmp/ch2`
+		    un_msq=0
+		    diz_msq=255
+		    unite_masque=\\Z30
+		    diz_masque=\\Z2255
+		else	# format b
+		    cut -f3 -d. /tmp/tempfile > /tmp/fichiertmp1
+		    cut -f4 -d. /tmp/tempfile > /tmp/ch2
+		    unite_af=\\Z2`cat /tmp/ch2`
+		    diz_af=\\Z3`cat /tmp/fichiertmp1`
+		    un_msq=0
+		    diz_msq=0
+		    unite_masque=\\Z20
+		    diz_masque=\\Z30
+		fi
+	    	rm -f /tmp/tempfile
+	    		# Choix des valeurs d'IP
+	    		echo  "\n\Zb\Z3 `cat $chemin_langue/menu_512` :\Zn\n " > /tmp/fichiertmp
+			DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+			--backtitle "`cat /etc/banniere_oscar`" \
+			--ok-label "`cat $chemin_langue/Accepter`" --cancel-label "`cat $chemin_langue/menu_516`" --title " `cat $chemin_langue/menu_504` " \
+			--extra-button --extra-label "`cat $chemin_langue/Modifier`" \
+			--menu "`cat /tmp/fichiertmp`" 0 0 0 \
+			"" "" \
+			"" "" \
+			"" "   `cat $chemin_langue/menu_517` : \Z2`cat /tmp/ch1`.$diz_af.$unite_af\Zn  " \
+			"" "" \
+			"" "   `cat /tmp/fichiertmp2` " \
+			"" "" \
+			"" "   `cat $chemin_langue/menu_513` \Z3`cat /tmp/fichiertmp1`\Zn `cat $chemin_langue/menu_518` " \
+			"" "" \
+			"" ""
+			case $? in
+			    0)	rm -f ip_colore
+			    	echo "\Z2`cat /tmp/ch1`.$diz_af.$unite_af\Zn" > ip_colore
+			    	rm -f /tmp/fichiertmp	# Accepter
+				rm -f /tmp/fichiertmp2
+				rm -f /tmp/fichiertmp1
+				return;;
+			    3)	rm -f /tmp/fichiertmp	# Modifier
+				rm -f /tmp/fichiertmp2
+				rm -f /tmp/fichiertmp1
+				boites_choix_ip;;
+			    1)	rm -f /tmp/fichiertmp	# Autre
+				rm -f /tmp/fichiertmp2
+				rm -f /tmp/fichiertmp1
+				boites_choix_format_ip;;
+			    255) rm -f /tmp/tempfile
+				 rm -f /tmp/fichiertmp2
+				 rm -f /tmp/fichiertmp1
+			         reponse=non_ip
+				 boites_choix_format_ip
+			    	 ;;
+			esac
+		;;
+	    1)	rm -f /tmp/tempfile
+		rm -f /tmp/fichiertmp2
+		boites_choix_format_ip
+		;;
+	    	
+	    255) rm -f /tmp/tempfile
+		rm -f /tmp/fichiertmp2
+		boites_choix_format_ip
+		;;
+	esac
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+boites_info_ip()	# Choisissez le format d'IP pour le réseau
+{
+	rm -f /tmp/fichiertmp
+	# Type d'affectation sous Windows des adresses IP des postes clients
+        echo  "\n\Zb\Z3 `cat $chemin_langue/menu_519` :\Zn\n " > /tmp/fichiertmp
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/menu_520`" --cancel-label "`cat $chemin_langue/Annuler`" --title " `cat $chemin_langue/menu_521` " \
+	--extra-button --extra-label "`cat $chemin_langue/menu_522`" \
+	--menu "`cat /tmp/fichiertmp`" 10 80 0 \
+	"" "" \
+	"" "`cat $chemin_langue/menu_523`," \
+	"" "`cat $chemin_langue/choisissez` \Zb\Z4`cat $chemin_langue/menu_520`\Zn : " \
+	"" " \Z2`cat $chemin_langue/menu_524`" \
+	"" " \Z2`cat $chemin_langue/menu_525`. " \
+	"" "" \
+	"" "`cat $chemin_langue/menu_526`," \
+	"" "`cat $chemin_langue/choisissez` \Zb\Z4`cat $chemin_langue/menu_522`\Zn : " \
+	"" " \Z2`cat $chemin_langue/menu_527`. \Zn " \
+	"" "" \
+	"" "\Zb\Z4`cat $chemin_langue/menu_528` : "
+       case $? in
+	    0)	rm -f /tmp/fichiertmp	# par DHCP
+		rm -f ip_format
+		echo "non_ip" > ip_format
+		rm -f ip_masque_aff
+		echo " " > ip_masque
+		rm -f ip_passerelle
+		echo " " > ip_passerelle
+		exit;;
+	    3)  rm -f /tmp/fichiertmp	# IP fixes
+		return ;;
+	    1)	rm -f /tmp/fichiertmp
+		echo "" > /tmp/sortir
+		exit;;
+	    255) rm -f /tmp/fichiertmp
+	    	echo "" > /tmp/sortir
+		exit;;
+	esac 
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+boites_choix_msq_passerl()	# Choisissez le masque et la passerelle
+{
+output=
+	rm -f /tmp/tempfile
+	# Masque et passerrelle IP
+	dialog  --no-cancel --colors --no-shadow --backtitle "`cat /etc/banniere_oscar`" --title " Masque et passerrelle IP " \
+	--menu  "\n\Zb\Z3    `cat $chemin_langue/menu_529` : \Z2`cat /tmp/ch1`.$diz_af.$unite_af\Zn\n\n" 0 0 0  \
+	" " "" \
+	modif_masque "`cat $chemin_langue/menu_530` \Zb\Z3`cat ip_masque_aff`\Zn " \
+	modif_passrl "`cat $chemin_langue/menu_531` \Zb\Z3`cat ip_passerelle`\Zn " \
+	" " "" \
+	" " "" \
+	quitter "\Z1`cat $chemin_langue/menu_532`" \
+	modif_IP "\Z1`cat $chemin_langue/menu_533`" \
+	" " "" \
+	accepter "`cat $chemin_langue/menu_534`." \
+	" " "" \
+	" " "" \
+	"" "`cat /tmp/texte` " 2>/tmp/tempfile
+	
+if [ $? = "255" ]
+then 
+	rm -f ip_format
+	echo "non_ip" > ip_format
+	rm -f ip_masque_aff
+	echo " " > ip_masque
+	rm -f ip_passerelle
+	echo " " > ip_passerelle
+	rm -f /tmp/texte
+	rm -f /tmp/ch1
+	rm -f /tmp/ch10
+	rm -f /tmp/ch2
+	rm -f /tmp/ch20
+	rm -f /tmp/tempfile
+	exit
+fi
+	output=`cat /tmp/tempfile`
+
+if [ "$output" = " " ]
+	then
+	boites_choix_msq_passerl
+elif [ "$output" = "" ]
+	then
+	boites_choix_msq_passerl
+elif [ "$output" = "modif_masque" ]
+then
+	rm -f /tmp/tempfile
+	# Installation du masque
+	DIALOGRC="/etc/dialogrc" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/menu_535` " \
+	--inputbox "\n\n\Zn\Z2`cat $chemin_langue/menu_536` : \n " 0 0 255.255. 2>/tmp/tempfile
+     case $? in
+	    0)	reponse=`cat /tmp/tempfile`
+		rm -f ip_masque
+		rm -f ip_masque_aff
+		echo "$reponse" > ip_masque
+		cp -f ip_masque ip_masque_aff
+		boites_choix_msq_passerl ;;
+	    1)  rm -f /tmp/tempfile
+	        boites_choix_msq_passerl
+		;;
+	    255) rm -f /tmp/tempfile
+	        boites_choix_msq_passerl
+		;;
+	esac
+elif [ "$output" = "modif_passrl" ]
+then
+	rm -f /tmp/tempfile
+	# Installation de la passerelle
+  	DIALOGRC="/etc/dialogrc" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/menu_537` " \
+	--inputbox "\n\n\Zn\Z2`cat $chemin_langue/menu_538` : \n " 0 0 2>/tmp/tempfile
+     case $? in
+	    0)	reponse=`cat /tmp/tempfile`
+		rm -f ip_passerelle
+		echo "$reponse" > ip_passerelle
+		rm -f /tmp/texte
+		echo "\Zb\Z4`cat $chemin_langue/menu_539` :\Zn" > /tmp/texte
+		boites_choix_msq_passerl ;;
+	    1)  rm -f /tmp/tempfile
+	        boites_choix_msq_passerl
+		;;
+	    255) rm -f /tmp/tempfile
+	        boites_choix_msq_passerl
+		;;
+	esac
+elif [ "$output" = "accepter" ]
+then
+	rm -f /tmp/tempfile
+	cut -f1 -di ip_passerelle > /tmp/tempfile
+	reponse=`cat ip_passerelle`
+	if ! [ "$reponse" = "non installée" ]
+	then
+        return
+	fi
+	rm -f /tmp/texte
+	echo "\Zb\Z1`cat $chemin_langue/menu_540`\Zn" > /tmp/texte
+	boites_choix_msq_passerl
+elif [ "$output" = "quitter" ]
+then
+	rm -f ip_format
+	echo "non_ip" > ip_format
+	rm -f ip_masque
+	echo " " > ip_masque
+	rm -f ip_passerelle
+	echo " " > ip_passerelle
+	
+elif [ "$output" = "modif_IP" ]
+then
+        main
+fi
+rm -f /tmp/tempfile
+}
+#----------------------------------------------------------------------------------------------------
+proposer_par_defaut()	# proposer les adresses précédentes
+{
+	# Proposition des adresses IP du réseau pour cette salle 
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/menu_541`" --cancel-label "`cat $chemin_langue/menu_520`" --title " `cat $chemin_langue/menu_504` " \
+	--extra-button --extra-label "`cat $chemin_langue/menu_542`" \
+	--menu "\n\Zb\Z3 `cat $chemin_langue/menu_543` :\Zn\n " 0 0 0 \
+	"" "" \
+	"" "\Z2   `cat $chemin_langue/menu_544` \Zb\Z3à partir de \Zn`cat ip_colore` " \
+	"" "\Z2   `cat $chemin_langue/menu_545` \Zb\Z3`cat ip_masque` "  \
+	"" "\Z2   `cat $chemin_langue/menu_546` \Zb\Z3`cat ip_passerelle` "  \
+	"" "" \
+	"" "\Zb\Z4`cat $chemin_langue/menu_547` "
+       case $? in
+	    0)	exit ;;
+	    3)  return;;
+	    1)	rm -f ip_format	# par DHCP
+		echo "non_ip" > ip_format
+		rm -f ip_masque_aff
+		echo " " > ip_masque
+		rm -f ip_passerelle
+		echo " " > ip_passerelle
+		exit;;
+	    255) exit;;
+	esac 
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+main()
+{
+valeur=`cat ip_format`
+	if ! [ "$valeur" = "non_ip" ]
+	then
+	proposer_par_defaut
+	else	## affectation automatique
+	boites_info_ip
+	fi
+reponse=non_ip
+boites_choix_format_ip
+rm -f ip_masque
+rm -f ip_masque_aff
+rm -f ip_passerelle
+	rm -f /tmp/texte
+	echo "\Zb\Z4`cat $chemin_langue/menu_539` :\Zn" > /tmp/texte
+
+echo "\Z2255.255.$diz_masque.$unite_masque" > ip_masque_aff
+echo "255.255.$diz_msq.$un_msq" > ip_masque
+echo "non installée" > ip_passerelle
+boites_choix_msq_passerl
+rm -f /tmp/fichiertmp
+rm -f /tmp/fichiertmp1
+rm -f /tmp/fichiertmp2
+rm -f ip_masque_aff
+rm -f /tmp/texte
+rm -f /tmp/ch1
+rm -f /tmp/ch10
+rm -f /tmp/ch2
+rm -f /tmp/ch20
+}
+#----------------------------------------------------------------------------------------------------
+
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+main
+# puis envoyer vers les clients les fichiers ip_format ip_masque et ip_passerelle

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=mc
+Comment=Midnight Commander
+Icon=/usr/share/oscar/icones/kfm_home.png
+Exec=/usr/bin/terminal -e mc
+Path=
+StartupNotify=false
+

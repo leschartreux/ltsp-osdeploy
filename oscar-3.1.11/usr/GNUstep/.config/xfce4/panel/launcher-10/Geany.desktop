@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Geany editor
+Comment=
+Icon=/root/icons/geany.png
+Exec=/usr/bin/geany
+Path=
+Terminal=false
+StartupNotify=false
+

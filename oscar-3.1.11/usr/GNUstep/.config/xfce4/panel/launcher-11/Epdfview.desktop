@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Epdfview
+Comment=
+Icon=/usr/share/oscar/icones/postscript-viewer.png
+Exec=epdfview
+Path=
+Terminal=false
+StartupNotify=false
+

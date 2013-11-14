@@ -1,0 +1,46 @@
+#!/bin/sh
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+mkdir /mnt/sdb1
+mount /dev/sdb1 /mnt/sdb1
+
+
+cd /mnt/sdb1/linux/cd_oscar_srcd/oscar
+rm -f oscar.tar.gz
+
+
+if ( test -e /root/sysresccd-pkg.txt )	# d�marrage cd sysrcd avec ou sans option cdcache ou d�marrage ou pxe sur le poste si sysrcd
+then	# menu pour sysrcd:
+        tar -czf oscar.tar.gz */
+else
+        tar -czj f=oscar.tar.gz */
+fi
+
+cd /root
+
+echo Compression faite.
+echo Decompresse dans /mnt/sdb1/linux/decompresser_srcd et range OK ?
+read p 
+rm -fR /mnt/sdb1/linux/decompresser_srcd
+mkdir /mnt/sdb1/linux/decompresser_srcd
+cp -f /mnt/sdb1/linux/cd_oscar_srcd/oscar/oscar.tar.gz /mnt/sdb1/linux/decompresser_srcd
+cd /mnt/sdb1/linux/decompresser_srcd
+
+if ( test -e /root/sysresccd-pkg.txt )	# démarrage cd sysrcd avec ou sans option cdcache ou démarrage ou pxe sur le poste si sysrcd
+then	# menu pour sysrcd:
+        tar -xzvpf oscar.tar.gz
+else
+        tar -xvpj f=oscar.tar.gz
+fi
+
+cd /root
+echo contenu de /mnt/sdb1/linux/decompresser_srcd/:
+ls /mnt/sdb1/linux/decompresser_srcd/
+
+

@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# SystemRescueCd, F-Dupoux adapte pour OSCAR par Jean-Francois et Benjamin Tissoires
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+
+
+# ------------------------------- functions ------------------------------------
+xvesa_cfg()
+{
+	dialog	--colors --backtitle "`cat /etc/banniere_oscar`" --title " Configuration Xvesa " \
+		--cancel-label "Quitter" --menu "Sélectionnez votre configuration:" 0 0 0 \
+		"640x480x8"    "640x480   (8bits -  256 colors)" \
+		"640x480x24"   "640x480   (24bits - 16.7 millions colors)" \
+		"800x600x8"    "800x600   (8bits -  256 colors)" \
+		"800x600x24"   "800x600   (24bits - 16.7 millions colors)" \
+		"1024x768x8"   "1024x768  (8bits -  256 colors)" \
+		"1024x768x24"  "1024x768  (24bits - 16.7 millions colors)" \
+		"1280x1024x8"  "1280x1024 (8bits -  256 colors)" \
+		"1280x1024x24" "1280x1024 (24bits - 16.7 millions colors)" \
+		"1600x1200x8"  "1600x1200 (8bits -  256 colors)" \
+		"1600x1200x24" "1600x1200 (24bits - 16.7 millions colors)" 2>/tmp/result
+	if [ "$?" = '0' ]
+	then
+		choice="$(cat /tmp/result)"
+		echo "forcevesa=${choice}" > /root/xserver.cfg
+		return 0
+	else
+		echo "" > /root/xserver.cfg
+		return 1
+	fi
+}
+
+# ------------------------------- erreur ------------------------------------
+error_amd64()
+{
+	msg=''
+	msg="${msg}Sorry, Xvesa does not work with 64bits\n"
+	msg="${msg}kernels (rescue64 and altker64).\n"
+	msg="${msg}You have to start SystemRescueCd using \n"
+	msg="${msg}either the rescuecd or rescue32 or the altker32 kernel.\n"
+	msg="${msg}You can also use Xorg that works on amd64.\n"
+	dialog --title " DESOLE " --msgbox "${msg}" 10 55
+}
+# ------------------------------- functions ------------------------------------
+choix_fonction()
+{
+case "$choice" in
+	Xorg-run)
+		echo "forcexorg" > /root/xserver.cfg
+		startx_oscar
+		rm -f /tmp/test_x
+		;;
+	Xvesa-run)
+		if [ "$(uname -m)" = "x86_64" ]
+		then
+			error_amd64 && exec "$0"
+		else
+			echo "forcevesa" > /root/xserver.cfg
+			startx_oscar
+			rm -f /tmp/test_x
+		fi
+		;;
+	Xvesa-cfg)
+		if [ "$(uname -m)" = "x86_64" ]
+		then
+			error_amd64 && exec "$0"
+		else
+			xvesa_cfg && startx_oscar
+			rm -f /tmp/test_x
+		fi
+		;;
+	Exit)
+		exit 0
+		;;
+esac
+}
+# ------------------------------------------------------------------------
+# ------------------------------- main -----------------------------------
+main()
+{
+PATH="/usr/share/oscar/bin:$PATH"
+DIALOGOPTS='--backtitle SystemRescueCd'
+
+# ------------------------------- checks --------------------------------------
+[ -z "$(which dialog)" ] && exit 0
+
+# ------------------------------- dialog --------------------------------------
+dialog  --colors --backtitle "`cat /etc/banniere_oscar`" --title " Carte graphique " \
+	--cancel-label "Quitter" --menu "Sélectionnez la configuration :" 8 50 0 \
+	"Xorg-run" "Utilise par défault Xorg" \
+	"Xvesa-run" "Utilise par défault Xvesa" \
+	"Xvesa-cfg" "Pour choisir votre écran Xvesa" \
+	"Quitter" "Quitter ce menu" 2>/tmp/result
+res=$?
+[ "$res" != '0' ] && exit $res
+
+choice="$(cat /tmp/result)"
+rm -f /tmp/result
+choix_fonction
+}
+# -------------------------------- fin de main ----------------------------------------
+# -------------------------------------------------------------------------------------
+#  commandes externes de procédures
+case "$1" in
+    xvesa-cfg)
+	if [ "$(uname -m)" != "x86_64" ]
+	then
+	    	choice=Xvesa-cfg
+		xvesa_cfg && startx_oscar
+		rm -f /tmp/test_x
+	fi
+	exit 0
+	;;
+esac
+main
+exit 0

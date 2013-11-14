@@ -1,0 +1,251 @@
+#!/bin/bash
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+#   programme d'installation de l'application OSCAR_deploie pour deploiement dans un domaine
+
+
+
+
+
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+eteindre_le_poste()
+{
+runme boite_eteindre_le_poste
+if ( test -e /tmp/annuler_eteindre )
+then
+	rm -f /tmp/annuler_eteindre
+	main
+	return
+fi
+
+runme boite_eteindre_ordinateur
+}
+#----------------------------------------------------------------------------------------------------
+boucle()  # retour au programme principal
+{
+echo
+echo
+echo -e "`cat $chemin_langue/boucle_1`"
+echo -ne "`cat $chemin_langue/boucle_2`"
+read reponse
+main
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+controle_ip_serveur_domaine_existe()
+{
+echo
+echo
+echo -e "\033[1;33m OSCAR \033[1;34mcherche le serveur \033[0;32m$ip_serveur_domaine\033[1;34m ...\033[1;m"
+echo
+ping -w 8 $ip_serveur_domaine 2>/dev/null 1>/dev/null
+test_ping_serveur_pxe=$?
+if ! [ "$test_ping_serveur_pxe" = "0" ]
+then
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--ok-label "`cat $chemin_langue/Continuer`"  --extra-button --extra-label "`cat $chemin_langue/Forcer`" \
+	--msgbox "\n\Zb\Z1`cat $chemin_langue/menu_10ca` : $ip_serveur_domaine \Zn" 7 65
+	case $? in
+		0) ;;
+		3) return ;;
+		255) return ;;
+	esac
+	configurer_ip_serveur_domaine
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	else
+		recupere_adresses_ip
+		controle_ip_serveur_domaine_existe
+	fi
+fi
+}
+#----------------------------------------------------------------------------------------------------
+main()
+{
+rm -f /tmp/sortir
+rm -f /tmp/tempfile # des menus precedents sauf celui-ci tempfile______
+rm -f /tmp/tempfile___
+rm -f /tmp/tempfile____
+rm -f /tmp/tempfile_____
+rm -f /tmp/tempfile_______
+
+echo "non" > /tmp/defaut_ip_sans_proxy
+calendrier=$(date +%d/%m/%y)
+heure=$(date +%kh%Mmin)
+rm -f /tmp/rien
+echo "\Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  \Zn  " > /tmp/rien
+output=exit
+dialog  --no-cancel --colors --no-shadow \
+	--backtitle "`cat /etc/banniere_oscar`" --title " `cat $chemin_langue/menu_10ta` " \
+	--menu  "\n  \Zb\Z3 `cat $chemin_langue/texte_19` : `cat ip_installe_poste``cat /tmp/rien`  le $calendrier à $heure\n " 11 111 0  \
+	" " "" \
+	"domaine" "`cat $chemin_langue/menu_20c`" \
+	"utilisateur" "`cat $chemin_langue/menu_10pc`" \
+	"configure" "`cat $chemin_langue/menu_10zb`" \
+	" " "" \
+        "halt" "`cat $chemin_langue/menu_8`" \
+	"oscar" "`cat $chemin_langue/menu_21`" \
+	" " "" 2>/tmp/tempssh
+if [ $? = "255" ]
+then
+	rm -f /tmp/tempssh
+	rm -f /tmp/rien
+	exit
+fi
+output=`cat /tmp/tempssh`
+rm -f /tmp/tempssh
+rm -f /tmp/rien
+
+if [ "$output" = " " ]
+then
+	main
+elif [ "$output" = "" ]
+then
+	main
+elif [ $output = "domaine" ]
+then
+	# rechercher la cle USB avec le repertoire sysprep_oscar
+	sysprep_oscar_scribe	# dans le fichier /tmp/tmp_sysprep_oscar/sysprep
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		main
+	else
+		echo "$ip_serveur_domaine" > /tmp/defaut_ip_serveur_scribe
+		menu_scribe faire_fichiers_pour_deployer
+		echo
+		boucle
+	fi
+elif [ $output = "utilisateur" ]
+then
+	echo "$ip_serveur_domaine" > /tmp/defaut_ip_serveur_scribe
+	menu_scribe connexion_utilisateur_serveur_scribe
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	fi
+	main
+elif [ $output = "configure" ]
+then
+	configurer_ip_serveur_domaine
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+	fi
+	main
+elif [ "$output" = "halt" ]
+then
+	eteindre_le_poste
+elif [ $output = "oscar" ]
+then
+	exit
+else
+	$output
+fi
+boucle
+}
+#----------------------------------------------------------------------------------------------------
+recupere_adresses_ip()
+{
+ip_serveur_domaine=`cat /etc/oscar_deploie_linux/ip_serveur_domaine`
+}
+#----------------------------------------------------------------------------------------------------
+boite_ip_serveur_domaine()
+{
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/menu_10fa`  " \
+	--inputbox "\n\n\Z2 `cat $chemin_langue/menu_10ga` : \
+	\n\n\n\Zb\Z4 `cat $chemin_langue/menu_10h` :  " 0 0 `cat /etc/oscar_deploie_linux/ip_serveur_domaine` 2>/tmp/temp_ip_serveur_domaine
+	case $? in
+    0)  cut -f4 -d"." /tmp/temp_ip_serveur_domaine > /tmp/temp_ip_serveur_domaine1
+	valeur_test=`cat /tmp/temp_ip_serveur_domaine1`
+	rm -f /tmp/temp_ip_serveur_domaine1
+	if [ "$valeur_test" = "" ]
+	then
+		rm -f /tmp/temp_ip_serveur_domaine
+		boite_ip_serveur_domaine
+		return 0
+	fi
+	cp -f /tmp/temp_ip_serveur_domaine /etc/oscar_deploie_linux/ip_serveur_domaine
+	rm -f /tmp/temp_ip_serveur_domaine
+	;;
+    1)	echo "" > /tmp/sortir
+    	rm -f /tmp/temp_ip_serveur_domaine
+	;;
+    255) echo "" > /tmp/sortir
+    	rm -f /tmp/temp_ip_serveur_domaine
+	;;
+esac
+}
+#----------------------------------------------------------------------------------------------------
+prepare_boite_ip_serveur_domaine()
+{
+if [ "$test_reseau" = "" ]
+then
+	echo "192.168" > /etc/oscar_deploie_linux/ip_serveur_domaine
+fi
+
+boite_ip_serveur_domaine
+if ( test -e /tmp/sortir )
+then
+	rm -f /tmp/sortir
+	exit
+fi
+}
+#----------------------------------------------------------------------------------------------------
+configurer_ip_serveur_domaine()
+{
+if ! ( test -e /etc/oscar_deploie_linux/ip_serveur_domaine )
+then
+	if ! ( test -e /tmp/carte_ethi )
+	then
+		runme lancer_dhcp
+	fi
+	if ! ( test -e /etc/oscar_deploie_linux )
+	then
+		mkdir /etc/oscar_deploie_linux
+	fi
+	cut -d"." -f1-2 ip_installe_poste > /etc/oscar_deploie_linux/ip_serveur_domaine
+	test_reseau=`cat /etc/oscar_deploie_linux/ip_serveur_domaine`
+	prepare_boite_ip_serveur_domaine
+else
+	cut -d"." -f2-4 /etc/oscar_deploie_linux/ip_serveur_domaine > /tmp/test_ip_serveur_domaine
+	test_reseau=`cat /tmp/test_ip_serveur_domaine`
+	rm -f /tmp/test_ip_serveur_domaine
+	prepare_boite_ip_serveur_domaine
+fi
+
+recupere_adresses_ip
+controle_ip_serveur_domaine_existe
+}
+#----------------------------------------------------------------------------------------------------
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+#  commandes externes de procédures
+case "$1" in
+	controle_ip_serveur_domaine_existe)
+		controle_ip_serveur_domaine_existe
+	exit 0
+	;;
+esac
+
+configurer_ip_serveur_domaine
+main

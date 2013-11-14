@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Terminal
+Comment=
+Icon=/root/icons/terminal.png
+Exec=/usr/bin/terminal
+Path=
+Terminal=false
+StartupNotify=false
+

@@ -1,0 +1,117 @@
+#!/bin/sh
+
+# SystemRescueCD modifie par J-F Tissoires pour OSCAR si la carte graphique n'est pas detectee.
+
+########## Pour oscar mettre ce fichier run_qtparted dans /usr/sbin
+
+PATH="/usr/share/oscar/bin:$PATH"
+/usr/share/oscar/usr/version_theme_oscar
+
+
+getmousetype()
+{
+	local mymouse
+#	echo "Please, choose your mouse type"
+#	echo "0) autodetect"
+#	echo "1) usb"
+#	echo "2) serial"
+#	echo "3) ps/2"
+#	echo "4) none"
+
+#	read -p "Your mouse selection: " mymouse
+    mymouse=0
+
+	if [ "$mymouse" = "0" ]
+	then
+#		echo "autodetect mouse"
+		export QWS_MOUSE_PROTO=Auto
+	elif [ "$mymouse" = "1" ]
+	then
+		echo "USB mouse"
+		export QWS_MOUSE_PROTO=MouseMan:/dev/input/mouse0
+	elif [ "$mymouse" = "2" ]
+	then
+		echo "Serial mouse"
+		export QWS_MOUSE_PROTO=Microsoft:/dev/ttyS0
+	elif [ "$mymouse" = "3" ]
+	then
+		echo "PS/2 mouse"
+		export QWS_MOUSE_PROTO=IntelliMouse:/dev/psaux
+	else
+		echo "No mouse"
+		export QWS_MOUSE_PROTO=
+	fi
+}
+
+
+# Warn if frame buffer not running
+#if [ ! -f /dev/fb0 ] ; then
+#  echo "You need the Frame Buffer in order to run QtParted"
+#  echo "Cannot continue."
+#  exit 1
+#fi
+
+########## Pour oscar mettre ce fichier run_qtparted dans /usr/sbin
+
+# preparer les lib:
+# depuis cd rsccd copier derniere version :
+# /usr/sbin/qtparted -> /usr/share/qtparted/qtpartedsrccd
+# /usr/lib/@libdal-0.3.so.0		-> /usr/lib
+# /usr/lib/libdal-0.3.so.0.0.0		-> /usr/lib
+# /usr/lib/@libdal.so			-> /usr/lib
+# /usr/lib/@libparted-1.6.so.0		-> /usr/lib
+# /usr/lib/libparted-1.6.so.0.0.11	-> /usr/lib
+# /usr/lib/@libparted-1.6.so.12		-> /usr/lib
+# /usr/lib/libparted-1.6.so.12.11.0	-> /usr/lib
+# /usr/lib/libparted.a			-> /usr/lib
+# /usr/lib/libparted.la			-> /usr/lib
+# /usr/lib/@libparted.so		-> /usr/lib
+# /usr/lib/@libreiserfs-0.3.so.0	-> /usr/lib
+# /usr/lib/libreiserfs-0.3.so.0.0.0	-> /usr/lib
+# /usr/lib/@libreiserfs.so		-> /usr/lib
+
+# /usr/qt/3-embedded/lib a prendre et mettre dans /usr/lib
+
+if ! ( test -e /tmp/retour ) # afficher le texte la premiere fois
+then
+    texte_avant_rqt_fb_oscar
+    if ( test -e /tmp/sortir )
+    then
+    	rm -f /tmp/sortir
+    	exit
+    fi
+fi
+
+
+
+# defines environment variables
+export QTDIR=/usr
+#export QTDIR=/usr/qt/3-embedded	# repertoire /usr/qt/3-embedded/lib a prendre et mettre dans /usr/lib
+export LD_LIBRARY_PATH="$QTDIR/lib:$LD_LIBRARY_PATH"
+export PATH=/sbin:/usr/sbin:/bin:/usr/bin:$PATH
+/etc/init.d/gpm stop 2>/dev/null 1>/dev/null
+getmousetype
+
+# show environment variables
+#echo "QTDIR=$QTDIR"
+#echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
+#if ! fbset > /dev/null 2>&1 ; then 
+#   echo "Frame buffer not loaded, cannot run QT/Embedded." 
+#   echo "You may need to choose a different vga video mode "
+#   echo "at the boot prompt."
+#   exit 1
+#fi
+
+# disable kernel messages
+echo 0 > /proc/sys/kernel/printk
+
+# run qtparted
+/usr/share/qtparted/qtpartedrsccd 2> /dev/null
+/etc/init.d/gpm start
+clear
+reset
+echo "" > /tmp/fin_rqt_fb_oscar
+texte_fin_rqt
+rm -f /tmp/fin_rqt_fb_oscar
+

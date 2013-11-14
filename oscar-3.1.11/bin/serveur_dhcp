@@ -1,0 +1,351 @@
+#!/bin/sh
+
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+#-----------------------------------------------------------------------------------------------------
+boite_autoriser_installation_serveur_dhcp()
+{
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/menu_148` " \
+	--ok-label "`cat $chemin_langue/menu_149`"  --cancel-label "`cat $chemin_langue/Annuler`"\
+	--menu "`cat $chemin_langue/menu_150`" 13 60 0 \
+	"" "`cat $chemin_langue/menu_151`"
+	case $? in
+	    0) 	;;
+	    1)	
+		if ( test -e /tmp/serveur_dhcp_lance )
+		then
+		    echo "" > /tmp/sortir
+		fi
+		exit;;
+	    255)
+		if ( test -e /tmp/serveur_dhcp_lance )
+		then
+		    echo "" > /tmp/sortir
+		fi
+		exit;;
+	esac
+}
+#-----------------------------------------------------------------------------------------------------
+configurer_serveur_dhcp()
+{
+	# configurer le serveur :
+	#	ifconfig eth0 192.168.1.5 netmask 255.255.0.0
+	#	route add default gw 192.168.1.254
+	echo "192.168.168.69" > ip_installe_poste
+	echo "255.255.0.0" > /tmp/ip_masque_poste
+	runme installer_IP
+	#ifconfig  eth0 192.168.168.69 netmask 255.255.0.0	# adresse du serveur
+	ip_installe=192.168.168.69
+	route add default gw 192.168.168.254	#	adresse de passerelle activée
+	#	installer installer le fichier de config dhcpd.conf pour OSCAR
+	if ( test -e /etc/dhcp/dhcpd.conf )
+	then
+		cp -f /etc/dhcp/dhcpd.conf /etc/dhcp/dhcpd.conf.bak
+	fi
+echo "#
+# DHCP Server Configuration file.
+#   see /usr/share/doc/dhcp*/dhcpd.conf.sample
+#   domain-name-servers 192.168.168.69 peut etre different exemple 192.168.168.254 valeur name-server dans /etc/resolv.conf mise par le dhcp
+#   dans academie de lyon choisir next-server 192.168.0.16
+#   ancien subnet 192.168.168.0 netmask 255.255.255.0
+#   ancien option routers 192.168.168.254;
+#   ancien dynamic-bootp 192.168.168.70 192.168.168.250
+
+ddns-update-style interim;
+ignore client-updates;
+
+subnet 192.168.0.0 netmask 255.255.0.0 {
+
+        option routers 192.168.188.254;
+        option subnet-mask 255.255.0.0;
+        option domain-name-servers 192.168.168.69;
+
+        range dynamic-bootp 192.168.168.70 192.168.188.250;
+        default-lease-time 21600;
+        max-lease-time 43200;
+}
+
+allow booting;
+allow bootp;
+
+next-server $next_serveur;
+class \"pxeclients\" {
+   match if substring(option vendor-class-identifier, 0, 9) = \"PXEClient\";
+   filename \"/pxelinux.0\";
+}
+
+" > /etc/dhcp/dhcpd.conf
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+boite_controle_dhcp()
+{
+	echo "" > /tmp/sortir
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--ok-label "`cat $chemin_langue/Continuer`"  \
+	--msgbox "`cat $chemin_langue/msgbox_12`" 13 50
+	case $? in
+	    0) 	exit;;
+	    255) exit;;
+	esac
+}
+#-----------------------------------------------------------------------------------------------------
+lancer_serveur_nfs_non_utilise_ici_mais_peut_etre_utile()
+{
+	ipserver=$PXEBOOTSRV_LOCALIP
+# 	lancez un serveur nfs:
+	echo "/mnt/cdrom *(rw,sync,no_root_squash)" >> /etc/exports
+	/etc/init.d/nfs restart 1>/dev/null 2>/dev/null
+	# pour le client :
+	#	mkdir /mnt/cd_serveur
+	#	/etc/init.d/nfs restart
+	#	mount "$ip_serveur":/mnt/cdrom /mnt/cd_serveur
+}
+#-----------------------------------------------------------------------------------------------------
+commande_dhcpd()
+{
+/etc/init.d/NetworkManager stop  1>/dev/null 2>/dev/null
+/etc/init.d/dhcpd restart
+if [ "$?" != "0" ]
+then
+	sleep 1
+	nombre_passage=$[$nombre_passage+1]
+	controle_nombre_passage=$[6-$nombre_passage]
+	signe_negatif=`expr substr $controle_nombre_passage 1 1`
+	if [ "$signe_negatif" = "-" ]
+	then	# plus de 6 essais d'installation dhcp
+		echo "" > /tmp/sortir
+		# supprime_IP :
+		runme supprimer_ip_ethernet
+		echo "" > /tmp/sortir
+		DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--title " `cat $chemin_langue/DESOLE` " \
+		--ok-label "`cat $chemin_langue/Continuer`"  \
+		--msgbox "\n\Zb\Z1  `cat $chemin_langue/texte_15a` ... " 7 30
+		case $? in
+			0) return 0 ;;
+			255) return 0 ;;
+		esac
+	else
+		commande_dhcpd
+		return 0
+	fi
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+lancer_serveur_dhcp()
+{
+commande_dhcpd
+if ( test -e /tmp/sortir )
+then
+	rm -f /tmp/sortir
+	return 0
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+demander_next_serveur() # vérifier la reponse ou /tmp/tempnext
+{
+defaut=$next_serveur
+if ( test -e ip_installe_poste )
+then
+	cut -f1-2 -d"." ip_installe_poste > /tmp/defaut
+	defaut=`cat /tmp/defaut`.
+fi
+rm -f /tmp/defaut
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/inputbox_20` " \
+	--cancel-label "`cat $chemin_langue/Annuler`" \
+	--inputbox "\n `cat $chemin_langue/inputbox_22a`" 10 65 $defaut 2>/tmp/tempnext
+	case $? in
+0)	reponse=`cat /tmp/tempnext`
+	# controle ip tftp de /tmp/tempnext
+	cut -d "." -f1 /tmp/tempnext > /tmp/temp
+	serveur_pxe test_nombre	# test si le premier terme est un nombre
+	test_valeur=`cat /tmp/test_valeur`
+	rm -f /tmp/test_valeur
+	if [ "$test_valeur" = "erreur" ]
+	then
+		demander_next_serveur
+		return
+	fi
+	cut -d "." -f2 /tmp/tempnext > /tmp/temp
+	serveur_pxe test_nombre	# test si le premier terme est un nombre
+	test_valeur=`cat /tmp/test_valeur`
+	rm -f /tmp/test_valeur
+	if [ "$test_valeur" = "erreur" ]
+	then
+		demander_next_serveur
+		return
+	fi
+	cut -d "." -f3 /tmp/tempnext > /tmp/temp
+	serveur_pxe test_nombre	# test si le premier terme est un nombre
+	test_valeur=`cat /tmp/test_valeur`
+	rm -f /tmp/test_valeur
+	if [ "$test_valeur" = "erreur" ]
+	then
+		demander_next_serveur
+		return
+	fi
+	cut -d "." -f4 /tmp/tempnext > /tmp/temp
+	serveur_pxe test_nombre	# test si le premier terme est un nombre
+	test_valeur=`cat /tmp/test_valeur`
+	rm -f /tmp/test_valeur
+	if [ "$test_valeur" = "erreur" ]
+	then
+		demander_next_serveur
+		return
+	fi
+#	rm -f /tmp/tempnext
+	 ;;
+1)	rm -f /tmp/temp
+	rm -f /tmp/tempnext
+	exit ;;
+255)	rm -f /tmp/temp
+	rm -f /tmp/tempnext
+	exit ;;
+esac
+cut -d"." -f4-5 /tmp/tempnext > /tmp/temp
+grep -ci "\." /tmp/temp > /tmp/temp_nombre
+temp_nombre=`cat /tmp/temp_nombre`
+rm -f /tmp/temp
+rm -f /tmp/temp_nombre
+rm -f /tmp/tempnext
+if [ "$temp_nombre" != "0" ]
+then
+	demander_next_serveur
+	return
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+#		SERVEUR  PXE
+#-----------------------------------------------------------------------------------------------------
+#	lance le serveur DHCP
+#  commandes externes de procédures
+case "$1" in
+	commande_dhcpd)
+		commande_dhcpd
+	exit 0
+	;;
+esac
+
+next_serveur=192.168.168.69
+demander_next_serveur=
+if ( test -e /tmp/demander_next_serveur )
+then
+	rm -f /tmp/demander_next_serveur
+	demander_next_serveur=oui
+fi
+
+# adapter pour OSCAR /etc/init.d/pxebootsrv :
+
+perl -pi -e 's/\$cur//g; ' /etc/init.d/pxebootsrv
+
+if ( test -e /tmp/pas_info_180_lancer_avahi )
+then
+	info_180=non
+	rm -f /tmp/pas_info_180_lancer_avahi
+else
+	info_180=oui
+fi
+	
+if ! ( test -e /etc/cdrom_ejecte )
+then
+	if ( test -e /etc/demarrage_cdcache )
+	then
+		echo "" > /etc/cdrom_ejecte	# cd ejecte
+		# umount /mnt/cdrom 2>/dev/null ; sync
+		eject
+	fi
+fi
+	# effacer l'ip éventuel sur eth0 cree par OSCAR:
+	runme supprimer_ip_ethernet
+	##### recherche d'une adresse ip sur le poste:
+		rm -f /tmp/carte_ethi
+		runme recuperer_IP	# pour verifier ip fixe donne par OSCAR sur eth0
+		if ( test -e /tmp/sortir )
+		then
+			rm -f /tmp/sortir
+			exit
+		fi
+	##### l'ip est dans le fichier ip_installe_poste
+	ip_installe=`cat ip_installe_poste`
+	if [ "$ip_installe" = "" ]
+	then
+		if ! ( test -e /tmp/serveur_dhcp_lance )
+		then
+			runme lancer_dhcp
+			if ( test -e /tmp/sortir )
+			then
+				rm -f /tmp/sortir
+				exit
+			fi
+		fi
+		runme recuperer_IP
+		if ( test -e /tmp/sortir )
+		then
+			rm -f /tmp/sortir
+			exit
+		fi
+		ip_installe=`cat ip_installe_poste`
+		if [ "$ip_installe" = "" ]
+		then
+			rm -f ip_installe_poste
+			boite_autoriser_installation_serveur_dhcp
+			if [ "$demander_next_serveur" = oui ]
+			then
+				demander_next_serveur
+				next_serveur=$reponse
+			fi
+			#/etc/init.d/net.eth0 stop
+			configurer_serveur_dhcp
+		else
+			boite_controle_dhcp
+		fi
+		nombre_passage=0
+		lancer_serveur_dhcp
+		if ( test -e /tmp/sortir )
+		then
+			exit
+		fi
+		
+		if [ "$info_180" = "oui" ]
+		then
+			DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+			--backtitle "`cat /etc/banniere_oscar`" \
+			--title " `cat $chemin_langue/msgbox_13` " \
+			--ok-label "`cat $chemin_langue/Continuer`"  \
+			--msgbox "\n`cat $chemin_langue/msgbox_14` \Zn\Z2$ip_installe`cat $chemin_langue/msgbox_14a` \Zn\Z2$next_serveur" 10 62
+			case $? in
+			    0) 	exit;;
+			    255) exit;;
+			esac
+		fi
+	else
+		echo
+		echo " `cat $chemin_langue/texte_15` ... "
+		echo
+	fi
+	

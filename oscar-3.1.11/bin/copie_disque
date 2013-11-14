@@ -1,0 +1,244 @@
+#!/bin/sh
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+#### pas encore au point sur un poste
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+
+
+
+#-----------------------------------------------------------------------------------------------------
+caracteristiques_disques()	# donne le nom hdi ou sdi dans /tmp/bozo en fonction des nappes et le nombre de disques
+{
+##	Les fichiers sortis seront:
+##	/tmp/nombre_disques
+##	/tmp/bozo	# pour la boite de dialog fabriquée /tmp/exec_dialog
+##	# dans /tmp/bozo:  (utile pour des essai)
+##	"/dev/hda" "  20.0 GB, 20003880960 bytes "
+##	"/dev/hdb" "  40.0 GB, 400077601920 bytes "
+##	"/dev/sda" "  20.0 GB, 20003880960 bytes "
+##	"/dev/sdb" "  40.0 GB"
+
+rm -f /tmp/tempfile
+rm -f /tmp/nombre_disques
+rm -f /tmp/demande_fichier_disque	# pour faire /tmp/fichier_disque_dur avec seulement les disques durs
+rm -f /tmp/fichier_disques
+echo "" > /tmp/demande_fichier_disque
+echo "" > /tmp/fichier_disques
+
+runme info_ddialog
+grep -i Disk /tmp/fichier_disque_dur > /tmp/bozo1
+perl -pi -e 's/Disk //g; s/: /:/g;' /tmp/bozo1
+awk 'BEGIN { FS=":" } { printf ("%0s %15s %25s\n","\""$1"\" \"",$2,$3"\" \\")}' /tmp/bozo1 > /tmp/bozo
+
+rm -f /tmp/bozo1
+	#####	pour les tests 	:	cp -f essai /tmp/tempfile	#####
+#	perl -pi -e 's/\/disc//g;' /tmp/tempfile
+#	runme compacte_chemin	
+
+#    rm -f /tmp/bozo
+#    awk 'BEGIN { FS=":" } { printf ("%s %s %s\n","\""$1"\" \"",$2,$3"\" \\")}' /tmp/tempfile > /tmp/bozo
+#    rm -f /tmp/tempfile
+
+grep -ci "dev" /tmp/bozo > /tmp/nombre_disques    
+nombre_disques=`cat /tmp/nombre_disques`
+rm -f /tmp/nombre_disques
+}
+#-----------------------------------------------------------------------------------------------------
+cherche_disque_maitre()	# donne le disque_maitre à copier
+{
+caracteristiques_disques		# donne le nom hdi ou sdi en fonction des nappes
+
+
+if [ "$nombre_disques" = "1" ]	# sélectionner l'autre disque
+then
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " DESOLE " \
+	--ok-label "Continuer"  \
+	--msgbox "\n\n \Zb\Z1ATTENTION : \Zn \n\n \
+	\Zn\Z2Vous n'avez qu'un seul disque sur ce poste \n\n \
+	\Zn\Z2Vous ne pouvez pas utiliser cette commande \Zb\Z3copie_disque.\n\n\n" 15 70
+	case $? in
+	    0) 	exit;;
+	    255) exit;;
+	esac
+fi
+
+rm -f /tmp/texte
+echo " " > /tmp/texte
+rm -f /tmp/fichierquestion
+echo "\n\Zb\Z4Sélectionnez le disque\Zb\Z1 modèle\Zn:\n\n " > /tmp/fichierquestion
+echo "\n\n\Z4     disque           taille   " >> /tmp/fichierquestion
+choisir_disque
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+cherche_disque_esclave()	# donne le disque_esclave à copier
+{
+
+caracteristiques_disques		# donne le nom hdi ou sdi en fonction des nappes
+##	# dans /tmp/bozo:  (utile pour des essai)
+##	"/dev/hda" "  20.0 GB, 20003880960 bytes "
+##	"/dev/hdb" "  40.0 GB, 400077601920 bytes "
+##	"/dev/sda" "  20.0 GB, 20003880960 bytes "
+
+####	supprimer la ligne disque_maitre
+	perl -pi -e 's/dev\/'$disque_maitre'/aaaa/g;' /tmp/bozo	# supprimer la ligne $disque_demarrage
+	rm -f /tmp/tempfile
+	grep -i "dev" /tmp/bozo > /tmp/tempfile
+	cp -f /tmp/tempfile /tmp/bozo
+
+	if ! [ "$nombre_disques" = "1" ]	# sélectionner l'autre disque
+	then
+		rm -f /tmp/texte
+		echo " " > /tmp/texte
+		rm -f /tmp/fichierquestion
+		echo "\n\n\Zb\Z2Sélectionnez le disque qui sera \Zb\Z1écrasé \n\Zn\Zb\Z2par le disque modèle:\n\n " > /tmp/fichierquestion
+		echo "\n\n\Z4       disque           taille   " >> /tmp/fichierquestion
+		choisir_disque
+	else	##	prendre l'autre  disque
+		rm -f /tmp/tempfile
+		cut -c7-9 /tmp/bozo > /tmp/tempfile
+		disque_esclave=`cat /tmp/tempfile`
+	fi
+	rm -f /tmp/tempfile
+	rm -f /tmp/bozo
+	rm -f /tmp/nombre_disques
+}
+#-----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+test_demarrage_cdrom() ## si oscar est démarré sur le poste ne pas utiliser cette commande si un seul disque
+{
+if ! ( test -e /etc/demarrage_cdrom ) ## le poste est démarré avec client_multi de multi_lilo voir depart
+then
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " DESOLE " \
+	--ok-label "Continuer"  \
+	--msgbox "\n\n \Zb\Z1ATTENTION : \Zn \n\n \
+	\Zn\Z2Vous avez démarré ce poste sans le cdrom \n\n \
+	\Zn\Z2Vous ne pouvez pas utiliser cette commande \Zb\Z3copie_disque.\n\n\n" 15 70
+	case $? in
+		0) exit;;
+		255) exit;;
+	esac
+fi
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+choisir_disque()	#selection du disque
+{
+rm -f /tmp/menu_titre
+rm -f /tmp/menu_texte
+echo " Sélection du disque " > /tmp/menu_titre
+echo "`cat /tmp/texte`" >> /tmp/menu_texte
+rm -f /tmp/texte
+runme boite_selection_bozo
+reponse=`cat /tmp/tempfile`
+rm -f /tmp/tempfile
+
+if ( test -e /tmp/sortir )
+    then
+    rm -f /tmp/sortir
+    exit
+fi 
+
+rm -f /tmp/menu_titre
+rm -f /tmp/menu_texte
+rm -f /tmp/fichierquestion
+reponse=`expr substr $reponse 1 3`
+## la reponse est le disque choisi
+}
+#-----------------------------------------------------------------------------------------------------
+envoi_disque_maitre()
+{
+echo -e "\033[1;32m appuyez sur les touches\033[1;37m Alt_F2 (ou \033[1;37mAlt_F3\033[1;32m...) puis tapez au clavier \033[1;37mlancer_copie\n\033[1;m"
+sleep 4
+echo
+	### cherche le disque boot
+	
+	rm -f /tmp/tempfile
+	runme info_disque | grep -i "*" | grep -i "dev" | cut -c6-11 > /tmp/tempfile
+	partition_boot=`cat /tmp/tempfile`
+	hd_boot=`expr substr $partition_boot 1 3`
+
+rm -f disque_boot
+if [ "$disque_maitre" = "$hd_boot" ]
+then
+	echo "disque_boot" > disque_boot
+	rm -f table_partitions.mbr
+	rm -f table_partitions.sf
+	dd if=/dev/$hd_boot of=table_partitions.mbr count=1 bs=512 2>/dev/null
+	# sfdisk -d /dev/$hd_boot > table_partitions.sf 2>/dev/null
+	echo "$hd_boot" > /tmp/disque_table_sauvegarder_sf
+	runme sauver_table_partition_sf
+	cp -f /tmp/disque_table_sauvegarder_sf table_partitions.sf
+	rm -f /tmp/disque_table_sauvegarder_sf
+
+#  danger!!! ici tue le poste:
+#	dd if=table_partitions.mbr of=/dev/$disque_esclave
+#	sfdisk /dev/$disque_esclave < table_partitions.sf
+	rm -f table_partitions.mbr
+	rm -f table_partitions.sf
+fi
+echo
+
+####udp-sender --file /dev/$disque_maitre --min-clients 1 ##--mcast-addr $adresse_synchrone_ctrl
+echo
+}
+#-----------------------------------------------------------------------------------------------------
+boite_nouvelle_console()	# changer de console
+{
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " Nouvelle console  " \
+	--ok-label "Continuer" --cancel-label "Annuler" \
+	--msgbox "\n\n \Zb\Z1ATTENTION : \Zn \n\n \
+	\Zn\Z2Pour copier \Zb\Z4$disque_maitre\Zn\Z2 sur \Zb\Z1$disque_esclave \Zn\Z2vous devez changer de \Zb\Z3console.\n\n\n \
+	\Zn\Z2Juste après avoir \Zb\Z4Continuer\Zn\Z2 appuyez sur les touches\Zb\Z7 Alt_F2\n\Zn\Z2  (ou \Zb\Z7Alt_F3\Zn\Z2...)\n\n \
+	\Zn\Z4puis dans la nouvelle fenetre tapez au clavier \Zb\Z7lancer_copie" 18 70
+	case $? in
+	    0) 	 ;;
+	    1) exit ;;
+	    255) exit;;
+	esac
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+#		COPIE d'un DISQUE A CLONER sur ble même poste ici disque_maitre
+#-----------------------------------------------------------------------------------------------------
+#   permet la copie d'un dd sur le poste
+#-----------------------------------------------------------------------------------------------------
+#  Prog principal
+#----------------------------------------------------------------------------------------------------
+#  commandes externes de procédures
+echo "#### pas encore au point sur un poste"
+read p
+if ! ( test -e /etc/cdrom_ejecte )
+then
+	if ( test -e /etc/demarrage_cdcache )
+	then
+		echo "" > /etc/cdrom_ejecte	# cd ejecte
+		# umount /mnt/cdrom 2>/dev/null  ; sync
+		eject
+	fi
+fitest_demarrage_cdrom
+
+cherche_disque_maitre
+disque_maitre=$reponse
+rm -f /tmp/disque_maitre
+echo "$reponse" > /tmp/disque_maitre
+
+cherche_disque_esclave
+disque_esclave=$reponse
+rm -f /tmp/disque_esclave
+echo "$reponse" > /tmp/disque_esclave
+
+boite_nouvelle_console	## pour taper lancer_copie
+envoi_disque_maitre

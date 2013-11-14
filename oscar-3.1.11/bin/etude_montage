@@ -1,0 +1,110 @@
+#!/bin/sh
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+# teste les montages des partitions de demarrage sur le poste avant et apres uuid dans /etc/mtab
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+avec_uuid=
+grep -i "^/dev/disk/by-uuid" /etc/mtab | grep -ci " / ext" > /tmp/nbre_partition_demarrage_sur_poste
+nbre_partition_demarrage_sur_poste=`cat /tmp/nbre_partition_demarrage_sur_poste`
+rm -f /tmp/nbre_partition_demarrage_sur_poste
+if [ "$nbre_partition_demarrage_sur_poste" = "0" ]
+then
+	avec_uuid=_avant_170b3
+fi
+
+#----------------------------------------------------------------------------------------------------
+test_demarage_serveur_poste()
+{
+grep -ci " / ext"  /etc/mtab > /tmp/nbre_oscar_sur_poste # existe si demarrage par poste
+test_nbre_oscar_sur_poste=`cat /tmp/nbre_oscar_sur_poste`
+rm -f /tmp/nbre_oscar_sur_poste
+if [ "$test_nbre_oscar_sur_poste" = "1" ]	# demarrage par poste
+then
+	grep -i "^/dev/disk/by-uuid" /etc/mtab | grep -i " / ext" > /tmp/partition_oscar_sur_poste # cette partition est deja monte
+	perl -pi -e 's/ //g;' /tmp/partition_oscar_sur_poste
+	cut -d"/" -f5 /tmp/partition_oscar_sur_poste > /tmp/temp_sdai	# uuid partition
+	installe_oscar_dd remplacer_uuid_par_sdai
+	repertoire_partage_nfs_oscar=/mnt/`cat /tmp/temp_sdai`/oscar
+	rm -f /tmp/temp_sdai
+	rm -f /tmp/partition_oscar_sur_poste
+else
+	repertoire_partage_nfs_oscar=$linux_sauvegarde/oscar
+fi
+}
+#----------------------------------------------------------------------------------------------------
+test_demarage_serveur_poste_avant_170b3()
+{
+grep -ci " / ext"  /etc/mtab > /tmp/nbre_oscar_sur_poste # existe si demarrage par poste
+test_nbre_oscar_sur_poste=`cat /tmp/nbre_oscar_sur_poste`
+rm -f /tmp/nbre_oscar_sur_poste
+if [ "$test_nbre_oscar_sur_poste" = "1" ]	# demarrage par poste
+then
+	grep -i "^/dev/sd" /etc/mtab | grep -i " / ext" > /tmp/partition_oscar_sur_poste # cette partition est deja monte
+	perl -pi -e 's/ //g;' /tmp/partition_oscar_sur_poste
+	cut -d"/" -f3 /tmp/partition_oscar_sur_poste > /tmp/partition_oscar_sur_poste1
+	repertoire_partage_nfs_oscar=/mnt/`cat /tmp/partition_oscar_sur_poste1`/oscar
+	rm -f /tmp/partition_oscar_sur_poste
+	rm -f /tmp/partition_oscar_sur_poste1
+else
+	repertoire_partage_nfs_oscar=$linux_sauvegarde/oscar
+fi
+}
+#----------------------------------------------------------------------------------------------------
+donner_partition_oscar_poste()
+{
+grep -i "^/dev/disk/by-uuid" /etc/mtab | grep -i " / ext" > /tmp/partition_oscar_sur_poste # cette partition est deja monte
+perl -pi -e 's/ //g;' /tmp/partition_oscar_sur_poste
+cut -d"/" -f5 /tmp/partition_oscar_sur_poste > /tmp/temp_sdai	# uuid partition
+installe_oscar_dd remplacer_uuid_par_sdai
+cp -f /tmp/temp_sdai /tmp/partition_oscar_sur_poste
+rm -f /tmp/temp_sdai
+}
+#----------------------------------------------------------------------------------------------------
+donner_partition_oscar_poste_avant_170b3()
+{
+grep -i "^\/dev\/" /etc/mtab | grep -i " / ext" > /tmp/reponse_partition_oscar1
+cut -d "/" -f3 /tmp/reponse_partition_oscar > /tmp/reponse_partition_oscar
+rm -f /tmp/reponse_partition_oscar1
+}
+#----------------------------------------------------------------------------------------------------
+donner_nombre_partition_oscar_poste()
+{
+echo "$monter_partition" > /tmp/temp_sdai
+installe_oscar_dd remplacer_sdai_par_uuid
+monter_partition=`cat /tmp/temp_sdai`
+rm -f /tmp/temp_sdai
+grep -ci "$monter_partition / ext" /etc/mtab > /tmp/nombre_partition_oscar_poste # voir fstab et installe_oscar_dd
+}
+#----------------------------------------------------------------------------------------------------
+donner_nombre_partition_oscar_poste_avant_170b3()
+{
+grep -ci "$monter_partition / ext" /etc/mtab > /tmp/nombre_partition_oscar_poste # voir fstab et installe_oscar_dd
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+#  commandes externes de procédures
+case "$1" in
+	test_demarage_serveur_poste)
+		linux_sauvegarde=`cat /tmp/repertoire_partage_nfs_oscar`
+		test_demarage_serveur_poste$avec_uuid
+		echo "$repertoire_partage_nfs_oscar" > /tmp/repertoire_partage_nfs_oscar
+		exit 0
+	;;
+	donner_partition_oscar_poste)
+		donner_partition_oscar_poste$avec_uuid
+		exit 0
+	;;
+	donner_nombre_partition_oscar_poste)
+		monter_partition=`cat /tmp/nombre_partition_oscar_poste`
+		donner_nombre_partition_oscar_poste$avec_uuid
+		exit 0
+	;;
+esac

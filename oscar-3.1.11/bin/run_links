@@ -1,0 +1,10 @@
+#! /bin/bash
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+
+touch /tmp/links
+startx_oscar
+rm -f /tmp/test_x
+rm -f /tmp/links
+

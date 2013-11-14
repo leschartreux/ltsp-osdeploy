@@ -1,0 +1,93 @@
+#!/bin/sh
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+echo
+echo "Transfert des fichiers OSCAR sur le poste JF"
+echo
+echo "Les fichiers sont dans /mnt/sdb1/linux/bin_noyau_26_poste du disque dur externe"
+echo
+	echo "Quel est le nom de la partition de sauveharde des fichiers OSCAR : "
+	read -p	"     Entrer le nom de la partition (pour sdb1 'Entrer') ? " partition
+		if [ "$partition" = "" ]
+		then 
+		partition=sdb1
+		fi					
+
+	echo
+mkdir /mnt/$partition
+mount /dev/$partition /mnt/$partition
+echo "$partition" > /tmp/partition_cd
+
+cp -f /mnt/$partition/linux/bin_noyau_26_poste/version_oscar_realise /root
+echo
+echo
+version_connue=`cat /mnt/$partition/linux/usr/numero_version_oscar`
+	read -p	"     Donnez le numero de version de ce cédérom :  (pour $version_connue 'Entrée') ? " version
+		if [ "$version" = "" ]
+		then 
+		version=$version_connue
+		fi					
+# cp -f /root/livecd/config-$version /root/livecd/overlay/isolinux/
+echo
+echo "$version" > /tmp/numero_oscar
+echo "oui" > /tmp/catalyst
+/root/version_oscar_realise
+rm -f /tmp/numero_oscar
+rm -f /tmp/catalyst
+
+# Fichiers bin_noyau_26_poste qui seront transferes:
+echo
+
+#cp -f /root/livecd/config-$version /root/livecd/root_overlay/usr/share/oscar/usr/
+
+cp -f /mnt/$partition/linux/bin_noyau_26_poste/oscar /root/livecd/root_overlay/bin/
+cp -f /mnt/$partition/linux/bin_noyau_26_poste/ntfs_oscar /root/livecd/root_overlay/bin/
+cp -f /mnt/$partition/linux/bin_noyau_26_poste/* /root/livecd/root_overlay/usr/share/oscar/bin/
+cp -f /mnt/$partition/linux/usr/* /root/livecd/root_overlay/usr/share/oscar/usr/
+cp -f /mnt/$partition/linux/usr/autorun /root/livecd/root_overlay/bin/
+
+cp -f /mnt/$partition/linux/usr/boot26.msg /root/livecd/overlay/isolinux/boot.msg
+cp -f /mnt/$partition/linux/usr/help26.msg /root/livecd/overlay/isolinux/help.msg
+cp -f /mnt/$partition/linux/usr/kernels26.msg /root/livecd/overlay/isolinux/kernels.msg
+cp -f /mnt/$partition/linux/usr/f9.msg /root/livecd/overlay/isolinux/f9.msg
+cp -f /mnt/$partition/linux/usr/fr.ktl /root/livecd/overlay/isolinux/
+cp -f /mnt/$partition/linux/usr/isolinux26.cfg /root/livecd/overlay/isolinux/isolinux.cfg
+
+# cp -f /mnt/$partition/linux/docOscar-1.0/* /root/livecd/overlay/oscardoc/
+
+# cp -f /mnt/$partition/linux/bin_noyau_26_poste/run_qtpartedfb_oscar /root/livecd/root_overlay/usr/sbin/
+
+rm -f /root/livecd/root_overlay/bin/*.bak
+rm -f /root/livecd/root_overlay/usr/share/oscar/bin/*.bak
+rm -f /root/livecd/root_overlay/usr/share/oscar/usr/*.bak
+rm -f /root/livecd/overlay/isolinux/*.bak
+
+chmod 777 /root/livecd/root_overlay/bin/*
+chmod 777 /root/livecd/root_overlay/usr/share/oscar/bin/*
+echo
+
+echo "Ce cd est-il minimal ou complet: 'Entrer' pour complet, 'm' pour minimal :"
+read reponse
+		if [ "$reponse" = "" ]
+		then 
+		cp -f /mnt/$partition/linux/usr/boot26.msg /root/livecd/overlay/isolinux/boot.msg
+		echo
+		echo "Ce sera un cdrom OSCAR complet  !!"
+		echo
+		elif [ "$reponse" = "m" ] || [ "$reponse" = "M" ]
+		then
+		cp -f /mnt/$partition/linux/usr/boot26_cli.msg /root/livecd/overlay/isolinux/boot.msg
+		echo
+		echo "Ce sera un cdrom OSCAR minimal  !!"
+		echo
+		else
+		echo
+		echo "ERREUR de TOUCHE: ce sera un cdrom OSCAR complet  !!"
+		echo
+		fi					
+umount /dev/$partition 2>/dev/null ; sync

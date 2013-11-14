@@ -1,0 +1,422 @@
+#!/bin/sh
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+
+
+#-----------------------------------------------------------------------------------------------------
+proposer_la_liste_des_postes_sysprep()
+{
+sysprep boite_liste_des_postes_sysprep
+
+	reponse=`cat /tmp/tempfile_sysprep`
+	rm -f /tmp/tempfile_sysprep
+	client=$reponse
+	poste=$client
+}
+#-----------------------------------------------------------------------------------------------------
+demander_boite_numero_poste()
+{
+if ( test -e /tmp/liste_postes_sysprep )
+then
+	proposer_la_liste_des_postes_sysprep
+	echo
+else
+	echo "\n`cat $chemin_langue/inputbox_25`" > /tmp/fichierquestion
+	defaut=$poste
+	boite_numero_poste
+fi
+}
+#----------------------------------------------------------------------------------------------------
+boite_numero_poste()
+{
+	DIALOGRC="/etc/dialogrc" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/inputbox_32` " \
+	--inputbox "`cat /tmp/fichierquestion`" 10 55 $defaut 2>/tmp/tempfile
+     case $? in
+	    0)	rm -f /tmp/fichier_disque_dur
+                teste_numero_client
+                rm -f /tmp/fichierquestion
+		if ( test -e /tmp/sortir )
+	        then
+	        	rm -f /tmp/tempfile
+    			rm -f /tmp/sortir
+	        	exit
+		else
+	                reponse=`cat /tmp/tempfile`
+			rm -f /tmp/tempfile
+			return
+		fi
+		;;
+	    1)  rm -f /tmp/fichier_disque_dur
+		rm -f /tmp/tempfile
+	        echo "" > /tmp/sortir
+		rm -f /tmp/fichierquestion
+		return;;
+	    255) rm -f /tmp/fichier_disque_dur
+		rm -f /tmp/tempfile
+	        echo "" > /tmp/sortir
+		rm -f /tmp/fichierquestion
+		return;;
+	esac
+}
+##----------------------------------------------------------------------------------------------------
+boucle_partition_image() # sortir la partition de sauvegarde éventuelle dans la reponse
+{
+	rm -f /tmp/tempfile
+	echo "$type" > /tmp/tempfile
+	runme prepare_boucle_partition
+	nombretype=`cat /tmp/nombre`
+	rm -f /tmp/nombre
+
+
+numero=0
+until  ( test  $numero = $nombretype )
+    do
+	rm -f /tmp/tempfile1
+#	rm -f /tmp/partfile1
+	numero=$[$numero+1]
+	cut -d":" -f$numero /tmp/tempfile > /tmp/tempfile1	#hdaiii
+#	cut -d":" -f$numero /tmp/partfile > /tmp/partfile1	#ide/h0/b0/t0/l0/hdaiii
+	reponse=`cat /tmp/tempfile1`
+	reparti=$reponse
+	rm -f /tmp/tempfile1
+	numero_hd=`expr substr $reponse 4 3`
+	disque=`expr substr $reponse 1 3`       #hda
+#	disque=`cut -d/ -f1-5 /tmp/partfile1`/disc	#ide/h0/b0/t0/l0/disc
+#	rm -f /tmp/partfile1
+        if [ "$type" = "linux" ]
+	then
+        	# id_type=`sfdisk /dev/$disque -c $numero_hd 2>/dev/null`
+		grep -i $reponse /tmp/fichier_disque_dur | grep -c Linux > /tmp/nb_partition_linux
+	        nb_partition_linux=`cat /tmp/nb_partition_linux`
+	        rm -f /tmp/nb_partition_linux
+		if [ "$nb_partition_linux" = "1" ] # partition linux non swap
+		then	
+			echo "$reponse" > /tmp/monter_partition
+			runme autoriser_monter_partition_oscar
+			partition_linux_dd=`cat /tmp/monter_partition`
+			rm -f /tmp/monter_partition
+
+			if ( test -e $partition_linux_dd/image.partimage.000 ) ## sauvegarde dans ancienne version
+			then
+				rm -f partition_de_sauvegarde
+				echo "$reponse" > partition_de_sauvegarde
+				changement_version_oscar changement_partition_sauvegarde
+			fi
+			if ( test -e $partition_linux_dd/oscar )
+			then
+				partition_image=$reponse
+				if ! ( test -e $partition_linux_dd/oscar/var_poste )
+				then
+				    mkdir $partition_linux_dd/oscar/var_poste
+				else
+				    if ( test -e $partition_linux_dd/oscar/var_poste/numero_poste_client )
+				    then
+					poste=`cat $partition_linux_dd/oscar/var_poste/numero_poste_client`
+					rm -f /tmp/tempfile
+	#				rm -f /tmp/partfile
+					umount $partition_linux_dd 2>/dev/null ; sync
+					return
+				    fi
+				fi
+			fi
+			umount $partition_linux_dd 2>/dev/null ; sync
+		fi
+	fi
+    done
+rm -f /tmp/tempfile
+# rm -f /tmp/partfile
+}
+#----------------------------------------------------------------------------------------------------
+#	Recherche d'une image
+#----------------------------------------------------------------------------------------------------
+cherche_image_numero_poste()	# recherche sur le disque dur la partition où se trouve l'image et son numero de poste
+{
+type="linux"
+boucle_partition_image
+}
+#  fin de recherche de l'image
+#----------------------------------------------------------------------------------------------------
+verifier_si_le_poste_est_dans_la_liste_sysprep()
+{
+deja_demande_poste=non
+cut -d">" -f1 /tmp/liste_postes_sysprep > /tmp/liste_postes_sysprep1
+grep -ci "$poste" /tmp/liste_postes_sysprep1 > /tmp/test_nb_poste
+test_nb_poste=`cat /tmp/test_nb_poste`
+rm -f /tmp/test_nb_poste
+rm -f /tmp/liste_postes_sysprep1
+if ! [ "$test_nb_poste" = "1" ]
+then
+	demander_boite_numero_poste
+	deja_demande_poste=oui
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+#		CLIENT synchrone numero du poste et ip du serveur
+#-----------------------------------------------------------------------------------------------------
+PATH="/usr/share/oscar/bin:$PATH"
+/usr/share/oscar/usr/version_theme_oscar
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+if ! ( test -e /etc/exec_dialog_src )  # si depart par oscar
+then
+	cp -f /usr/share/oscar/usr/exec_dialog_src /etc		
+	cp -f /usr/share/oscar/usr/dialogrc /etc
+	cp -f /usr/share/oscar/usr/dialogmenu_bloque /etc
+	setterm -powerdown       # setterm -powersave off   # supprime l'écran de veille
+	setterm -msg off         # n'affiche pas les messages d'erreurs
+fi
+
+
+if ( test -e /etc/menuoscar_client )	# démarrage du poste par client_multi
+then
+	menuoscar_client=oui
+	# rm -f /etc/menuoscar_client
+	if ( test -e /etc/demarrage_usb )	# demarrage usb
+	then
+		echo
+		echo -e "\033[1;32m `cat $chemin_langue/menu_292b` ..."
+		echo
+	fi
+fi
+
+if ! ( test -e /etc/cdrom_ejecte )
+then
+	if ( test -e /etc/demarrage_cdcache )
+	then
+		echo "" > /etc/cdrom_ejecte	# cd ejecte
+		# umount /mnt/cdrom 2>/dev/null  ; sync
+		eject
+	fi
+fi
+
+##### recherche d'une adresse ip sur le poste:
+rm -f ip_installe_poste
+rm -f /tmp/carte_ethi
+runme recuperer_IP	# pour verifier ip fixe donne par OSCAR sur eth0
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		exit
+	fi
+ip_installe=`cat ip_installe_poste`
+if [ "$ip_installe" = "" ]
+then
+	runme lancer_dhcp
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		exit
+	fi
+	runme recuperer_IP
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		exit
+	fi
+	ip_installe=`cat ip_installe_poste`
+fi
+rm -f ip_installe_poste
+
+cherche_image_numero_poste	## pour conna�tre le numéro du poste éventuel
+rm -f /tmp/fichierquestion
+
+defaut=$poste
+
+	if [ "$menuoscar_client" = "oui" ]
+	then	# demarrage du poste en client_multi
+		if [ "$defaut" = "" ] || [ "$defaut" = " " ]
+		then
+			grep -i "netboot=http" /proc/cmdline > /tmp/test_serveur_pxe	# demarrage serveur_pxe
+			test_serveur_pxe=`cat /tmp/test_serveur_pxe`
+			rm -f /tmp/test_serveur_pxe
+			if [ "$test_serveur_pxe" != "" ]	# demarrage serveur_pxe
+			then
+				client=par_pxe
+				poste=par_pxe
+			fi
+		fi
+	fi
+	
+	
+	if [ "$ip_installe" = "" ]
+	then
+		#client=$[$client+100]
+		echo "192.168.159.$client" > ip_installe_poste
+		echo "255.255.0.0" > /tmp/ip_masque_poste
+		runme installer_IP
+		#ifconfig  eth0 192.168.159.$client netmask 255.255.0.0
+		ip_transfert=192.168.159.$client
+	else
+	        ip_transfert=$ip_installe
+	fi
+
+	# Réception des fichiers du serveur
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/infobox_18` " \
+	--infobox "\n\n\Zn\Z2                     `cat $chemin_langue/texte_19`\Zb\Z3 $poste`cat $chemin_langue/infobox_19` $ip_transfert \
+	\n\Zn`cat $chemin_langue/menu_74`\n" 14 76
+
+	echo
+	echo -e "`cat $chemin_langue/texte_38` :\033[1;m"
+	echo
+
+	#	echo -en "\033[1;31m"
+	#	if ! ( test -e /etc/avahi/services/ssh.service )
+	#	then # avahi non emerge
+	#		# accord du serveur avant de changer de mode udp personnalise avec ip
+	#		rm -f /tmp/autoriser
+	#		udp-receiver -f /tmp/autoriser --nokbd --interface `cat /tmp/carte_ethi` 2>/dev/null
+	#		rm -f /tmp/autoriser
+	#	fi
+	#	echo
+	#	echo -e " ..."
+	#	echo
+	
+	rm -f fichier_commande_recept
+	echo -en "\033[1;31m"
+	udp-receiver -f fichier_commande_recept --nokbd --mcast-rdv-address `cat /tmp/ip_mcast_rdv` --portbase 9020 --interface `cat /tmp/carte_ethi`
+	clear
+
+	cut -f1 -d"," fichier_commande_recept > /tmp/commande_client
+	commande_serveur=`cat /tmp/commande_client`
+	cut -f2 -d"," fichier_commande_recept > /tmp/ip_serveur
+	ip_serveur=`cat /tmp/ip_serveur`
+	cut -f3 -d"," fichier_commande_recept > /tmp/chemin_oscar_serveur
+	chemin_oscar=`cat /tmp/chemin_oscar_serveur`
+	cut -f4 -d"," fichier_commande_recept > /tmp/differe
+	client_differe=`cat /tmp/differe`
+	cut -f5 -d"," fichier_commande_recept > /tmp/sauvegarde_avec_sysprep
+	sauvegarde_avec_sysprep=`cat /tmp/sauvegarde_avec_sysprep`
+	
+	echo
+	echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+	echo
+	echo -e " ..."
+	echo
+	
+	if [ "$sauvegarde_avec_sysprep" = "avec_sysprep" ]
+	then
+		echo -en "\033[1;31m"
+		udp-receiver -f /tmp/liste_postes_sysprep --nokbd --mcast-rdv-address `cat /tmp/ip_mcast_rdv` --portbase 9020 --interface `cat /tmp/carte_ethi`
+		clear
+		
+		if [ "$poste" != "" ]
+		then
+			if [ "$poste" != " " ]
+			then
+				if ! [ "$poste" = "par_pxe" ]
+				then
+					if [ "$menuoscar_client" = "oui" ]	# demarrage du poste en client_multi
+					then
+						verifier_si_le_poste_est_dans_la_liste_sysprep
+					else
+						deja_demande_poste=non
+						verifier_si_le_poste_est_dans_la_liste_sysprep
+						if [ "$deja_demande_poste" = "non" ]
+						then
+							echo "\n`cat $chemin_langue/inputbox_25`" > /tmp/fichierquestion
+							boite_numero_poste
+							poste=$reponse
+							client=$reponse
+							verifier_si_le_poste_est_dans_la_liste_sysprep
+						fi
+					fi
+					echo
+					echo
+					echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+					echo
+					echo -e " ..."
+					echo
+				fi
+			fi
+		fi
+	fi
+
+	if ! [ "$client_differe" = "" ]	# differe
+	then
+		echo
+		echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+		echo
+		echo -en "\033[1;31m"
+		udp-receiver -f fichier_mac_adresse_recept --nokbd --mcast-rdv-address `cat /tmp/ip_mcast_rdv` --portbase 9020 --interface `cat /tmp/carte_ethi`
+		clear
+		echo
+		echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+		echo
+		echo -e " ..."
+		echo
+		grep -i "`cat /tmp/mac_adresse`" fichier_mac_adresse_recept > /tmp/tempbozo1
+		cut -d"=" -f2 /tmp/tempbozo1 > /tmp/tous_wol
+		perl -pi -e 's/,/ ,/g;' /tmp/tous_wol
+		echo `gawk '{ print $1 ";" } ' /tmp/tous_wol` > /tmp/tempbozo1	# 110; 110; 110; ...
+		# prendre seulement la premiere valeur
+		cut -d";" -f1 /tmp/tempbozo1 > /tmp/tous_wol
+		poste_fichier_pxe=`cat /tmp/tous_wol`
+		rm -f /tmp/tous_wol
+
+		if [ "$poste_fichier_pxe" != "" ]	# demarrage serveur_pxe et pas de numero de poste
+		then
+			poste=$poste_fichier_pxe
+		fi
+		rm -f fichier_mac_adresse_recept
+	else
+		rm -f /tmp/differe	# pour eteindre le poste a la fin
+	fi
+	rm -f /tmp/commande_client
+	if [ "$poste" = "par_pxe" ] || [ "$poste" = "" ] || [ "$poste" = " " ]
+	then
+		poste=
+		demander_boite_numero_poste
+		if ( test -e /tmp/sortir )
+		then
+			rm -f /tmp/sortir
+			exit
+		fi
+		poste=$reponse
+		echo
+		echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+		echo
+		echo -e " ..."
+		echo
+		
+	fi	
+	
+	echo "$poste" > /tmp/numero_poste		# donner aussi au serveur client=$poste
+	echo "$ip_transfert" > /tmp/ip_poste_client	# donner aussi au serveur ip_installe=$ip_transfert
+	#echo "partition_image" > /tmp/partition_image_client
+
+
+	# lancer le client demande :
+	rm -f /tmp/client_multi_petite
+	if [ "$commande_serveur" = petite ]
+	then
+		echo "petite" > /tmp/client_multi_petite
+		client_multi
+	else
+		$commande_serveur
+	fi
+
+	# les commandes :
+	#	simple		-->	serveur_multi
+	#	petite		-->	serveur_multi	
+	# 	complete	-->	serveur_clone
+	#	table		-->	serveur_table
+	#	disque		-->	serveur_disque
+	#			-->	serveur_oscar

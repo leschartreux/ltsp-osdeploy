@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Calculette
+Comment=Calculette
+Icon=/usr/share/icons/gnome/22x22/apps/calc.png
+Exec=xcalc
+Path=
+Terminal=false
+StartupNotify=false
+

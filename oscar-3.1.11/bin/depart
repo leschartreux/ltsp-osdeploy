@@ -1,0 +1,737 @@
+#!/bin/bash
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+PATH="/usr/share/oscar/bin:$PATH"
+/usr/share/oscar/usr/version_theme_oscar
+
+if ( test -e /usr/share/oscar/usr/demarre_video )
+then
+	defaut_video=`cat /usr/share/oscar/usr/demarre_video`
+else
+	defaut_video=graphique
+fi
+
+#if grep -q ^tg3 /proc/modules 
+#then
+#	echo "Reloading module tg3 ..."
+#	modprobe -r tg3
+#	modprobe broadcom
+#	modprobe tg3
+#	echo "Module tg3 has been reloaded"
+#fi
+
+# lancement par l'autorun de ce fichier
+#----------------------------------------------------------------------------------------------------
+# Gestion des couleurs
+
+#    fin=\033[0;m
+#    noir=\033[0;30m
+#    rouge=\033[0;31m
+#    vert=\033[0;32m
+#    marron=\033[0;33m
+#    bleu=\033[0;34m
+#    violet=\033[0;35m
+#    cyan=\033[0;36m
+#    gris=\033[0;37m
+#    grisf=\033[1;30m
+#    rougec=\033[1;31m
+#    vertc=\033[1;32m
+#    jaune=\033[1;33m
+#    bleuc=\033[1;34m
+#    violetc=\033[1;35m
+#    cyanc=\033[1;36m
+#    blanc=\033[1;37m
+#-----------------------------------------------------------------------------------------------------
+boite_depart()
+{
+	# Bienvenue dans OSCAR
+numero_version=`cat /usr/share/oscar/usr/numero_version_oscar`
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/menu_157`" --ok-label "`cat $chemin_langue/menu_162`" --extra-button --extra-label "`cat $chemin_langue/menu_163`" \
+	--menu "`cat $chemin_langue/menu_164`\Z3O\Z4util de\Z3 S\Z4auvegarde\Z3 C\Z4omplet d'\Z3A\Z4ssistance \Z3R\Z4éseau " 7 76 0 \
+	"" "" \
+	"" "`cat $chemin_langue/menu_165`" \
+	"" "" \
+	"" "\Zb\Z3                   OSCAR  \Z4version $numero_version " \
+	"" "" \
+	"" "" \
+	"" "\Z2Copyright (c) 2003-2013 (Tissoires Jean-François & Benjamin)\Zb\Zn " \
+	"" "\Zb\Z1O\Z3util\Zb\Z1 S\Z3ystème \Zb\Z1C\Z3omplet d'\Zb\Z1A\Z3ssistance\Zb\Z1 R\Z3éseau, \Zb\Z1OSCAR" \
+	"" "\Zb\Z1Rapide \Z3de\Zb\Z1 S\Z3auvegarde aux\Zb\Z1 O\Z3rdinateurs et\Zb\Z1 S\Z3ystèmes, \Zb\Z1RapideSOS " \
+	"" "\Z2jftissoires@gmail.com \Zn " \
+	"" ""
+      case $? in
+	    0)	autoriser ;;
+	    3)  rst ;;
+	    1)	eteindre_le_poste;;
+	    255) boite_depart ;;
+	esac
+}
+#-----------------------------------------------------------------------------------------------------
+boite_danger_sda1()
+{
+	# Le port usb est sur sda
+	echo "" > /etc/demarrage_usb_sda
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/menu_157`" --cancel-label "`cat $chemin_langue/menu_158`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--menu "\n\Zn\Z2  `cat $chemin_langue/menu_159` \Zb\Z3sda\Zn\Z2. \n " 9 65 0 \
+	"" "" \
+	"" "`cat $chemin_langue/menu_160`" \
+	"" "`cat $chemin_langue/menu_159a`" \
+	"" "" \
+	"" "`cat $chemin_langue/menu_161`" \
+	"" ""
+	case $? in
+	    0)	eteindre_le_poste
+	    	;;
+	    1)  echo "" > /etc/demarrage_usb_sda
+		;;
+	    255) compatible_oscar_usb
+		;;
+	esac
+}
+#-----------------------------------------------------------------------------------------------------
+compatible_oscar_usb()	# verifie si port usb de demarrage est en sda, incompatible avec OSCAR
+{
+if ( test -e /etc/demarrage_cdcache )
+then
+	echo "sda1" > /tmp/monter_partition
+	runme autoriser_monter_partition_oscar 2>/dev/null 1>/dev/null
+	partition_sda1=`cat /tmp/monter_partition`
+	rm -f /tmp/monter_partition
+	
+	if ( test -e $partition_sda1/sysrcd.dat )
+	then	# cle usb est sda non compatible avec oscar
+		boite_danger_sda1
+	fi
+else
+	grep -ci "sda1 /livemnt/boot" /etc/mtab > /tmp/nombusb
+	nombusb=`cat /tmp/nombusb`
+	rm -f /tmp/nombusb
+	if [ "$nombusb" = 1 ]
+	then	# démarrage de la cle sur cette partition sda1
+		boite_danger_sda1
+	fi
+fi
+umount $partition_sda1 2>/dev/null ; sync
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+autoriser()
+{
+if ( test -e /etc/demarrage_cdrom ) || ( test -e /etc/demarrage_usb )
+then
+	if ( test -e /usr/share/oscar/usr/initialise )
+	then
+		echo "oui initialise" > /tmp/initialise_realisee
+		runme information_dd
+	fi
+	if ( test -e /usr/share/oscar/usr/option_jf )
+	then
+		rm -f /usr/share/oscar/usr/option_jf
+		# choix langue :
+		langage
+		choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+		chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+		
+		# choix du clavier :
+			#	if ! ( test -e /etc/demarrage_usb )
+			#	then
+			#		ls /livemnt/boot/isolinux/maps > /tmp/liste_clavier
+			#	else
+			#		ls /mnt/cdrom/maps > /tmp/liste_clavier
+			#	fi
+		if ( test -e /livemnt/boot/isolinux/maps )
+		then
+			isolinux_=isolinux
+		elif ( test -e /livemnt/boot/syslinux/maps )
+		then # demarrage cle usb
+			isolinux_=syslinux
+		else
+			echo " Erreur clavier ..."
+			sleep 8
+			exit
+		fi
+		ls /livemnt/boot/$isolinux_/maps > /tmp/liste_clavier
+		installe_oscar_dd demander_clavier # meme si pas en langue fr car suisse ou belge ...
+		if ( test -e /tmp/sortir )
+		then
+			rm -f /tmp/tempfile
+		fi
+
+		choix_clavier=`cat /usr/share/oscar/usr/choix_clavier`
+	fi
+	boite_sauver
+fi
+
+# rm -f /etc/demarrage_cdrom	# à vérifier
+# rm -f /etc/demarrage_cdcache	# à vérifier
+# rm -f /etc/demarrage_usb 	# ne pas supprimer: besoin pour les autres pages écrans
+
+		
+if ! ( test -e /etc/demarrage_cdrom ) ###	Si pas démarrage par cdrom ou cdrom monté:
+then
+	rm -f /etc/gpm_lance	# pour sysrcd avec internet
+	echo "" > /etc/cdrom_ejecte	# cd ejecté
+fi
+
+if ( test -e /etc/client_minimal ) ## le poste est démarré avec le cd oscar minimal # client minimal fsscript_cli.sh de livecd:
+then
+	echo "" > /etc/demarrage_cdoscar_minimal
+fi
+if ( test -e /etc/demarrage_cdrom ) ## le poste est démarré avec option docache ou cdcache:
+then
+	if ( test -e /etc/client_minimal ) ## le poste est démarré avec le cd oscar minimal # client minimal fsscript_cli.sh de livecd:
+	then
+		echo "" > /etc/demarrage_cdoscar_minimal
+	fi
+fi
+# installe_ethernet # cette commande est remplacee par la ligne suivante car elle supprime la carte deja installee
+ifconfig -a > /tmp/tempfile 2>/dev/null
+rm -f /tmp/tempfile
+if ! ( test -e /etc/mi_co )
+then
+    echo "" > /etc/mi_co
+fi
+if ( test -e /etc/demarrage_usb )
+then
+	if ( test -e /etc/demarrage_cdcache )	# démarrage par clé USB ou cdrom en mémoire
+	then
+		if ! ( test -e /etc/cle_usb_enlevee )	# démarrage par clé USB en mémoire
+		then
+			depart_info_enlever_cle_usb
+			echo "" > /etc/cle_usb_enlevee	# pour info seulement la premiere console
+		fi
+	fi
+fi
+#if ( test -e /etc/X11/xorg.conf )	# installer le clavier fr pour WindowMaker avec sysrcd
+#then
+#	grep -ci "\"XkbLayout\" \"\"" /etc/X11/xorg.conf > /tmp/tempfile
+#	nombre_fr=`cat /tmp/tempfile`
+#	rm -f /tmp/tempfile
+#	if [ "$nombre_fr" = "1" ]
+#	then
+#		perl -pi -e 's/\"XkbLayout\" \"\"/\"XkbLayout\" \"'`cat  /usr/share/oscar/usr/choix_clavier`'\"/g;' /etc/X11/xorg.conf
+#	fi
+#fi
+
+proc_cmdline=`cat /proc/cmdline`
+echo "$proc_cmdline" > /tmp/proc_cmdline
+grep -ci "netboot=http" /tmp/proc_cmdline > /tmp/test_pxe
+test_pxe=`cat /tmp/test_pxe`
+if [ "$test_pxe" = "1" ]	# demarrage pxe
+then
+	cp -f /tmp/proc_cmdline /tmp/proc_cmdline_temp
+	perl -pi -e 's/\/oscar\/sys/{/g;' /tmp/proc_cmdline_temp
+	grep -ci "{" /tmp/proc_cmdline_temp > /tmp/test_pxe
+	test_pxe=`cat /tmp/test_pxe`
+	if [ "$test_pxe" = "1" ]	# demarrage scribe
+	then
+		echo "" > /usr/share/oscar/usr/initialise
+	fi
+fi
+rm -f tmp/test_pxe
+rm -f /tmp/proc_cmdline_temp
+		
+# tester demarrage sans carte video
+nombre_optionvideo=
+nombre_novideo=
+nombre_video=
+grep -ci "xfce" /tmp/proc_cmdline > /tmp/nombre_optionvideo
+if ( test -e /tmp/nombre_optionvideo )
+then
+	nombre_optionvideo=`cat /tmp/nombre_optionvideo`
+fi
+if ( test -e /tmp/nombre_optionvideo )
+then
+	nombre_optionvideo=`cat /tmp/nombre_optionvideo`
+	grep -ci "noxfce" /tmp/proc_cmdline > /tmp/nombre_novideo
+	if ( test -e /tmp/nombre_novideo )
+	then
+		nombre_novideo=`cat /tmp/nombre_novideo`
+	fi
+	rm -f /tmp/nombre_novideo
+	if [ "$nombre_optionvideo" = "1" ]	# demarrage option xfce ou noxfce
+	then
+		if [ "$nombre_novideo" != "1" ]
+		then
+			nombre_video=1
+		fi
+	fi
+fi
+rm -f /tmp/nombre_optionvideo
+
+if [ "$nombre_novideo" = "1" ]	# demarrage avec option noxfce
+then
+      	oscar
+elif [ "$nombre_video" = "1" ]	# demarrage avec option xfce
+then
+	tty | grep 1 > /dev/null
+	if [ $? = 0 ] 
+	then
+		# tester_vitesse_lecture
+		run_oscar
+		oscar
+	fi
+else # demarrage sans option xfce ou noxfce
+	if [ "$defaut_video" = "graphique" ]	# demarrage xfce
+	then
+		tty | grep 1 > /dev/null
+		if [ $? = 0 ] 
+		then
+			run_oscar
+			oscar
+		fi
+	else
+		oscar
+	fi
+fi
+exit
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+eteindre_le_poste()
+{
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/infobox_1` " \
+	--infobox "\n\n\n`cat $chemin_langue/infobox_2`\n\n\n\n" 0 0
+	
+umount -a 2>/dev/null ; sync
+halt
+sleep 10
+exit
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+boite_sauver()
+{
+	# Mot de passe administrateur
+	rm -f /tmp/tempfile
+	verif=`cat /usr/share/oscar/bin/fichier_a  `
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/wordbox_1` " \
+	--passwordbox "\n\n`cat $chemin_langue/wordbox_2`\n " 0 0 2>/tmp/tempfile
+	reponse=`cat /tmp/tempfile`
+	rm -f /tmp/tempfile
+	if ( test -e $reponse )
+	then
+	    boite_depart
+	elif  [ $reponse = $verif ]
+	then
+	    echo "oscar" > /etc/oscar
+	    	# ci-dessous debut test provisoire pour EFI
+		runme tester_gpt_provisoire
+		# fin du test provisoire EFI qu'il faudra supprimer quand OK
+	    return
+	else
+	    boite_sauver
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+info_usb_demontee()
+{
+	# Clé USB démontée ou cederom
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/menu_289` " \
+	--infobox "\n\Z2 `cat $chemin_langue/menu_292` ... \n" 5 62
+}
+#----------------------------------------------------------------------------------------------------
+tourner_version_oscar()
+{
+	version_oscar
+	tourner_version_oscar
+	halt	
+}
+#----------------------------------------------------------------------------------------------------
+attendre_initialisation()
+{
+	for passe in . . .
+	do
+		sleep 2
+		echo -en "\033[1;31m $passe\033[1;m"
+	done
+}
+#----------------------------------------------------------------------------------------------------
+test_memoire_libre()
+{
+grep "MemFree" /proc/meminfo | cut -d":" -f2 > /tmp/test_memoire_vive
+perl -pi -e 's/ //g; s/kB//g;' /tmp/test_memoire_vive
+memoire_vive=`cat /tmp/test_memoire_vive`
+rm -f /tmp/test_memoire_vive
+memoire_vive=$[$memoire_vive]
+reste_memoire_vive=$[$memoire_vive-500]
+signe_negatif=`expr substr $reste_memoire_vive 1 1`
+if [ "$signe_negatif" = "-" ]
+then
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--ok-label "`cat $chemin_langue/Eteindre`"  \
+	--msgbox "\n\Zb\Z1  `cat $chemin_langue/texte_15b` ... " 7 30
+	case $? in
+		0) ;;
+		255) ;;
+	esac
+	halt
+fi
+}
+#----------------------------------------------------------------------------------------------------
+#                   BOUCLE PRINCIPALE
+#----------------------------------------------------------------------------------------------------
+main() # boucle principale
+{
+rm -f /tmp/fichier_disque_dur
+rm -f /tmp/tempofile
+rm -f ip_installe_poste
+rm -f /tmp/sortir
+rm -f /tmp/serveur_lance_pxe_pour_client
+rm -f /tmp/serveurs_lances
+rm -f /tmp/client_pxe
+rm -f /tmp/partage_tftpboot_serveur
+rm -f /tmp/tftpboot_partage
+rm -f /tmp/sauve_fsa
+rm -f /tmp/carte_ethi
+rm -f /tmp/sysprep_new_lance
+rm -fr /tmp/ssh_avant_restaure
+rm -f /etc/serveur_dhcp
+rm -f /etc/daemon_oscar_lance
+rm -f /etc/startx_lance
+rm -f /etc/serveur_pxe_lance
+rm -f /etc/conf.d/oscar.conf
+rm -f /etc/passage_oscar
+rm -f /etc/exports
+rm -f /etc/console_scribe_ssh_lance
+rm -f /etc/console_transfert_ssh_lance
+rm -fR /tmp/new_sysprep
+rm -fR /mnt/serveur_partage
+rm -fR /mnt/partage_nfs
+rm -fR /mnt/serveur_nfs
+
+rc-update del NetworkManager 1>/dev/null 2>/dev/null
+
+if ! ( test -e /etc/oscar_scribe )
+then
+	mkdir /etc/oscar_scribe 2>/dev/null
+fi
+rm -f /etc/oscar_scribe/filtre_internet_lance
+rm -f /etc/oscar_scribe/ip_oscar_scribe_defaut
+echo "" > /etc/controle_passage
+echo -e "\033[1;31m . \033[1;m"
+
+
+
+	### tenir compte du choix des menu de démarrage:
+tty | grep 1 > /dev/null
+if [ $? = 0 ] 
+then
+	rm -f /tmp/nombre_restaure
+	rm -f /tmp/nombre_docache
+	rm -f /tmp/nombre_client
+	rm -f /tmp/nombre_usb
+	rm -f /tmp/nombre_cdoscar
+	rm -f /tmp/nombre_net_progamme
+	rm -f /tmp/restaure_boot
+	
+	nombre_restaure=0
+	nombre_cdoscar=0
+	nombre_docache=0
+	nombre_client=0
+	nombre_usb=0
+	nombre_net_progamme=0
+	proc_cmdline=`cat /proc/cmdline`
+	echo "$proc_cmdline" > /tmp/proc_cmdline
+
+	grep -ci "menuoscar=restaure" /tmp/proc_cmdline > /tmp/nombre_restaure
+	grep -ci "docache" /tmp/proc_cmdline > /tmp/nombre_docache
+	grep -ci "menuoscar=client" /tmp/proc_cmdline > /tmp/nombre_client
+	grep -ci "usboscar" /tmp/proc_cmdline > /tmp/nombre_usb
+	grep -ci "cdoscar" /tmp/proc_cmdline > /tmp/nombre_cdoscar
+	grep -ci "menuoscar=net_programme" /tmp/proc_cmdline > /tmp/nombre_net_progamme
+	
+	if ( test -e /tmp/nombre_restaure )	# dans toutes les consoles
+	then
+		nombre_restaure=`cat /tmp/nombre_restaure`
+	fi
+	if ( test -e /tmp/nombre_cdoscar )
+	then
+		nombre_cdoscar=`cat /tmp/nombre_cdoscar`
+		if [ "$nombre_cdoscar" = "1" ]	# demarrage cdrom ou usb si cle realisee par sysresccd-installer.exe
+		then
+			grep -i "/livemnt/boot" /etc/mtab > /tmp/test_demarrage_usb_cdrom
+			grep -ci "/dev/sr" /tmp/test_demarrage_usb_cdrom > /tmp/nb_test_demarrage_usb_cdrom
+			rm -f /tmp/test_demarrage_usb_cdrom
+			if ( test -e /tmp/nb_test_demarrage_usb_cdrom )
+			then
+				nb_test_demarrage_usb_cdrom=`cat /tmp/nb_test_demarrage_usb_cdrom`
+				rm -f /tmp/nb_test_demarrage_usb_cdrom
+			fi
+			if [ "$nb_test_demarrage_usb_cdrom" = "1" ]	# demarrage cdrom sans cdcache
+			then
+				# pour tester demarrage cdrom on peut aussi verifier que /livemnt/boot/isolinux existe
+			      	nombre_cdoscar=`cat /tmp/nombre_cdoscar`
+			else	# demarrage usb realisee par sysresccd-installer.exe
+				if ( test -e /livemnt/boot/isolinux ) # demarrage cdrom
+				then
+					nombre_cdoscar=`cat /tmp/nombre_cdoscar`
+				else
+					nombre_usb=1
+					echo "1" > /tmp/nombre_usb
+					nombre_cdoscar=0
+					echo "0" > /tmp/nombre_cdoscar
+				fi
+			fi
+		fi
+	fi
+	if ( test -e /tmp/nombre_docache )
+	then
+		nombre_docache=`cat /tmp/nombre_docache`
+	fi
+	if ( test -e /tmp/nombre_client )
+	then
+		nombre_client=`cat /tmp/nombre_client`
+	fi
+	if ( test -e /tmp/nombre_usb )
+	then
+		nombre_usb=`cat /tmp/nombre_usb`
+	fi
+	if ( test -e /tmp/nombre_net_progamme )
+	then
+		nombre_net_progamme=`cat /tmp/nombre_net_progamme`
+	fi
+	
+	rm -f /etc/cdrom_ejecte
+	rm -f /etc/demarrage_usb
+	rm -f /etc/demarrage_cdrom
+	rm -f /etc/demarrage_cdcache
+	rm -f /etc/menuoscar_client
+	rm -f /etc/menuoscar_restaure
+	rm -f /etc/menuoscar_net_progamme
+	
+	if [ "$nombre_net_progamme" = "1" ]	# demarrage docache
+	then
+	      	echo "" > /etc/menuoscar_net_progamme
+	fi
+	if [ "$nombre_docache" = "1" ]	# demarrage docache
+	then
+	      	echo "" > /etc/demarrage_cdcache
+	fi
+	if [ "$nombre_cdoscar" = "1" ]	# demarrage cdrom
+	then
+	      	echo "" > /etc/demarrage_cdrom
+	fi
+	if [ "$nombre_restaure" = "1" ]	# demarrage docache
+	then
+	      	echo "" > /etc/menuoscar_restaure	# pour les autres consoles
+	fi
+	if [ "$nombre_usb" = "1" ]	# demarrage usb
+	then
+		echo "" > /etc/demarrage_usb
+		# installer langue
+		if ( test -e /mnt/cdrom/choix_langue )
+		then
+			cp -f /mnt/cdrom/choix_langue /usr/share/oscar/usr/
+		elif ! ( test -e /usr/share/oscar/usr/choix_langue )
+		then
+			echo "fr" > /usr/share/oscar/usr/choix_langue
+		fi
+		# installer langue clavier
+		if ( test -e /mnt/cdrom/choix_clavier )
+		then
+			cp -f /mnt/cdrom/choix_clavier /usr/share/oscar/usr/
+		elif ! ( test -e /usr/share/oscar/usr/choix_clavier )
+		then
+			echo "fr" > /usr/share/oscar/usr/choix_clavier
+		fi
+		
+	fi
+	if ( test -e /usr/share/oscar/usr/choix_langue )
+	then
+		choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+		traduction
+	else
+		echo "fr" > /usr/share/oscar/usr/choix_langue
+		choix_langue=fr
+		traduction
+	fi
+	chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+	if ! ( test -e /usr/share/oscar/usr/choix_clavier )
+	then
+		echo "fr" > /usr/share/oscar/usr/choix_clavier
+	fi
+	choix_clavier=`cat  /usr/share/oscar/usr/choix_clavier`
+	echo "XKEYBOARD=`cat  /usr/share/oscar/usr/choix_clavier`" > /etc/sysconfig/keyboard
+	
+	# fin de l'initialisation les autres consoles peuvent demarrer 6 s large
+	
+	test_memoire_libre
+	
+	if [ "$nombre_usb" = "1" ]	# demarrage usb
+	then
+		compatible_oscar_usb
+		if ( test -e /etc/demarrage_cdcache )
+		then
+			# cp -f /mnt/cdrom/* /usr/share/oscar/usb/ 2>/dev/null # seulement sysrcd.dat dans ce repertoire
+
+			# enregistre la clé usb
+			echo -e "\033[1;31m . . \033[1;m"
+			echo
+			if ! ( test -e /usr/share/oscar/usr/oscar_usb )
+			then
+				mkdir /usr/share/oscar/usr/oscar_usb
+			fi
+
+			# pour serveur pxe :
+			mount /dev/sdb1 /mnt/custom 2>/dev/null 1>/dev/null
+			if ( test -e /mnt/custom/syslinux )	# n'existe pas si client par pxe
+			then
+				# cp -R /mnt/custom/* /tftpboot/
+				cp -R /mnt/custom/boot /tftpboot/
+				cp -R /mnt/custom/bootdisk /tftpboot/
+				cp -R /mnt/custom/efi /tftpboot/
+				cp -R /mnt/custom/ntpasswd /tftpboot/
+				cp -R /mnt/custom/syslinux /tftpboot/
+				cp -fr /livemnt/boot/sysrcd.* /tftpboot/
+			fi
+			umount /mnt/custom 2>/dev/null ; sync	#	pour pouvoir enlever la clé
+			umount /mnt/cdrom 2>/dev/null ; sync
+			echo "" > /etc/cdrom_ejecte
+		fi
+	fi
+	
+	rm -f /tmp/nombre_client
+	rm -f /tmp/nombre_docache
+	rm -f /tmp/nombre_usb
+	rm -f /tmp/nombre_cdoscar
+	rm -f /tmp/proc_cmdline
+	rm -f /tmp/nombre_net_progamme
+	
+else	# pour les autres ecrans il faut recuperer les variables
+	attendre_initialisation	# 6 secondes
+
+	if ( test -e /usr/share/oscar/usr/choix_langue )
+	then
+		choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+		traduction
+	else
+		echo "fr" > /usr/share/oscar/usr/choix_langue
+		choix_langue=fr
+		traduction
+	fi
+	chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+	if ! ( test -e /usr/share/oscar/usr/choix_clavier )
+	then
+		echo "fr" > /usr/share/oscar/usr/choix_clavier
+	fi
+	choix_clavier=`cat  /usr/share/oscar/usr/choix_clavier`
+	echo "XKEYBOARD=`cat  /usr/share/oscar/usr/choix_clavier`" > /etc/sysconfig/keyboard
+fi
+#chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+if [ "$nombre_client" = "1" ]	# client_multi premiere console
+then	# lancer dans la premiere console
+    tty | grep 1 > /dev/null
+    if [ $? = 0 ] 
+    then
+	if ( test -e /etc/demarrage_usb )	# demarrage usb
+	then
+		if ( test -e /etc/demarrage_usb_sda )	# demarrage usb
+		then
+			eteindre_le_poste
+			umount -a 2>/dev/null ; sync
+			halt
+		fi
+		info_usb_demontee
+	fi
+	echo "" > /etc/menuoscar_client
+	lancer_avahi client
+	rm -f /tmp/sortir
+	umount -a 2>/dev/null ; sync
+	halt
+    fi
+elif [ "$nombre_restaure" = "1" ]	# premiere console
+then	# lancer dans la premiere console
+    tty | grep 1 > /dev/null
+    if [ $? = 0 ] 
+    then
+    	if [ "$nombre_usb" = "1" ]	# demarrage usb
+	then
+		if ( test -e /etc/demarrage_usb_sda )	# demarrage usb
+		then
+			eteindre_le_poste
+			umount -a 2>/dev/null ; sync
+			halt
+		fi
+		info_usb_demontee
+	fi
+	echo "" > /tmp/restaure_boot
+	info_image gerer_sauvegardes_rst # si plusieurs sauvegardes sur le poste
+        rm -f /tmp/restaure_boot
+        if ( test -e /tmp/sortir )
+        then
+		rm -f /tmp/sortir
+	else
+		rst
+		if ( test -e /tmp/sortir )
+		then
+	        	rm -f /tmp/sortir
+		fi
+        fi
+	rm -f /tmp/nombre_restaure
+	eteindre_le_poste
+	umount -a 2>/dev/null ; sync
+	halt
+    fi
+elif [ "$nombre_net_progamme" = "1" ]	# premiere console
+then	# lancer dans la premiere console
+    tty | grep 1 > /dev/null
+    if [ $? = 0 ] 
+    then
+	maj_boot_oscar net_programme
+	eteindre_le_poste
+	umount -a 2>/dev/null ; sync
+	halt
+    fi
+fi
+	#### fin des menus de démarrage
+#boite_depart remplacee par autoriser
+
+if ! ( test -e /etc/menuoscar_restaure )
+then
+	if ( test -e /etc/demarrage_cdrom ) || ( test -e /etc/demarrage_usb )	# pour les mots de passe cd
+	then
+		boite_depart # sur toutes les consoles
+	else # demarrage poste 
+		echo "oscar" > /etc/oscar
+		autoriser	# sur toutes les consoles
+	fi
+else	# lancer dans les autres consoles dans le cas restauration
+	if ! [ "$nombre_restaure" = "1" ]	# pas la premiere console
+	then
+		tourner_version_oscar
+	fi
+fi
+rm -f /tmp/historique
+rm -f /etc/partition_win_active_*	#initialise les répertoires win partagés
+}
+#---------------------------------------------------------------------------------------------------
+rm -f /tmp/sortir
+rm -f /tmp/demarrage_programme_serveur_pxe
+rm -f /tmp/serveur_nfs_non_premier_synchrone
+#  commandes externes de procédures
+case "$1" in
+    compatible_oscar_usb)
+	compatible_oscar_usb
+	exit 0
+	;;
+esac
+main

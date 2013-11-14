@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=XFBurn
+Comment=
+Icon=/root/icons/xfburn.png
+Exec=/usr/bin/xfburn
+Path=
+Terminal=false
+StartupNotify=false
+

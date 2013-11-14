@@ -1,0 +1,188 @@
+#!/bin/bash
+    
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+echo "Prêt à continuer apres change root ? "
+read p
+mkdir /var/tmp/catalyst
+ mkdir /var/tmp/catalyst/builds
+echo "stage3-i686-2006.1.tar.bz2 à copier pour catalyst: "
+echo "copier avec la souris;  cp stage3-i686-2006.1.tar.bz2 /var/tmp/catalyst/builds/ : "
+echo
+echo "faire ctrl_c pour cette copie"
+read p
+
+
+echo " Appuyer sur entrée pour installer env-update et source /etc/profile : "
+read p
+env-update
+source /etc/profile
+export PS1="(chroot) $PS1"
+emerge --metadata
+echo "les locales de glibc après avoir appuyer sur une touche choisir tous les US et FR"
+read p
+nano -w /etc/locale.gen
+echo
+locale-gen
+echo "Mot de passe root : ATTENTION au clavier si US m=, "
+echo
+ passwd
+
+echo "installer la date : 09152015352005"
+echo
+date
+echo " ? "
+read p
+echo
+echo "taper entrée pour choisir le type de clavier : KEYMAP= 'fr' :"
+read p
+nano /etc/conf.d/keymaps
+echo
+echo " configurer les options relatives à l'horloge CLOCK='local' :"
+echo "appuyer sur une touche ..."
+echo
+read p
+ nano  /etc/conf.d/clock
+
+echo "Mettre l'arbre de Portage à jour : emerge --sync"
+echo "appuyer sur une touche ..."
+read p
+ emerge --sync
+echo
+echo "Fuseau horaire : Paris -> /etc/localtime"
+echo
+ ln -sf /usr/share/zoneinfo/Europe/Paris /etc/localtime
+
+echo "Choisir un noyau : gentoo-source et genkernel "
+echo
+ USE="-doc symlink" emerge gentoo-sources
+ ls -l /usr/src/linux
+ emerge genkernel
+ zcat /proc/config.gz > /usr/share/genkernel/x86/kernel-config-2.6
+ls -l /usr/src/linux
+echo
+echo " verifier le lien /usr/src/linux ... "
+echo
+echo " appuyer sur une touche pour genkernel  all # --udev:"
+echo
+read p
+echo
+ # genkernel --udev all
+ genkernel all
+
+echo
+echo " fin genkernel puis emerge coldplug etc... : "
+echo
+emerge coldplug
+ rc-update add coldplug boot
+echo
+echo "installer dhcp: "
+echo
+ emerge dhcp
+ emerge dhcpcd
+ rc-update add net.eth0 default
+ echo "iface_eth0=\"dhcp\"" >> /etc/conf.d/net
+ echo "iface_eth1=\"dhcp\"" >> /etc/conf.d/net
+ echo "iface_eth2=\"dhcp\"" >> /etc/conf.d/net
+ echo "iface_eth3=\"dhcp\"" >> /etc/conf.d/net
+ echo "iface_eth4=\"dhcp\"" >> /etc/conf.d/net
+ echo "dhcpcd_eth0=\"-t 6\"" >> /etc/conf.d/net
+ echo
+ echo "installe pcmcia-cs: "
+ echo
+ USE="-X" emerge pcmcia-cs
+ rc-update add pcmcia default
+ 
+ emerge links
+ emerge dialog
+ 
+ emerge syslog-ng
+ rc-update add syslog-ng default
+echo
+echo "Outils du système de fichiers :"
+echo
+ emerge xfsprogs
+ emerge reiserfsprogs
+ emerge jfsutils
+echo
+echo "Pour retrouver un fichier :"
+echo
+ emerge slocate
+echo
+echo "Outils utiles pour le boot :"
+echo
+ emerge syslinux
+ emerge mbr
+ echo
+echo "Outils utiles pour emerge et gentoo :"
+echo
+ emerge gentoolkit
+
+ 
+echo "Outils pour serveur TFTP :"
+echo
+ emerge netkit-tftp
+# USE="-X -lib" emerge pxes
+echo
+echo "pour nfs installer portmap"
+ rc-update add portmap default
+echo
+echo
+echo "installer la souris."
+echo
+ emerge gpm
+### si la souris n'est pas installée essayer les 2 lignes suivantes:
+# echo "MOUSE=imps" >> /etc/conf.d/gpm
+# echo "MOUSEDEV=/dev/psaux" >> /etc/conf.d/gpm
+  rc-update add gpm default
+echo
+echo
+echo "installer le son."
+emerge alsa-utils
+echo
+echo
+echo "installer les chargeurs de démarrage."
+echo
+ emerge grub
+ emerge lilo
+echo
+echo "installer catalyst"
+echo
+ emerge catalyst
+ emerge squashfs-tools
+ emerge cdrtools #( pour installer mkisofs ))
+ emerge dvd+rw-tools
+
+ emerge mc
+ emerge eject
+
+echo
+echo "installation du repertoire de personalisation du livecd:"
+echo
+ mkdir /root/livecd
+echo "Installation du fichier de config du noyau :"
+echo
+echo "ATTENTION .config de la partition catalyst de x86 pas i686 cp /usr/src/linux/linux-2.6.16-gentoo-r5/.config /root/livecd/config-2.6.14 "
+echo " ici avec le lien: cp /usr/src/linux/.config /root/livecd/config-2.6.16_i686 "
+echo
+echo "Au prochain démarrage créer le portage :"
+echo "cd /root/livecd"
+echo
+echo " Au prochain démarrage lancer catalyst: catalyst -s 20060501  voir la date du fichier portage.tar 'latest' "
+echo 
+echo "le fichier sera installé dans : /mnt/gentoo/var/tmp/catalyst/snapshots/portage-20060501.tar.bz2 "
+echo
+echo "si tout va bien installer les fichiers du répertoire /livecd..."
+echo
+echo "faire le fichier grub.conf dans /mnt/sda6/boot/grub/ partition de boot"
+echo "sans oublier le fichier /etc/fstab "
+echo "Lire la liste des modules chargés est dans le fichier /etc/modules.autoload.d/kernel-2.6"
+#mkdir /mnt/sda6
+#mount /dev/sda6 /mnt/sda6 -t ext3
+echo
+echo "Puis pour finir démonter: umount /mnt/sda6 "
+echo "faire exit et cd puis umount /mnt/gentoo/boot /mnt/gentoo/dev /mnt/gentoo/proc /mnt/gentoo"
+

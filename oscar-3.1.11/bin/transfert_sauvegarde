@@ -1,0 +1,786 @@
+#!/bin/sh
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+#----------------------------------------------------------------------------------------------------
+boucle_partition() # sortir la partition dans la reponse
+{
+	rm -f /tmp/tempfile
+	echo "$type" > /tmp/tempfile
+	runme prepare_boucle_partition
+	nombretype=`cat /tmp/nombre`
+	rm -f /tmp/nombre
+
+numero=0
+cp -f /tmp/tempfile /tmp/temp_ligne_deux_points
+rm -f /tmp/tempfile
+until  ( test  $numero = $nombretype )
+    do
+	rm -f /tmp/temp_ligne_deux_points1
+#	rm -f /tmp/partfile1
+	numero=$[$numero+1]
+	cut -d":" -f$numero /tmp/temp_ligne_deux_points > /tmp/temp_ligne_deux_points1	#hdaiii
+#	cut -d":" -f$numero /tmp/partfile > /tmp/partfile1	#ide/h0/b0/t0/l0/hdaiii
+	reponse=`cat /tmp/temp_ligne_deux_points1`
+	reparti=$reponse
+	rm -f /tmp/temp_ligne_deux_points1
+	numero_hd=`expr substr $reponse 4 3`
+	disque=`expr substr $reponse 1 3`       #hda
+#	disque=`cut -d/ -f1-5 /tmp/partfile1`/disc	#ide/h0/b0/t0/l0/disc
+#	rm -f /tmp/partfile1
+        if [ "$type" = "fat32" ]
+	then
+		partition_vfat_trouvee=oui
+		rm -f /tmp/temp_ligne_deux_points
+	#	rm -f /tmp/partfile
+		return 1
+	fi
+        if [ "$type" = "linux" ]
+	then
+        	# id_type=`sfdisk /dev/$disque -c $numero_hd 2>/dev/null`
+		grep -i $reponse /tmp/fichier_disque_dur | grep -c Linux > /tmp/nb_partition_linux
+	        nb_partition_linux=`cat /tmp/nb_partition_linux`
+	        rm -f /tmp/nb_partition_linux
+		if [ "$nb_partition_linux" = "1" ] # partition linux pas swap linux
+		then
+			echo "$reponse" > /tmp/monter_partition
+			runme autoriser_monter_partition_oscar
+			partition_linux=`cat /tmp/monter_partition`
+			rm -f /tmp/monter_partition
+			
+		        if ( test -e $partition_linux/image.partimage.000 )        ## sauvegarde dans ancienne version
+		        then
+			        rm -f partition_de_sauvegarde
+			        echo "$reponse" > partition_de_sauvegarde
+			        changement_version_oscar changement_partition_sauvegarde
+		        fi
+		        if ( test -e $partition_linux/oscar/image.partimage.000 ) || ( test -e $partition_linux/oscar/image.ntfs.00 ) || ( test -e $partition_linux/oscar/image_dar.1.dar ) || ( test -e $partition_linux/oscar/image_fsa.fsa )
+		        then
+			        image_trouvee=oui
+		 		rm -f /tmp/temp_ligne_deux_points
+		#		rm -f /tmp/partfile
+			        return 1
+		        fi
+			umount $partition_linux 2>/dev/null ; sync
+		fi
+	fi
+    done
+rm -f /tmp/tempfile
+# rm -f /tmp/partfile
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+#	Recherche d'une image
+#----------------------------------------------------------------------------------------------------
+cherche_image()		# recherche sur le disque dur la partition où se trouve l'image
+{
+type="linux"
+image_trouvee=non
+boucle_partition
+
+if [ "$image_trouvee" = "oui" ]
+then
+	echo "$partition_linux : monté linux" >> /tmp/historique
+	partition_image=$reponse
+	return 1
+fi
+}
+#  fin de recherche de l'image
+#-----------------------------------------------------------------------------------------------------
+#	Recherche partition fat32
+#-----------------------------------------------------------------------------------------------------
+cherche_partition_fat32()		# recherche sur le disque dur la partition fat32
+{
+type="fat32"
+partition_vfat_trouvee=non
+boucle_partition
+
+if [ "$partition_vfat_trouvee" = "oui" ]
+then
+	if [ "$nombretype" = "1" ]
+	then
+		repertoire_vfat_sauvegarde=$reponse
+		return 1
+	else
+	repertoire_vfat_sauvegarde=plus
+	fi
+else
+boite_non_partition_fat32
+fi
+}
+#  fin de recherche de partition fat32
+#-----------------------------------------------------------------------------------------------------
+boites_gravage()
+{
+	# Utilitaire de préparation du gravage de la sauvegarde
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors  \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Continuer`" --cancel-label "`cat $chemin_langue/Voir` sauvegarde_oscar" \
+	--title " `cat $chemin_langue/menu_488` " \
+	--menu "`cat /tmp/fichiertmp2`" 10 80 0  \
+	"" "\Z2`cat $chemin_langue/menu_379` : \Zn " \
+	"" "" \
+	"" "\Zb\Z4`cat $chemin_langue/menu_489` : \Zn " \
+	"" "\Z2$partition_affichee_sauvegarde \Zn " \
+	"" "" \
+	"" ""
+      case $? in
+	    0)	rm -f /tmp/fichiertmp
+		rm -f /tmp/fichiertmp2
+		rm -f /tmp/fichiertmp3
+		;;
+	    1)  dialog  --colors --backtitle "`cat /etc/banniere_oscar`" \
+			--title " \Z2 \Zn `cat $chemin_langue/selection_1` \Z2\Zn " \
+			--exit-label "`cat $chemin_langue/Retour`" --textbox "/tmp/fichiertmp" 0 0
+	    	boites_gravage;;
+	    255) rm -f /tmp/fichiertmp
+		rm -f /tmp/fichiertmp2
+		rm -f /tmp/fichiertmp3
+		;;
+	esac 
+}
+#-----------------------------------------------------------------------------------------------------
+#
+#-----------------------------------------------------------------------------------------------------
+boite_non_partition_fat32()
+{
+	rm -f /tmp/fichiertmp
+	dialog --colors --no-shadow --backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Continuer`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--msgbox "\n\n\Zb\Z1  `cat $chemin_langue/recapitule_10` ...\Zn " 9 66
+        rm -f /tmp/fichiertmp
+        exit
+}
+#-----------------------------------------------------------------------------------------------------
+boite_partition_transfert() # selectionner toutes les partitions sauf oscar swap et Ext
+{
+	runme prepare_fichier_temptaille
+	rm -f /tmp/bozo
+	if ! [ "$partition_linux" = "" ]
+	then
+	    partition_oscar=`expr substr $partition_linux 6 6`
+	else
+	    partition_oscar=rien_du_tout
+	fi
+	egrep -e "^/dev" /tmp/fichier_disque_dur | grep -v "$partition_oscar" |  grep -v "extended" | grep -v "swap" | grep -v "Ext'" | grep -v "Extended" | \
+	perl -pi -e 's/\*//g;  s/\+/ /g; s/\-/ /g; s/  /:/g; s/:+/:/g;' | \
+	awk 'BEGIN { FS=" " } { printf ("%0s %15s %25s\n","\""$1"\" \"",$2,$3"\" \\")}' > /tmp/bozo
+	if [ "$partition_oscar" = "rien_du_tout" ]
+	then
+		partition_oscar=
+	fi
+	runme boite_selection_bozo
+}
+#----------------------------------------------------------------------------------------------------
+boite_partition_sauvegardee() # selectionner seulement les partitions linux non swap
+{
+	runme prepare_fichier_temptaille
+	rm -f /tmp/bozo
+	egrep -e "^/dev" /tmp/fichier_disque_dur | grep -v "$reponse" |  grep -v "extended" | grep -v "W95 Ext'd" | grep -v "swap" | \
+	perl -pi -e 's/\*//g;  s/\+/ /g; s/\-/ /g; s/  /:/g; s/:+/:/g;' | \
+	awk 'BEGIN { FS=" " } { printf ("%0s %15s %25s\n","\""$1"\" \"",$2,$3"\" \\")}' >> /tmp/bozo
+
+	runme boite_selection_bozo
+}
+#----------------------------------------------------------------------------------------------------
+demander_partition_a_sauvegarder_ancien()	#si pas de fichier $partition_linux/oscar/partition_sauvegardee
+{
+	rm -f /tmp/menu_titre
+	rm -f /tmp/menu_texte
+	rm -f /tmp/fichierquestion
+
+	echo " `cat $chemin_langue/selection_7` " > /tmp/menu_titre
+	echo "" > /tmp/menu_texte
+	echo "`cat $chemin_langue/selection_8` \Zb\Z2$reponse\Zn:\n\n " > /tmp/fichierquestion
+	echo "`cat $chemin_langue/selection_9`" >> /tmp/fichierquestion
+	boite_partition_sauvegardee
+	if ( test -e /tmp/sortir )
+	        then
+	        rm -f /tmp/sortir
+	        exit
+	fi
+	
+	rm -f /tmp/menu_titre
+	rm -f /tmp/menu_texte
+	rm -f /tmp/fichierquestion
+
+	perl -pi -e 's/\/dev\///g;' /tmp/tempfile
+	base=`cat /tmp/tempfile`	# hdaiii
+	rm -f /tmp/tempfile
+}
+#-----------------------------------------------------------------------------------------------------
+boite_demande_cle_usb()
+{
+	runme prepare_fichier_temptaille
+	rm -f /tmp/bozo
+
+        # couleurs
+	runme colorier_selection_info
+ 	cp -f /tmp/couleurs_info /tmp/bozo
+ 	rm -f /tmp/couleurs_info
+
+	# Copier la sauvegarde vers une partition
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`" --ok-label "`cat $chemin_langue/menu_483`" \
+	--extra-button --extra-label "`cat $chemin_langue/menu_484`" \
+	--title " `cat $chemin_langue/menu_485` " \
+	--menu "\n\Zn`cat /tmp/bozo`" 0 0 0 \
+	"" "\Z2`cat $chemin_langue/menu_486` :  " \
+	"" "\Z2`cat $chemin_langue/menu_487` \Zb\Z4< `cat $chemin_langue/menu_484` >  "
+      case $? in
+	    0)	rm -f /tmp/bozo	# sur partition vue
+		return;;
+	    1)	rm -f /tmp/bozo
+	        exit;;
+	    3)	rm -f /tmp/bozo	# sur autre cle USB
+		echo
+		runme lecture_connecteur_usb
+		boite_demande_cle_usb
+		return;;
+			
+	    255) rm -f /tmp/bozo
+		exit;;
+	esac
+}
+#----------------------------------------------------------------------------------------------------
+nettoyer_fin()
+{
+	rm -f /tmp/sortir
+	rm -f /tmp/partition_oscar_sauvegarde
+	rm -f /tmp/fichier_disque_dur
+	rm -f /tmp/partition_linux_oscar_sauvegarde
+	rm -f /tmp/une_seule_image_trouvee
+	rm -f /tmp/partition_possible_sauvegarde
+	rm -f /tmp/sauvegarde_trouvee
+	rm -f /tmp/nouvelle_sauvegarde
+	rm -f /tmp/incrementer_sauvegarde
+	rm -f /tmp/pas_repertoire_oscar_par_defaut
+	rm -f /tmp/recup_sauvegarde_lance
+	rm -f /tmp/sauvegarde_trouvee_apres_gerer
+	exit
+}
+#-----------------------------------------------------------------------------------------------------
+boite_non_sauvegarde()
+{
+rm -f /tmp/fichiertmp
+	dialog --colors --no-shadow --backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Continuer`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--msgbox "\n\n`cat $chemin_langue/msgbox_2` " 9 63
+rm -f /tmp/fichiertmp
+nettoyer_fin
+}
+#-----------------------------------------------------------------------------------------------------
+boite_nouveau_repertoire()
+{
+        rm -f /tmp/tempfile
+        # nouveau repertoire de transfert
+        DIALOGRC="/etc/dialogrc" dialog --colors \
+        --backtitle "`cat /etc/banniere_oscar`" \
+        --cancel-label "`cat $chemin_langue/Annuler`"  --title " `cat $chemin_langue/inputbox_40a` " \
+        --inputbox "\n\n\Zb\Z2`cat $chemin_langue/inputbox_40b` :" 12 60 2>/tmp/tempfile
+	 case $? in
+            0)  partition_vfat=$chemin_transfert/`cat /tmp/tempfile`
+		echo "$partition_vfat" > /tmp/temp_nouveau_repertoire
+		perl -pi -e 's/\/\//\//g; s/ /_/g;' /tmp/temp_nouveau_repertoire
+		partition_vfat=`cat /tmp/temp_nouveau_repertoire`
+		mkdir $partition_vfat
+                rm -f /tmp/temp_nouveau_repertoire
+		rm -f /tmp/tempfile
+                return ;;
+            1)  rm -f /tmp/tempfile
+		return ;;
+            255) rm -f /tmp/tempfile
+                return ;;
+        esac
+}
+#----------------------------------------------------------------------------------------------------
+selection_repertoire_transfert()	# boite selection du repertoire $chemin_transfert
+{
+	echo "$partition_vfat/" > /tmp/temp_nouveau_repertoire
+	perl -pi -e 's/\/\//\//g;' /tmp/temp_nouveau_repertoire
+	partition_vfat=`cat /tmp/temp_nouveau_repertoire`
+        rm -f /tmp/temp_nouveau_repertoire
+
+	rm -f /tmp/tempfile
+	# Sélectionnez le REPERTOIRE de transfert
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/menu_548a` " \
+	--ok-label "`cat $chemin_langue/Valider`" --cancel-label "`cat $chemin_langue/Annuler`" \
+	--help-button --help-label "`cat $chemin_langue/Aide`" \
+	--fselect $partition_vfat 14 80 2>/tmp/tempfile
+	case $? in
+	    0)	chemin_transfert=`cat /tmp/tempfile`
+		rm -f /tmp/tempfile
+		# Répertoire de sauvegarde de la table des partitions
+		DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--title " `cat $chemin_langue/menu_410` " \
+		--ok-label "`cat $chemin_langue/Accepter`" --cancel-label "`cat $chemin_langue/Nouveau`" --extra-button \
+		--extra-label "`cat $chemin_langue/Modifier`" \
+		--help-button --help-label "`cat $chemin_langue/Annuler`" \
+		--menu "\n\Zb\Z3  `cat $chemin_langue/menu_549a`\n\n" 10 80 0  \
+		"" "" \
+		"" "" \
+		"" "`cat $chemin_langue/menu_550` : \Z2$chemin_transfert" \
+		"" "" \
+		"" "" \
+		"" ""
+		case $? in
+	        0) # Valider
+	        if ! ( test -e $chemin_transfert )
+	        then
+	        	selection_repertoire_transfert
+	        fi
+		chemin_transfert=$chemin_transfert/
+		echo "$chemin_transfert" > /tmp/tempo_chemin_transfert
+		perl -pi -e 's/\/\//\//g;' /tmp/tempo_chemin_transfert
+		chemin_transfert=`cat /tmp/tempo_chemin_transfert`
+		rm -f /tmp/tempo_chemin_transfert
+	    	;;
+		3) selection_repertoire_transfert
+		;;
+		1) # nouveau
+		boite_nouveau_repertoire
+		selection_repertoire_transfert
+		;;
+		2) exit;;
+		255) exit;;
+		esac
+		;;
+	    1) 	rm -f /tmp/tempfile
+		exit;;
+	    2)  # aide
+	        DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--title " `cat $chemin_langue/Navigation` " \
+		--msgbox "\n\n`cat $chemin_langue/menu_550a`\n\n" 9 75
+	        selection_repertoire_transfert
+		;;
+	    255) rm -f /tmp/tempfile 
+		 exit;;
+	esac
+	
+	echo "$chemin_transfert" > /tmp/temp_nouveau_repertoire
+	perl -pi -e 's/\/\//\//g;' /tmp/temp_nouveau_repertoire
+	partition_vfat=`cat /tmp/temp_nouveau_repertoire`
+        rm -f /tmp/temp_nouveau_repertoire
+	
+	if ! ( test -e $partition_vfat/sauvegarde_oscar )
+	then
+		mkdir $partition_vfat/sauvegarde_oscar
+	else
+		if ( test -e $partition_vfat/sauvegarde_oscar/partition_sauvegardee )
+		then
+			if ( test -e $partition_vfat/sauvegarde_oscar/commentaire_oscar.txt )
+			then
+				commentaire=`cat $partition_vfat/sauvegarde_oscar/commentaire_oscar.txt`
+			else
+				commentaire=$partition_vfat/sauvegarde_oscar
+			fi
+
+			# demander si on ecrase la sauvegarde
+			rm -f /tmp/tempfile
+			DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+			--title " `cat $chemin_langue/menu_410` " \
+			--backtitle "`cat /etc/banniere_oscar`" \
+			--yes-label "`cat $chemin_langue/Ecraser`" --no-label "`cat $chemin_langue/menu_349` ... " \
+			--yesno "\n\Zb\Z4`cat $chemin_langue/menu_550b` :\n\n \Z2$commentaire \n\n" 9 70
+			case $? in
+			        0) # Ecraser
+			    	;;
+				1) # Enregistrer sous ...
+				boite_nouveau_repertoire
+				selection_repertoire_transfert
+				;;
+				255) 
+				selection_repertoire_transfert
+				;;
+			esac
+		fi
+	fi
+}
+#----------------------------------------------------------------------------------------------------
+bargraphe_transferer_sauvegarde_oscar()
+{
+fin_transfert_oscar=non
+pourcentage_transfert=0
+valeur_fin_transfert=0
+while [ "$valeur_fin_transfert" != 1 ]
+do
+	sleep 4
+	# taille des fichiers transferes
+	ls -s $partition_vfat/sauvegarde_oscar/$image_transferee.* | awk '{print $1 "+" }' > /tmp/liste_transfert	# par ligne : valeur
+	perl -pi -e 's/ //g;' /tmp/liste_transfert
+	taille_fichiers_transferes=`cat /tmp/liste_transfert`1-1
+	rm -f /tmp/liste_transfert
+	taille_fichiers_transferes=$[$taille_fichiers_transferes]
+
+	pourcentage_transfert=$[100*$taille_fichiers_transferes/$taille_fichiers_transfert]
+
+	if ( test -e /tmp/fin_transfert_oscar )
+	then
+		valeur_fin_transfert=1
+		pourcentage_transfert=100
+		rm -f /tmp/fin_transfert_oscar
+	fi
+	pourcentage_transfert=$[$pourcentage_transfert]
+	echo $pourcentage_transfert
+done | DIALOGRC="/etc/dialogmenu_bloque" dialog --colors\
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/infobox_25` " \
+	--gauge "\Zb\Z3  `cat $chemin_langue/infobox_22`" 13 60
+}
+#-----------------------------------------------------------------------------------------------------
+transfert_sauvegarde_oscar()
+{
+rm -f /tmp/fin_transfert_oscar
+cp -f $partition_linux/oscar/$image_transferee.* $partition_vfat/sauvegarde_oscar
+echo "" > /tmp/fin_transfert_oscar
+}
+#-----------------------------------------------------------------------------------------------------
+calculer_taille_fichiers_transferes()
+{
+if ( test -e $partition_linux/oscar/image.partimage.000 )
+then
+	image_transferee=image.partimage
+elif ( test -e $partition_linux/oscar/image.ntfs.00 )
+then
+	image_transferee=image.ntfs
+elif ( test -e $partition_linux/oscar/image_dar.1.dar )
+then
+	image_transferee=image_dar
+elif ( test -e $partition_linux/oscar/image_fsa.fsa )
+then
+	image_transferee=image_fsa
+fi
+ls -s $partition_linux/oscar/$image_transferee.* | awk '{print $1 "+" }' > /tmp/liste_transfert	# par ligne : valeur
+perl -pi -e 's/ //g;' /tmp/liste_transfert
+taille_fichiers_transfert=`cat /tmp/liste_transfert`1-1
+rm -f /tmp/liste_transfert
+taille_fichiers_transfert=$[$taille_fichiers_transfert]
+}
+#-----------------------------------------------------------------------------------------------------
+recherche_partition_oscar_a_copier()
+{
+info_image gerer_sauvegardes_transfert
+if ( test -e /tmp/sortir )
+then
+	nettoyer_fin
+fi
+if ( test -e /tmp/sauvegarde_trouvee )
+then
+	sauvegarde_trouvee=`cat /tmp/sauvegarde_trouvee`
+	if [ "$sauvegarde_trouvee" = "non_linux" ] || [ "$sauvegarde_trouvee" = "non" ]
+	then
+		boite_non_sauvegarde
+	elif [ "$sauvegarde_trouvee" = "une_seule_sauvegarde_possible" ]
+	then
+		partition_linux=`cat /tmp/partition_possible_sauvegarde`
+	else
+	        if ( test -e /tmp/linux_sauvegarde_choisie )
+	        then
+			partition_linux=`cat /tmp/linux_sauvegarde_choisie`
+			rm -f /tmp/linux_sauvegarde_choisie
+		fi
+		
+		echo "" > /tmp/transfert_sauvegarde_lance
+		sauve chercher_partition_linux_a_installer_transfert
+		rm -f /tmp/transfert_sauvegarde_lance
+		if ( test -e /tmp/sortir )
+	        then
+			nettoyer_fin
+	        fi
+	        
+	        partition_linux=`cat /tmp/partition_linux_transferer`
+		rm -f /tmp/partition_linux_transferer
+
+	fi
+fi
+
+echo "$partition_linux" > /tmp/temp1
+perl -pi -e s'/\/mnt\///g' /tmp/temp1
+partition_linux=`cat /tmp/temp1`
+rm -f /tmp/temp1
+echo "$partition_linux" > /tmp/monter_partition
+runme autoriser_monter_partition_oscar
+partition_linux=`cat /tmp/monter_partition`
+rm -f /tmp/monter_partition
+}
+#-----------------------------------------------------------------------------------------------------
+copier_autres_fichiers_definissant_sauvegarde()
+{
+cp -f $partition_origine_oscar/date_de_sauvegarde $partition_destination_oscar/
+cp -f $partition_origine_oscar/partition_sauvegardee $partition_destination_oscar/
+cp -f $partition_origine_oscar/taille_partition_* $partition_destination_oscar/
+
+if ( test -e $partition_origine_oscar/version_oscar )
+then	
+	cp -f $partition_origine_oscar/version_oscar $partition_destination_oscar/
+fi
+if ( test -e $partition_origine_oscar/liste_postes_sysprep )
+then	
+	cp -f $partition_origine_oscar/liste_postes_sysprep $partition_destination_oscar/
+fi
+if ( test -e $partition_origine_oscar/sauvegarde_* )
+then
+	cp -f $partition_origine_oscar/sauvegarde_* $partition_destination_oscar/
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+#		Ecrire sur Fat32 ou Linux ou NTFS les fichiers de sauvegarde
+#-----------------------------------------------------------------------------------------------------
+#   permet le gravage sous windows
+
+#  commandes externes de procédures
+case "$1" in
+	recherche_partition_oscar_a_copier)
+		recherche_partition_oscar_a_copier
+		echo "$partition_linux" > /tmp/partition_oscar_a_copier
+		exit 0
+	;;
+	nettoyer_fin)
+		nettoyer_fin
+		exit 0
+	;;
+	copier_autres_fichiers_definissant_sauvegarde)
+		partition_origine_oscar=`cat /tmp/partition_origine_oscar`
+		partition_destination_oscar=`cat /tmp/partition_destination_oscar`
+		rm -f /tmp/partition_origine_oscar
+		rm -f /tmp/partition_destination_oscar
+		copier_autres_fichiers_definissant_sauvegarde
+		exit 0
+	;;
+esac
+
+if ! ( test -e /etc/cdrom_ejecte )
+then
+	if ( test -e /etc/demarrage_cdcache )
+	then
+		echo "" > /etc/cdrom_ejecte	# cd ejecte
+		# umount /mnt/cdrom 2>/dev/null  ; sync
+		eject
+	fi
+fi
+	recherche_partition_oscar_a_copier
+	
+        boite_demande_cle_usb
+	if (test -e /tmp/sortir )
+	then
+		nettoyer_fin
+	fi
+	
+		# Partition de copie de sauvegarde
+		rm -f /tmp/fichier_disque_dur
+		echo " `cat $chemin_langue/menu_481` " > /tmp/menu_titre
+		echo "" > /tmp/menu_texte
+		echo "\Zb\Z2`cat $chemin_langue/menu_482` :\n " > /tmp/fichierquestion
+		echo "\Zn`cat $chemin_langue/selection_64`" >> /tmp/fichierquestion
+		boite_partition_transfert
+		rm -f /tmp/fichierquestion
+		rm -f /tmp/menu_titre
+		rm -f /tmp/menu_texte
+		if ( test -e /tmp/sortir )
+		then
+			nettoyer_fin
+		fi
+		perl -pi -e 's/\/dev\///g;' /tmp/tempfile
+		repertoire_vfat_sauvegarde=`cat /tmp/tempfile`
+
+		#	fi
+
+		numero_sd=`expr substr $repertoire_vfat_sauvegarde 4 3`
+		disque=`expr substr $repertoire_vfat_sauvegarde 1 3`       		#sda
+		runme info_ddialog
+	        # id_type=`sfdisk /dev/$disque -c $numero_sd 2>/dev/null`
+	        grep -i $repertoire_vfat_sauvegarde /tmp/fichier_disque_dur | grep -ci ntfs > /tmp/nb_partition_ntfs
+		nb_partition_ntfs=`cat /tmp/nb_partition_ntfs`
+		rm -f /tmp/nb_partition_ntfs
+		if [ "$nb_partition_ntfs" = "1" ] # partition ntfs
+		then
+			echo "ntfs" > /tmp/besoin_type
+		fi
+		echo "$repertoire_vfat_sauvegarde" > /tmp/monter_partition
+		runme autoriser_monter_partition_oscar
+		partition_vfat=`cat /tmp/monter_partition` # aussi partition ntfs ou linux
+		rm -f /tmp/monter_partition
+		rm -f /tmp/besoin_type
+		
+		selection_repertoire_transfert
+		
+		## transfert mbr
+		rm -f $partition_vfat/sauvegarde_oscar/table_partitions.mbr
+		rm -f $partition_vfat/sauvegarde_oscar/table_partitions.sf
+		rm -f $partition_vfat/sauvegarde_oscar/disque_boot
+		
+		### si ancienne version sauver les fichiers MBR table de partitions
+		if ! ( test -e $partition_linux/oscar/table_partitions.mbr )
+		then
+			### cherche le disque boot
+			### cherche la table de partition du disque boot si plusieurs * demander le disque de démarrage
+			disque_partition_sauvegardee=`cat $partition_linux/oscar/partition_sauvegardee`
+			disque_boot=`expr substr $disque_partition_sauvegardee 1 3`       		#sda
+			
+			#	il faudra verifier si besoin de runme cherche_disque_boot pour les variables
+			#	echo "sauve_transfert" > /tmp/texte_mbr
+			#	runme cherche_disque_boot
+			#	if ( test -e /tmp/sortir )
+			#	then
+			#		rm -f /tmp/sortir
+			#		exit
+			#	fi
+			#	disque_boot=`cat /tmp/disque_boot`	# ide/h0/b0/t0/l0/disc
+			
+			echo "$disque_boot" >  $partition_vfat/sauvegarde_oscar/disque_boot
+	
+			dd if=/dev/$disque_boot of=$partition_vfat/sauvegarde_oscar/table_partitions.mbr count=1 bs=512 2>/dev/null
+			# sfdisk -d /dev/$disque_boot > $partition_vfat/sauvegarde_oscar/table_partitions.sf 2>/dev/null
+			echo "$disque_boot" > /tmp/disque_table_sauvegarder_sf
+			runme sauver_table_partition_sf
+			cp -f /tmp/disque_table_sauvegarder_sf $partition_vfat/sauvegarde_oscar/table_partitions.sf
+			rm -f /tmp/disque_table_sauvegarder_sf
+		else
+			cp -f $partition_linux/oscar/table_partitions.mbr $partition_vfat/sauvegarde_oscar/table_partitions.mbr
+			cp -f $partition_linux/oscar/table_partitions.sf $partition_vfat/sauvegarde_oscar/table_partitions.sf
+			if ( test -e $partition_linux/oscar/disque_boot )
+			then
+				cp -f $partition_linux/oscar/disque_boot $partition_vfat/sauvegarde_oscar/disque_boot
+			fi
+		fi
+		
+
+		rm -f $partition_vfat/sauvegarde_oscar/date_de_sauvegarde
+		rm -f $partition_vfat/sauvegarde_oscar/partition_sauvegardee
+		rm -f $partition_vfat/sauvegarde_oscar/taille_partition_*
+		rm -f $partition_vfat/sauvegarde_oscar/sauvegarde_*
+		rm -f $partition_vfat/sauvegarde_oscar/image.partimage.*
+		rm -f $partition_vfat/sauvegarde_oscar/image.ntfs.*
+		rm -f $partition_vfat/sauvegarde_oscar/image_dar.*
+		rm -f $partition_vfat/sauvegarde_oscar/image_fsa.*
+		rm -f $partition_vfat/sauvegarde_oscar/commentaire_oscar.txt
+		rm -f $partition_vfat/sauvegarde_oscar/version_oscar
+		rm -f $partition_vfat/sauvegarde_oscar/liste_postes_sysprep
+		
+		
+		if ( test -e $partition_linux/oscar/commentaire_oscar.txt )
+		then
+			cp -f $partition_linux/oscar/commentaire_oscar.txt $partition_vfat/sauvegarde_oscar
+		fi
+		partition_origine_oscar=$partition_linux/oscar
+		partition_destination_oscar=$partition_vfat/sauvegarde_oscar
+		copier_autres_fichiers_definissant_sauvegarde
+
+		# Transfert des fichiers sauvegardés
+		calculer_taille_fichiers_transferes
+	 	transfert_sauvegarde_oscar &
+		bargraphe_transferer_sauvegarde_oscar
+		
+		cp -f /usr/share/oscar/usr/recuperer_sauvegarde_oscar.txt $partition_vfat/sauvegarde_oscar
+	
+		rm -f /tmp/fichiertmp
+		echo " " >> /tmp/fichiertmp
+		if [ "$partition_vfat" = "" ]
+		then
+			repertoire_vfat=/
+		else
+			repertoire_vfat=$partition_vfat
+		fi
+		
+		echo "`df $repertoire_vfat | grep "$repertoire_vfat_sauvegarde"`" > /tmp/toutes_les_valeurs
+		grep -i "dev" /tmp/toutes_les_valeurs > /tmp/toutes_les_valeurs1
+		
+		valeur1=`awk '{print$2}' /tmp/toutes_les_valeurs1`
+		valeur2=`awk '{print$3}' /tmp/toutes_les_valeurs1`
+		valeur3=`awk '{print$5}' /tmp/toutes_les_valeurs1`
+			
+		rm -f /tmp/toutes_les_valeurs
+		rm -f /tmp/toutes_les_valeurs1
+		
+		#	valeur1=`df $repertoire_vfat | grep "$repertoire_vfat_sauvegarde" | awk '{print$2}'`
+		#	valeur2=`df $repertoire_vfat | grep "$repertoire_vfat_sauvegarde" | awk '{print$3}'`
+		#	valeur3=`df $repertoire_vfat | grep "$repertoire_vfat_sauvegarde" | awk '{print$5}'`
+		
+		valeur1=$[valeur1/1024]
+		valeur2=$[valeur2/1024]
+		valeur2=$[valeur1-valeur2]
+		echo " " >> /tmp/fichiertmp
+		echo "`cat $chemin_langue/repertoire_1` $partition_vfat/sauvegarde_oscar, `cat $chemin_langue/repertoire_2` $valeur3 : " >> /tmp/fichiertmp
+		echo " " >> /tmp/fichiertmp
+		echo "$valeur2 Mo `cat $chemin_langue/repertoire_3` $valeur1 Mo " >> /tmp/fichiertmp
+		echo " " >> /tmp/fichiertmp
+		ls $partition_vfat/sauvegarde_oscar >> /tmp/fichiertmp
+		echo " " >> /tmp/fichiertmp
+
+		echo "$partition_vfat/sauvegarde_oscar" > /tmp/fichiertmp2
+		perl -pi -e 's/\/\//\//g;' /tmp/fichiertmp2
+		partition_affichee_sauvegarde=`cat /tmp/fichiertmp2`
+		rm -f /tmp/fichiertmp2
+		echo  "\n\Zb\Z3 `cat $chemin_langue/menu_480a` \n " >> /tmp/fichiertmp2
+		echo " " >> /tmp/fichiertmp2
+	
+		rm -f /tmp/fichiertmp3
+		echo " " >> /tmp/fichiertmp3
+			if [ "$partition_vfat" = "" ]
+		then
+			repertoire_vfat=/
+		else
+			repertoire_vfat=$partition_vfat
+		fi
+		
+		echo "`df $repertoire_vfat | grep "$repertoire_vfat_sauvegarde"`" > /tmp/toutes_les_valeurs
+		grep -i "dev" /tmp/toutes_les_valeurs > /tmp/toutes_les_valeurs1
+		
+		valeur1=`awk '{print$2}' /tmp/toutes_les_valeurs1`
+		valeur2=`awk '{print$3}' /tmp/toutes_les_valeurs1`
+		valeur3=`awk '{print$5}' /tmp/toutes_les_valeurs1`
+			
+		rm -f /tmp/toutes_les_valeurs
+		rm -f /tmp/toutes_les_valeurs1
+
+		#	valeur1=`df $repertoire_vfat | grep "$repertoire_vfat_sauvegarde" | awk '{print$2}'`
+		#	valeur2=`df $repertoire_vfat | grep "$repertoire_vfat_sauvegarde" | awk '{print$3}'`
+		#	valeur3=`df $repertoire_vfat | grep "$repertoire_vfat_sauvegarde" | awk '{print$5}'`
+		
+		valeur1=$[valeur1/1024]
+		valeur2=$[valeur2/1024]
+		valeur2=$[valeur1-valeur2]
+		echo " " >> /tmp/fichiertmp3
+		echo "`cat $chemin_langue/repertoire_1` $partition_vfat, `cat $chemin_langue/repertoire_2` $valeur3 : " >> /tmp/fichiertmp3
+		echo " " >> /tmp/fichiertmp3
+		echo "$valeur2 Mo `cat $chemin_langue/repertoire_3` $valeur1 Mo " >> /tmp/fichiertmp3
+		echo " " >> /tmp/fichiertmp3
+		ls $partition_vfat >> /tmp/fichiertmp3
+		echo " " >> /tmp/fichiertmp3
+
+		perl -pi -e 's/\/\//\//g;' /tmp/fichiertmp
+		
+		boites_gravage
+		#	if ( test -e /tmp/montage_cle_usb )
+		#	then
+		umount $partition_vfat 2>/dev/null ; sync
+		umount -a 2>/dev/null ; sync
+		#	fi
+######################################
+#	else
+#		boite_non_sauvegarde
+#	fi
+######################################
+	nettoyer_fin

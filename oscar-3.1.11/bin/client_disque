@@ -1,0 +1,236 @@
+#!/bin/sh
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+## noyau 2.6:
+## remplacer runme par runme
+
+
+#----------------------------------------------------------------------------------------------------
+recevoir_table_partitions() # recevoir en synchrone la table des partitions du disques hd et sd à cloner du serveur 
+{
+echo -e "`cat $chemin_langue/texte_35` :\033[1;m"
+	
+	rm -f disque_boot
+	cut -f4 -d"," fichiers_depart_recept > disque_boot
+	hd_boot=`cat disque_boot`
+	cp -f disque_boot /tmp/disque_client
+	rm -f disque_boot
+
+	cut -f5 -d"," fichiers_depart_recept > /tmp/taille_disque_envoye
+
+	##################
+	if ( test -e /dev/evms/$hd_boot )
+	then
+	    evms_oscar="evms/"
+	else
+	    evms_oscar=
+	fi
+	##################
+
+	if ! ( test -e /dev/$evms_oscar$hd_boot )
+	then
+		# texte_mauvais_cablage_disque
+		serveur_disque choisir_disque_maitre
+		hd_boot=`cat /tmp/disque`	# sda
+		rm -f /tmp/disque
+		if ( test -e /tmp/sortir )
+		then
+		    rm -f /tmp/sortir
+		    exit
+		fi
+	fi
+	
+
+
+rm -f fichiers_depart_recept	# n'est plus utile
+
+	client_clone controler_taille_disque_client
+	if ( test -e /tmp/sortir )
+	then
+		rm -f /tmp/sortir
+		exit
+	fi
+
+	rm -f table_partitions.mbr
+	echo
+	udp-receiver -f table_partitions.mbr --nokbd --mcast-rdv-address `cat /tmp/ip_mcast_rdv` --portbase 9020 --interface `cat /tmp/carte_ethi`
+	clear
+	echo
+	echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+	echo
+	echo -e " ..."
+	rm -f table_partitions.sf
+	echo
+	udp-receiver -f table_partitions.sf --nokbd --mcast-rdv-address `cat /tmp/ip_mcast_rdv` --portbase 9020 --interface `cat /tmp/carte_ethi`
+	clear
+	echo
+	echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+	echo
+	echo -e " ..."
+	rm -f /tmp/fichier_disque_dur_serveur
+	echo
+	udp-receiver -f /tmp/fichier_disque_dur_serveur --nokbd --mcast-rdv-address `cat /tmp/ip_mcast_rdv` --portbase 9020 --interface `cat /tmp/carte_ethi`
+	clear
+	echo
+	echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+	echo
+	echo -e " ..."
+	
+#  danger!!! ici tue le poste:
+	echo
+	echo -e " `cat $chemin_langue/texte_33` ..."
+	echo
+	# sfdisk -f /dev/$evms_oscar$hd_boot < table_partitions.sf 2>/dev/null 1>/dev/null	# il est oblogatoire après d'attendre 5 secondes pour continuer
+	echo "$evms_oscar$hd_boot" > /tmp/disque_installer_table_sf
+	cp -f table_partitions.sf /tmp/fichier_installer_table_sf
+	runme installer_table_partition_sf 2>/dev/null 1>/dev/null
+	sleep 6 # obligatoire après l'installation de la table des partitions
+	dd if=table_partitions.mbr of=/dev/$evms_oscar$hd_boot 2>/dev/null
+	sleep 8 # obligatoire après le mbr
+}
+#-----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+test_demarrage_cdrom() ## si oscar est démarré sur le poste ne pas utiliser cette commande si un seul disque
+{
+if ! ( test -e /etc/demarrage_usb ) ## le poste n'est pas démarré avec la clé USB OSCAR !! voir si cela convient toujours pour l'ordre des disques et clé de démarrage
+then
+	if ! ( test -e /etc/demarrage_cdrom ) ## le poste est démarré avec client_multi de multi_lilo voir depart
+	then
+		DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--title " `cat $chemin_langue/DESOLE` " \
+		--ok-label "`cat $chemin_langue/Continuer`"  \
+		--msgbox "`cat $chemin_langue/nocederom`" 17 78
+		case $? in
+		    0) 	exit;;
+		    255) exit;;
+		esac
+	fi
+fi
+}
+#----------------------------------------------------------------------------------------------------
+eteindre_ordinateur() 
+{
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/infobox_1` " \
+	--infobox "\n\n\n`cat $chemin_langue/infobox_2`" 9 58
+	
+rm -f /tmp/fichiertemp
+for passe in 8 7 6 5 4 3 2 1 STOP
+do
+    sleep 1
+    echo -en "\033[1;31m  > $passe\033[1;m"
+done
+if ( test -e /etc/cdrom_ejecte )
+then
+	eject -t
+fi
+  halt
+sleep 10
+exit
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+#		CLIENT à CLONER reçois l'intégralité d'un disque_maitre
+#-----------------------------------------------------------------------------------------------------
+#   reçois l'intégralité d'un disque_maitre d'un SERVEUR à CLONER
+PATH="/usr/share/oscar/bin:$PATH"
+
+/usr/share/oscar/usr/version_theme_oscar
+
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+# 	#	à voir peut-être: test_demarrage_cdrom	
+	
+# cherche_nombre_disque
+
+	if ! ( test -e /etc/demarrage_cdrom ) ## le poste est démarré avec client_multi de multi_lilo voir depart
+	then
+		test_demarrage_cdrom
+	fi
+
+	poste=`cat /tmp/numero_poste`
+	client=$poste
+	ip_transfert=`cat /tmp/ip_poste_client`
+	ip_serveur=`cat /tmp/ip_serveur`
+	rm -f /tmp/ip_poste_client
+	rm -f /tmp/ip_serveur
+	chemin_oscar=`cat /tmp/chemin_oscar_serveur`
+
+	echo
+	echo -e "`cat $chemin_langue/texte_36` :\033[1;m"
+	echo
+	
+	rm -f fichiers_depart_recept
+	echo -en "\033[1;31m"
+	udp-receiver -f fichiers_depart_recept --nokbd --mcast-rdv-address `cat /tmp/ip_mcast_rdv` --portbase 9020 --interface `cat /tmp/carte_ethi`
+	clear
+	echo
+	echo -e "\033[1;34m  `cat $chemin_langue/inputbox_26` \033[1;32m$ip_serveur:$chemin_oscar \033[1;m"
+	echo
+	echo -e " ..."
+	echo
+
+	rm -f ctrl_serveur
+	cut -f1 -d"," fichiers_depart_recept > ctrl_serveur
+	commande_serveur=`cat ctrl_serveur`
+	rm -f ctrl_serveur
+	
+	rm -f disque_maitre
+	cut -f2 -d"," fichiers_depart_recept > disque_maitre
+	disque_maitre=`cat disque_maitre`
+	
+	rm -f ctrl_client
+	if ! [ "$commande_serveur" = "serveur_disq" ]
+	then
+		echo "client_disq" > ctrl_client
+		boite_erreur_client_synchrone
+		rm -f fichiers_depart_recept
+		rm -f disque_maitre
+		rm -f table_partitions.mbr
+		rm -f table_partitions.sf
+		exit
+	fi
+
+	rm -f disque_boot
+	cut -f3 -d"," fichiers_depart_recept > disque_boot
+	test_disque_boot=`cat disque_boot`
+	rm -f disque_boot
+	if [ "$test_disque_boot" = "disque_boot" ]
+	then
+		recevoir_table_partitions
+		client_clone formater_disque
+	fi
+	rm -f disque_maitre
+	rm -f table_partitions.mbr
+	rm -f table_partitions.sf
+	
+	## f4 est pris pour le disque boot
+	
+	echo
+	echo
+	echo -e "`cat $chemin_langue/texte_6`"
+	echo
+	udp-receiver --file /dev/$disque_maitre --nokbd --mcast-rdv-address `cat /tmp/ip_mcast_rdv` --portbase 9020 --interface `cat /tmp/carte_ethi`
+	clear
+	echo
+	echo -e " ..."
+	### en asynchrone utiliser la commande :
+	### dd if=/dev/sda of=/dev/sdb conv=notrunc,noerror
+	echo
+	eteindre_ordinateur
+
+

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Encoding=UTF-8
+Type=Application
+Name=OSCAR
+Comment=OSCAR
+Exec=/usr/share/oscar/bin/lancer_oscar_dans_terminal
+Hidden=false

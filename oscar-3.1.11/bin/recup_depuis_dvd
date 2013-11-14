@@ -1,0 +1,687 @@
+#!/bin/sh
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+PATH="/usr/share/oscar/bin:$PATH"
+if ( test -e /usr/share/oscar/usr/choix_langue )
+then
+	choix_langue=`cat /usr/share/oscar/usr/choix_langue`
+else
+	echo "fr" > /usr/share/oscar/usr/choix_langue
+	choix_langue=fr
+	traduction
+fi
+chemin_langue=/usr/share/oscar/usr/langue/$choix_langue
+
+#----------------------------------------------------------------------------------------------------
+boucle_partition() # sortir la partition dans la reponse
+{
+	rm -f /tmp/tempfile
+	echo "$type" > /tmp/tempfile
+	runme prepare_boucle_partition
+	nombretype=`cat /tmp/nombre`
+	rm -f /tmp/nombre
+
+numero=0
+cp -f /tmp/tempfile /tmp/temp_ligne_deux_points
+rm -f /tmp/tempfile
+until  ( test  $numero = $nombretype )
+    do
+	rm -f /tmp/temp_ligne_deux_points1
+#	rm -f /tmp/partfile1
+	numero=$[$numero+1]
+	cut -d":" -f$numero /tmp/temp_ligne_deux_points > /tmp/temp_ligne_deux_points1	#hdaiii
+#	cut -d":" -f$numero /tmp/partfile > /tmp/partfile1	#ide/h0/b0/t0/l0/hdaiii
+	reponse=`cat /tmp/temp_ligne_deux_points1`
+	reparti=$reponse
+	rm -f /tmp/temp_ligne_deux_points1
+	numero_hd=`expr substr $reponse 4 3`
+	disque=`expr substr $reponse 1 3`       #hda
+#	disque=`cut -d/ -f1-5 /tmp/partfile1`/disc	#ide/h0/b0/t0/l0/disc
+#	rm -f /tmp/partfile1
+
+        if [ "$type" = "linux" ]
+	then
+		# id_type=`sfdisk /dev/$disque -c $numero_hd 2>/dev/null`
+		grep -i $reponse /tmp/fichier_disque_dur | grep -c Linux > /tmp/nb_partition_linux
+	        nb_partition_linux=`cat /tmp/nb_partition_linux`
+	        rm -f /tmp/nb_partition_linux
+		if [ "$nb_partition_linux" = "1" ] # partition linux pas swap linux
+		then
+			partition_linux_trouvee=oui
+			#if ! ( test -e /mnt/$reponse )
+			#	then	mkdir /mnt/$reponse
+			#fi
+			echo "$reponse" > /tmp/monter_partition
+			runme autoriser_monter_partition_oscar
+			partition_linux=`cat /tmp/monter_partition`
+			rm -f /tmp/monter_partition
+
+			if ( test -e $partition_linux/image.partimage.000 )	## sauvegarde dans ancienne version
+			then
+	                        rm -f partition_de_sauvegarde
+	                        echo "$reponse" > partition_de_sauvegarde
+	                        changement_version_oscar changement_partition_sauvegarde
+			fi
+			if ( test -e $partition_linux/oscar/image.partimage.000 )
+			then
+				image_trouvee=oui
+		 		rm -f /tmp/temp_ligne_deux_points
+	#			rm -f /tmp/partfile	
+				return
+			fi
+			umount	$partition_linux 2>/dev/null ; sync
+		fi
+	fi
+    done
+rm -f /tmp/tempfile
+# rm -f /tmp/partfile
+}
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+#	Recherche d'une image
+#----------------------------------------------------------------------------------------------------
+cherche_partition_linux()		# recherche sur le disque dur la partition linux et son image
+{
+type="linux"
+partition_linux_trouvee=non
+image_trouvee=non
+boucle_partition
+
+if [ "$image_trouvee" = "oui" ]
+then
+	partition_image=$reponse
+	return 1
+fi
+if [ "$partition_linux_trouvee" = "oui" ] # donc sans image
+then
+	if [ "$nombretype" = "1" ]
+	then
+	
+	
+		echo "$reponse" > /tmp/monter_partition
+		runme autoriser_monter_partition_oscar
+		partition_image_linux=`cat /tmp/monter_partition`
+		rm -f /tmp/monter_partition
+
+		partition_image=$reponse
+			if ! ( test -e $partition_image_linux/oscar )
+			then
+				mkdir $partition_image_linux/oscar
+			fi
+		return 1
+	else
+		partition_image=plus
+	fi
+else
+	boite_non_partition_linux
+fi
+}
+#  fin de recherche de l'image ou partition linux
+#-----------------------------------------------------------------------------------------------------
+#	Recherche sauvegarde DVD
+#-----------------------------------------------------------------------------------------------------
+cherche_sauvegarde_cdrom()
+{
+#	if ( test -e /tmp/sortir )
+#	then return
+#	fi
+
+	if ! ( test -e /mnt/cdrom/sauvegarde_oscar )
+	then
+		demontage_cdrom
+		boite_non_image_cdrom
+		if (test -e /tmp/sortir )
+		then
+			return
+		fi	
+	fi
+}
+#-----------------------------------------------------------------------------------------------------
+boites_fin_recup()
+{
+	rm -f /tmp/fichiertmp
+	echo " " >> /tmp/fichiertmp
+	
+	echo "`df $partition_image_linux | grep "$partition_image"`" > /tmp/toutes_les_valeurs
+	grep -i "dev" /tmp/toutes_les_valeurs > /tmp/toutes_les_valeurs1
+	
+	valeur1=`awk '{print$2}' /tmp/toutes_les_valeurs1`
+	valeur2=`awk '{print$3}' /tmp/toutes_les_valeurs1`
+	valeur3=`awk '{print$5}' /tmp/toutes_les_valeurs1`
+		
+	rm -f /tmp/toutes_les_valeurs
+	rm -f /tmp/toutes_les_valeurs1
+
+	#	valeur1=`df $partition_image_linux | grep "$partition_image" | awk '{print$2}'`
+	echo "$valeur1" > /tmp/tempfile
+	echo `gawk '{ print $1 ":" } ' /tmp/tempfile` > /tmp/tempfile1
+	cut -d":" -f1 /tmp/tempfile1 > /tmp/tempfile
+	valeur1=`cat /tmp/tempfile`
+	#	valeur2=`df $partition_image_linux | grep "$partition_image" | awk '{print$3}'`
+	echo "$valeur2" > /tmp/tempfile
+	echo `gawk '{ print $1 ":" } ' /tmp/tempfile` > /tmp/tempfile1
+	cut -d":" -f1 /tmp/tempfile1 > /tmp/tempfile
+	valeur2=`cat /tmp/tempfile`
+	#	valeur3=`df $partition_image_linux | grep "$partition_image" | awk '{print$5}'`
+	echo "$valeur3" > /tmp/tempfile
+	echo `gawk '{ print $1 ":" } ' /tmp/tempfile` > /tmp/tempfile1
+	cut -d":" -f1 /tmp/tempfile1 > /tmp/tempfile
+	valeur3=`cat /tmp/tempfile`
+	rm -f /tmp/tempfile
+	rm -f /tmp/tempfile1
+	valeur1=$[$valeur1/1024]
+	valeur2=$[$valeur2/1024]
+	valeur2=$[$valeur1-$valeur2]
+	echo " " >> /tmp/fichiertmp
+	echo "`cat $chemin_langue/repertoire_1` $partition_image_linux/oscar, `cat $chemin_langue/repertoire_2` $valeur3 : " >> /tmp/fichiertmp
+	echo " " >> /tmp/fichiertmp
+	echo "$valeur2 Mo `cat $chemin_langue/repertoire_3` $valeur1 Mo " >> /tmp/fichiertmp
+	echo " " >> /tmp/fichiertmp
+	ls $partition_image_linux/oscar >> /tmp/fichiertmp
+	echo " " >> /tmp/fichiertmp
+
+	# Utilitaire de récupération de la sauvegarde
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors  \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--ok-label "`cat $chemin_langue/Continuer`" --no-cancel \
+	--extra-button --extra-label "`cat $chemin_langue/menu_466`" \
+	--title " `cat $chemin_langue/menu_467` " \
+	--menu "\n\Zb\Z3 `cat $chemin_langue/menu_468` \Z4\\sauvegarde_oscar\Z3\Zn\n " 10 80 0  \
+	"" "\Zb\Z1`cat $chemin_langue/menu_469` : \Zn " \
+	"" "" \
+	"" "\Zb\Z2`cat $chemin_langue/menu_470` :" \
+	"" "\Z4 $partition_image_linux/oscar \Zn " \
+	"" "" \
+	"" "\Zb\Z2`cat $chemin_langue/menu_471` \Zb\Z7restaure\Zn. " \
+	"" "" \
+	"" ""
+      case $? in
+	    0)	rm -f /tmp/fichiertmp
+		;;
+	    3)  # Fichiers récupérés installés
+	    	dialog  --colors --backtitle "`cat /etc/banniere_oscar`" \
+			--title " \Z2 \Zn `cat $chemin_langue/menu_472` \Z2\Zn " \
+			--exit-label "`cat $chemin_langue/Retour`" --textbox "/tmp/fichiertmp" 0 0
+	    	boites_fin_recup;;
+	    255) rm -f /tmp/fichiertmp
+		;;
+	esac 
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+boite_non_partition_linux()
+{
+	# Il n'y a pas de partition \Zn\Z2Linux\Zb\Z1 de sauvegarde
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`" --ok-label "`cat $chemin_langue/menu_465`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--menu "\n\Zb\Z3     `cat $chemin_langue/menu_464` :\n " 10 80 0 \
+	"" "" \
+	"" "\Zb`cat $chemin_langue/msgbox_55`\Zn " \
+	"" ""
+      case $? in
+	    0)	# installer
+		montage_cdrom
+		if ! ( test -e /mnt/cdrom/sauvegarde_oscar/table_partitions.mbr )
+		then
+			boite_non_image_cdrom
+		fi
+		if ( test -e /tmp/sortir )
+	        then
+			nettoyer_fin
+	        fi
+
+		### cherche le disque boot
+		echo "recup_depuis_dvd" > /tmp/texte_mbr
+		runme cherche_disque_boot
+	        if ( test -e /tmp/sortir )
+	        then
+			nettoyer_fin
+	        fi
+		hd_boot=`cat /tmp/disque_boot`	# ide/h0/b0/t0/l0/disc
+	
+		# 	echo " danger!!! ici tue le poste: "
+		dd if=/mnt/cdrom/sauvegarde_oscar/table_partitions.mbr of=/dev/$hd_boot 2>/dev/null
+		# sfdisk -f /dev/$hd_boot < /mnt/cdrom/sauvegarde_oscar/table_partitions.sf 2>/dev/null # il est oblogatoire après d'attendre 5 secondes pour continuer
+		echo "$hd_boot" > /tmp/disque_installer_table_sf
+		cp -f /mnt/cdrom/sauvegarde_oscar/table_partitions.sf /tmp/fichier_installer_table_sf
+		runme installer_table_partition_sf
+		echo
+		echo -e "\033[1;32m `cat $chemin_langue/texte_17` ...\033[1;m"
+		echo
+		sleep 2 # obligatoire après l'installation de la table des partitions
+		runme formater_ligne_partitions_vfat_gpt
+
+		cherche_partition_linux
+	        if ( test -e /tmp/sortir )
+	        then
+			nettoyer_fin
+	        fi
+		# formate $partition_image_linux
+		umount $partition_image_linux 2>/dev/null ; sync
+		
+		#	danger ici formate Linux:
+
+                fsck /dev/$partition_image -N > /tmp/fs_type
+	        grep -ci "reiserfs" /tmp/fs_type > /tmp/nb_fstype
+		valeur=`cat /tmp/nb_fstype`
+    		if [ "$valeur" = "1" ] # partition ReiserFS
+	        then
+			echo
+	        	echo -e " `cat $chemin_langue/texte_16` \033[1;34m$partition_image \033[1;m`cat $chemin_langue/en` \033[0;32mLinux ReiserFS\033[1;m "
+			echo
+                    	mkfs.reiserfs -f /dev/$partition_image 2>/dev/null
+                    	mount -t reiserfs /dev/$partition_image $partition_image_linux
+	        else
+		        grep -ci "xfs" /tmp/fs_type > /tmp/nb_fstype
+        		valeur=`cat /tmp/nb_fstype`
+	                if [ "$valeur" = "1" ] # partition XFS
+		        then
+    	    			echo
+                		echo -e " `cat $chemin_langue/texte_16` \033[1;34m$partition_image \033[1;m`cat $chemin_langue/en` \033[0;32mLinux XFS\033[1;m "
+				echo
+                	        mkfs.xfs -f /dev/$partition_image
+                	        mount -t xfs /dev/$partition_image $partition_image_linux
+			else
+			        grep -ci "jfs" /tmp/fs_type > /tmp/nb_fstype
+	        		valeur=`cat /tmp/nb_fstype`
+		                if [ "$valeur" = "1" ] # partition JFS
+			        then
+	    	    			echo
+	                		echo -e " `cat $chemin_langue/texte_16` \033[1;34m$partition_image \033[1;m`cat $chemin_langue/en` \033[0;32mLinux JFS\033[1;m "
+					echo
+	                	        mkfs.jfs -q /dev/$partition_image
+	                	        mount -t jfs /dev/$partition_image $partition_image_linux
+				else
+					grep -ci "ext4" /tmp/fs_type > /tmp/nb_fstype
+		        		valeur=`cat /tmp/nb_fstype`
+			                if [ "$valeur" = "1" ] # partition ext4
+				        then
+				       		echo
+		            			echo -e " `cat $chemin_langue/texte_16` \033[1;34m$partition_image \033[1;m`cat $chemin_langue/en` \033[0;32mLinux ext4\033[1;m "
+						echo
+			            		mkfs.ext4 -vF /dev/$partition_image
+			            		mount -t ext4 /dev/$partition_image $partition_image_linux
+			            	else
+			            		grep -ci "reiser4" /tmp/fs_type > /tmp/nb_fstype
+						valeur=`cat /tmp/nb_fstype`
+				    		if [ "$valeur" = "1" ] # partition Reiser4
+					        then
+							echo
+					        	echo -e " `cat $chemin_langue/texte_16` \033[1;34m$partition_image \033[1;m`cat $chemin_langue/en` \033[0;32mLinux Reiser4\033[1;m "
+							echo
+				                    	mkfs.reiser4 -f /dev/$partition_image 2>/dev/null
+				                    	mount -t reiser4 /dev/$partition_image $partition_image_linux
+					        else  # autres cas ext3 et ext2
+			        		        echo
+			            			echo -e " `cat $chemin_langue/texte_16` \033[1;34m$partition_image \033[1;m`cat $chemin_langue/en` \033[0;32mLinux ext3\033[1;m "
+							echo
+				            		mkfs.ext3 -vF /dev/$partition_image
+				            		mount -t ext3 /dev/$partition_image $partition_image_linux
+				            	fi
+		            		fi
+		            	fi
+	            	fi
+		fi
+		rm -f /tmp/fs_type
+		rm -f /tmp/nb_fstype
+		mkdir $partition_image_linux/oscar
+		return;;
+	    1)	# annuler
+	        nettoyer_fin
+		;;
+	    255) nettoyer_fin
+	        ;;
+	esac
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+boite_non_image_cdrom()
+{
+	if ( test -e /tmp/sortir )
+	then
+		return
+	fi
+	demontage_cdrom
+	
+	# Il n'y a pas de répertoire sauvegarde_oscar sur ce disque
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/Annuler`" --ok-label "`cat $chemin_langue/menu_463`" \
+	--extra-button --extra-label "`cat $chemin_langue/Continuer`" \
+	--title " `cat $chemin_langue/DESOLE` " \
+	--menu "\n\Zb\Z3     `cat $chemin_langue/menu_464` :\n " 10 75 0 \
+	"" "" \
+	"" "\Zb\Z1`cat $chemin_langue/menu_473` sauvegarde_oscar `cat $chemin_langue/menu_474` ...\Zn " \
+	"" "" \
+	"" "\Zb\Z2`cat $chemin_langue/menu_475` " \
+	"" ""
+      case $? in
+	    0)	# sur autre disque
+		montage_cdrom
+		cherche_sauvegarde_cdrom
+		if ! ( test -e /mnt/cdrom/sauvegarde_oscar )
+		then
+			boite_non_image_cdrom
+		fi
+		return;;
+	    1)	# annuler
+	        nettoyer_fin
+	        ;;
+	    3)	# continuer
+		rm -f /tmp/sortir
+		echo " " > /tmp/sortir
+		return;;
+			
+	    255) nettoyer_fin
+	         ;;
+	esac
+}
+#-----------------------------------------------------------------------------------------------------
+boite_partition_linux() # selectionner seulement les partitions linux
+{
+	runme prepare_fichier_temptaille
+	rm -f /tmp/bozo
+	egrep -e "^/dev" /tmp/fichier_disque_dur | grep "Linux" | grep -v "swap" |  grep -v "extended" | \
+	perl -pi -e 's/\*//g;  s/\+/ /g; s/\-/ /g; s/  /:/g; s/:+/:/g;' | \
+	awk 'BEGIN { FS=" " } { printf ("%0s %15s %25s\n","\""$1"\" \"",$2,$3"\" \\")}' > /tmp/bozo
+
+	runme boite_selection_bozo
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+boite_couleurs_exec_sauve()
+{
+perl -pi -e 's/FAT32/\\Z4FAT32\\Zn+/g; \
+s/NTFS/\\Z4NTFS\\Zn+/g; \
+s/Linux/\\Z2Linux\\Zn+/g; \
+s/\+ / /g; s/\+/ /g;' /tmp/exec_dialog
+#perl -pi -e 's/Extended/Extended /g;' /tmp/exec_dialog
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+test_demarrage_cdrom_sans_cdcache() ## si oscar est démarré avec le cdrom sans cdcache ne pas utiliser cette commande
+{
+if ( test -e /root/sysresccd-pkg.txt )	# démarrage cd sysrcd avec ou sans option cdcache ou démarrage sur le poste si sysrcd
+then	# menu pour sysrcd:
+	docache=docache
+else
+	docache=docache
+fi
+
+if ( test -e /etc/demarrage_cdrom )	## le poste est démarré sans option cdcache
+then	## seulement les fichiers OSCAR
+	if ! ( test -e /etc/demarrage_cdcache )
+	then
+		# sans l'option \Zb\Z1$docache
+		DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+		--backtitle "`cat /etc/banniere_oscar`" \
+		--title " `cat $chemin_langue/DESOLE` " \
+		--ok-label "`cat $chemin_langue/Continuer`"  \
+		--msgbox "\n\n \Zb\Z1`cat $chemin_langue/ATTENTION` : \Zn \n\n \
+		\Zn\Z2`cat $chemin_langue/msgbox_75` \Zb\Z1$docache \n\n \
+		`cat $chemin_langue/msgbox_27`. \n\n\n" 14 80
+		case $? in
+		    0) 	exit;;
+		    255) exit;;
+		esac
+	fi
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+demontage_cdrom()
+{
+umount /mnt/cdrom 2>/dev/null  ; sync
+eject
+
+if ! ( test -e /etc/cdrom_ejecte )
+then
+	echo "" > /etc/cdrom_ejecte	# cd ejecte
+	echo "/mnt/cdrom : démonté " >> /tmp/historique
+fi
+}
+#-----------------------------------------------------------------------------------------------------
+montage_cdrom()
+{
+	eject -t
+	rm -f /tmp/monter_partition
+	echo "cdrom" > /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	rm -f /tmp/monter_partition
+}
+#-----------------------------------------------------------------------------------------------------
+copie_sauvegarde()
+{
+if ( test -e /tmp/sortir )
+then
+	return
+fi
+if [ "$premiere_fois" = "oui" ]
+then
+	premiere_fois=non
+fi
+
+if ( test -e /mnt/cdrom/sauvegarde_oscar )
+then
+	echo "/mnt/cdrom/sauvegarde_oscar" > /tmp/partition_origine_oscar
+	echo "$partition_image_linux/oscar" > /tmp/partition_destination_oscar
+	if ! [ "$nouveau_commentaire_txt" = "oui" ]
+	then
+		if ( test -e /mnt/cdrom/sauvegarde_oscar/commentaire_oscar.txt )
+		then
+			cp -f /mnt/cdrom/sauvegarde_oscar/commentaire_oscar.txt $partition_image_linux/oscar/commentaire_oscar.txt
+		fi
+	fi
+	transfert_sauvegarde copier_autres_fichiers_definissant_sauvegarde
+
+	if ( test -e /mnt/cdrom/sauvegarde_oscar/table_partitions.mbr )
+	then
+		cp -f /mnt/cdrom/sauvegarde_oscar/table_partitions.mbr $partition_image_linux/oscar
+	fi
+	if ( test -e /mnt/cdrom/sauvegarde_oscar/table_partitions.sf )
+	then
+		cp -f /mnt/cdrom/sauvegarde_oscar/table_partitions.sf $partition_image_linux/oscar
+	fi
+fi
+	#	echo
+	#	echo -e "\033[1;34m`cat $chemin_langue/texte_76` \033[0;32m$partition_image_linux/oscar\033[1;32m : "
+	#	echo
+	#	echo -e "`cat $chemin_langue/texte_6`"
+	#	echo -e "\033[1;31m `cat $chemin_langue/Patience` ...\033[1;m"
+ 
+# Récupération des fichiers sauvegardés
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--title " `cat $chemin_langue/menu_497` " \
+	--infobox "`cat $chemin_langue/infobox_22`" 13 60
+
+
+if ( test -e /mnt/cdrom/sauvegarde_oscar/image* )
+then
+	cp -f /mnt/cdrom/sauvegarde_oscar/image* $partition_image_linux/oscar
+fi
+
+echo "\Zb\Z2`cat $chemin_langue/texte_77` \Z3/sauvegarde_oscar\Z2" > /tmp/temptexte
+echo "\Zb\Z2`cat $chemin_langue/texte_78`" > /tmp/temptexte1
+boite_demande_cdrom
+}
+#-----------------------------------------------------------------------------------------------------
+boite_demande_cdrom()
+{
+	if ( test -e /tmp/sortir )
+	then
+		return
+	fi
+
+	demontage_cdrom
+	# Restauration depuis un lecteur DVD ou CDROM
+	DIALOGRC="/etc/dialogmenu_bloque" dialog --colors \
+	--backtitle "`cat /etc/banniere_oscar`" \
+	--cancel-label "`cat $chemin_langue/texte_79`" --ok-label "`cat $chemin_langue/texte_80`" \
+	--title " `cat $chemin_langue/menu_476` " \
+	--menu "\n\Zb\Z3   `cat $chemin_langue/menu_477` :\n " 10 80 0 \
+	"" "" \
+	"" "`cat /tmp/temptexte` " \
+	"" "`cat /tmp/temptexte1` " \
+	"" ""
+      case $? in
+	    0)	#disque
+	rm -f /tmp/temptexte
+	rm -f /tmp/temptexte1
+	echo "\Zb\Z2`cat $chemin_langue/texte_77` \Z3/sauvegarde_oscar\Z2" > /tmp/temptexte
+	echo "\Zb\Z2`cat $chemin_langue/texte_78`" > /tmp/temptexte1
+		montage_cdrom
+		cherche_sauvegarde_cdrom
+		if ! ( test -e /mnt/cdrom/sauvegarde_oscar )
+		then
+			boite_non_image_cdrom
+		fi
+		copie_sauvegarde
+		return
+		;;
+	    1)	# fin
+	rm -f /tmp/temptexte
+	rm -f /tmp/temptexte1
+		boites_fin_recup
+	        nettoyer_fin
+	        ;;
+	    255) rm -f /tmp/temptexte
+		rm -f /tmp/temptexte1
+		nettoyer_fin
+		;;
+	esac
+}
+#----------------------------------------------------------------------------------------------------
+nettoyer_fin()
+{
+	rm -f /tmp/sortir
+	rm -f /tmp/partition_oscar_sauvegarde
+	rm -f /tmp/fichier_disque_dur
+	rm -f /tmp/partition_linux_oscar_sauvegarde
+	rm -f /tmp/une_seule_image_trouvee
+	rm -f /tmp/partition_possible_sauvegarde
+	rm -f /tmp/sauvegarde_trouvee
+	rm -f /tmp/nouvelle_sauvegarde
+	rm -f /tmp/incrementer_sauvegarde
+	rm -f /tmp/pas_repertoire_oscar_par_defaut
+	rm -f /tmp/recup_sauvegarde_lance
+	rm -f /tmp/sauvegarde_trouvee_apres_gerer
+	rm -f /tmp/nouveau_commentaire
+	rm -f /tmp/base_a_recuperer
+	rm -f /tmp/choix_partition_sauvegarde_recup_fait
+	exit
+}
+#-----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------
+#		Récupère depuis les dvd les fichiers de sauvegarde
+#-----------------------------------------------------------------------------------------------------
+#   recupere le gravage depuis les dvd
+
+	# vérifier si possible avec client_multi ?????????????
+
+	test_demarrage_cdrom_sans_cdcache
+
+	# monte le cdrom ou dvd :
+	rm -f /tmp/temptexte
+	rm -f /tmp/temptexte1
+	echo "\Zb\Z2`cat $chemin_langue/menu_478` \Z3/sauvegarde_oscar\Z2" > /tmp/temptexte
+	echo "\Zb\Z2`cat $chemin_langue/menu_479`" > /tmp/temptexte1
+	premiere_fois=oui
+	montage_cdrom
+	cherche_sauvegarde_cdrom
+	if ! ( test -e /mnt/cdrom/sauvegarde_oscar )
+	then
+		boite_non_image_cdrom
+	fi
+
+	info_image gerer_sauvegardes_recup
+        if ( test -e /tmp/sortir )
+        then
+		nettoyer_fin
+        fi
+        
+        cp -f /mnt/cdrom/sauvegarde_oscar/partition_sauvegardee /tmp/base_a_recuperer
+        
+        if ( test -e /tmp/sauvegarde_trouvee )
+        then
+        	sauvegarde_trouvee=`cat /tmp/sauvegarde_trouvee`
+        	if [ "$sauvegarde_trouvee" = "non_linux" ]
+		then
+			boite_non_partition_linux
+		elif [ "$sauvegarde_trouvee" = "une_seule_sauvegarde_possible" ]
+		then
+			partition_image=`cat /tmp/partition_possible_sauvegarde`
+			rm -f /tmp/partition_possible_sauvegarde
+			if ( test -e /tmp/nouveau_commentaire )
+			then
+				nouveau_commentaire_txt=`cat /tmp/nouveau_commentaire`
+				rm -f /tmp/nouveau_commentaire
+			fi
+		elif [ "$sauvegarde_trouvee" = "nouvelle_sauvegarde_recup" ]
+		then
+			partition_image=`cat /tmp/partition_linux_recuperer`
+			rm -f /tmp/partition_linux_recuperer
+		else
+			if ( test -e /tmp/linux_sauvegarde_choisie )
+		        then
+				partition_image=`cat /tmp/linux_sauvegarde_choisie`
+				rm -f /tmp/linux_sauvegarde_choisie
+			fi
+
+			echo "" > /tmp/recup_sauvegarde_lance
+			sauve chercher_partition_linux_a_installer_recup
+			rm -f /tmp/recup_sauvegarde_lance
+			if ( test -e /tmp/sortir )
+		        then
+				nettoyer_fin
+		        fi
+			if ( test -e /tmp/nouveau_commentaire )
+			then
+				nouveau_commentaire_txt=`cat /tmp/nouveau_commentaire`
+				rm -f /tmp/nouveau_commentaire
+			fi
+			partition_image=`cat /tmp/partition_linux_recuperer`
+			rm -f /tmp/partition_linux_recuperer
+		fi
+
+        fi
+        
+        echo "$partition_image" > /tmp/temp1
+        perl -pi -e s'/\/mnt\///g' /tmp/temp1
+        partition_image=`cat /tmp/temp1`
+        rm -f /tmp/temp1
+	echo "$partition_image" > /tmp/monter_partition
+	runme autoriser_monter_partition_oscar
+	partition_image_linux=`cat /tmp/monter_partition`
+	rm -f /tmp/monter_partition
+
+	if ! ( test -e $partition_image_linux/oscar )
+	then
+		mkdir $partition_image_linux/oscar
+	fi
+
+		rm -f $partition_image_linux/oscar/date_de_sauvegarde
+		rm -f $partition_image_linux/oscar/partition_sauvegardee
+		rm -f $partition_image_linux/oscar/taille_partition_*
+		rm -f $partition_image_linux/oscar/sauvegarde_*
+		rm -f $partition_image_linux/oscar/version_oscar
+		rm -f $partition_image_linux/oscar/liste_postes_sysprep
+		rm -f $partition_image_linux/oscar/image.partimage.*
+		rm -f $partition_image_linux/oscar/image.ntfs.*
+		rm -f $partition_image_linux/oscar/image_dar.*
+		rm -f $partition_image_linux/oscar/image_fsa.*
+
+
+	copie_sauvegarde
+	boite_demande_cdrom
+	if ( test -e /tmp/sortir )
+        then
+		rm -f /tmp/sortir
+        fi
+	boites_fin_recup
+	nettoyer_fin

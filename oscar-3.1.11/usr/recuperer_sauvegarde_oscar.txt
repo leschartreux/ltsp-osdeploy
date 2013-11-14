@@ -1,0 +1,30 @@
+﻿
+## Copyright (c) 2003-2012 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Cdrom Outil Syste_accent_graveme Complet d'Assistance Réseau: OSCAR
+## Ce programme est libre, vous pouvez le redistribuer et/ou le modifier selon les termes
+## de la Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+
+Pour récupérer les fichiers de sauvegarde:
+
+Vous devez les mettre dans un répertoire que vous nommez :
+
+	" \sauvegarde_oscar " dans une partition de données ou système,
+	mais pas sur la partition de sauvegarde OSCAR.
+	
+	
+Les fichiers à installer sont:
+
+	image.yyy.XX  selon la grandeur du continu de la partition sauvegardée
+	commentaire_oscar.txt
+	date_de_sauvegarde
+	partition_sauvegardee
+	taille_partition_sdAX
+	sauvegarde_sdAX.taille.Mo_date
+	disque_boot
+	table_partitions.mbr
+	table_partitions.sf
+	recuperer_sauvegarde_oscar.txt
+	version_oscar
+	liste_postes_sysprep

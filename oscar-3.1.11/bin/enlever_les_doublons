@@ -1,0 +1,62 @@
+#!/bin/sh
+
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin,  jftissoires@gmail.com
+## Outil Système Complet d'Assistance Réseau: OSCAR
+## Rapide de Sauvegarde aux Ordinateurs et Systèmes: RapideSOS
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+
+# enleve les doublons, les lignes identiques du fichier /tmp/temp_doublons_a_supprimer
+# le fichier sans doublons est /tmp/doublons_supprimes
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+#-------------------------------------------------------------------------------------------------------------------------
+boucle_enleve_les_doublons()
+{
+grep -ci ":" /tmp/temp_doublons_a_supprimer1 > /tmp/test_nombre_separateurs
+test_nombre_separateurs=`cat /tmp/test_nombre_separateurs`
+rm -f /tmp/test_nombre_separateurs
+if ! [ "$test_nombre_separateurs" = "0" ]
+then
+	cut -d ":" -f1 /tmp/temp_doublons_a_supprimer1 > /tmp/temp_doublons_a_supprimer2
+	test_vide=`cat /tmp/temp_doublons_a_supprimer2`
+	if ! [ "$test_vide" = "" ]
+	then
+		cat /tmp/temp_doublons_a_supprimer2 >> /tmp/doublons_supprimes
+		# remplacer cette valeur par rien dans /tmp/temp_doublons_a_supprimer1
+		echo "perl -pi -e 's/`cat /tmp/temp_doublons_a_supprimer2`://g;' /tmp/temp_doublons_a_supprimer1" > /tmp/exec_nom
+		chmod +x /tmp/exec_nom
+		/tmp/exec_nom
+		boucle_enleve_les_doublons
+	else
+		rm -f /tmp/temp_doublons_a_supprimer1
+		rm -f /tmp/temp_doublons_a_supprimer2
+		return
+	fi
+else
+	rm -f /tmp/temp_doublons_a_supprimer1
+	rm -f /tmp/temp_doublons_a_supprimer2
+	return
+fi
+}
+#-------------------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------------------------------
+sp_enlever_les_doublons()
+{
+# enleve les doublons, les lignes identiques du fichier /tmp/temp_doublons_a_supprimer
+perl -pi -e 's/:/u__oscar__u/g; s/\//w__oscar__w/g;' /tmp/temp_doublons_a_supprimer
+echo `gawk '{ print $1 ":" } ' /tmp/temp_doublons_a_supprimer` > /tmp/temp_doublons_a_supprimer1
+perl -pi -e 's/: /:/g; s/ //g;' /tmp/temp_doublons_a_supprimer1  ## pour enlever les espaces
+rm -f /tmp/doublons_supprimes
+rm -f /tmp/temp_doublons_a_supprimer
+boucle_enleve_les_doublons
+if ( test -e /tmp/doublons_supprimes )
+then
+	perl -pi -e 's/u__oscar__u/:/g; s/w__oscar__w/\//g;' /tmp/doublons_supprimes
+fi
+# le fichier sans doublons est /tmp/doublons_supprimes
+}
+#-------------------------------------------------------------------------------------------------------------------------
+sp_enlever_les_doublons

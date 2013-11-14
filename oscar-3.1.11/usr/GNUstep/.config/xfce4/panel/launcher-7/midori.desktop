@@ -1,0 +1,11 @@
+
+[Desktop Entry]
+Type=Application
+Name=Midori Web Browser
+Comment=Web browser
+Icon=/root/icons/midori.png
+Exec=/usr/bin/midori
+Path=/root
+Terminal=false
+StartupNotify=false
+

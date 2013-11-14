@@ -1,0 +1,14 @@
+#!/bin/sh
+
+## Copyright (c) 2003-2013 Tissoires Jean-François & Benjamin, jftissoires@gmail.com
+## Cdrom Outil Système Complet d'Assistance Réseau: OSCAR
+## Ce programme est sous Licence Publique Générale GNU publiée par la Free Software Foundation.
+
+PATH="/usr/share/oscar/bin:$PATH"
+
+
+
+echo
+echo -e "pour revenir tapez \033[1;33m menu \033[1;m ou \033[1;33m oscar\033[1;m"
+echo -e "pour éteindre le poste, \033[1;33m halt\033[1;m"
+echo
