@@ -1,0 +1,7 @@
+\Z1 Ce poste est \Zb\Z4SERVEUR SSH\Zn\Z1 son IP est\Z2 `cat /tmp/temp_ip_installe` \Zn\n\n \
+		\Zb\Z4Pour utiliser un poste en \Zn\Z2client ssh \Zb\Z4: \n \
+		\Zb\Z4--> lancez sur le poste client la commande\Zb\Z7 ssh_c\Zb\Z4; \n \
+		\Zb\Z4--> entrez l'adresse IP \Z2`cat /tmp/temp_ip_installe`\Zb\Z4; \n \
+		\Zb\Z4--> puis tapez sur le poste client le mot de passe choisi; \n \
+		\Zb\Z4--> enfin tapez la commande\Zb\Z7 oscar_screen\Zb\Z4. \n\n \
+		\Zb\Z4Pour arrêter le poste \Zn\Z2client ssh \Zb\Z4quittez \Z1OSCAR \Zb\Z4puis tapez \Z7exit \n " 15 80
