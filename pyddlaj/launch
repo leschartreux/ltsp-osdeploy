@@ -1,0 +1,9 @@
+#!/bin/bash
+/usr/bin/pyddlaj
+
+ret=$?
+
+#on normal exit we reboot computer
+if [ $ret = 0 ]; then
+	init 6
+fi

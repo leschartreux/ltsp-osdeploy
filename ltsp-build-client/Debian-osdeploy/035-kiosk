@@ -1,0 +1,30 @@
+case "$MODE" in
+    commandline)
+        # add a commandline switch to ltsp-build-client (advanced "false" means 
+        # we dont expect any value, callig --kiosk is enough, we could enhance
+        # the plugin to use --kiosk kde for example to install kdm and konqueror
+        # instead if we'd set it to true
+        add_option "kiosk" "`eval_gettext "a simple webkiosk mode"`" "advanced" "false"
+        ;;
+    configure)
+        if [ -n "$option_kiosk_value" ]; then
+            # set an environment variable we can pick up later
+            KIOSK="True"
+
+            KIOSK_BROWSER=${KIOSK_BROWSER:-"iceweasel"}
+            KIOSK_WM=${KIOSK_WM:-"metacity"}
+            KIOSK_PACKAGES="${KIOSK_PACKAGES} devilspie"
+
+            # install the webbrowser and related packages
+            EARLY_PACKAGES="$EARLY_PACKAGES $KIOSK_BROWSER $KIOSK_PACKAGES"
+        fi
+        ;;
+    after-install)
+        if [ "True" = "$KIOSK" ]; then
+            # install window manager without recommends, otherwise metacity pulls in
+            # half or more of gnome... not ideal, but it works.
+            chroot $ROOT apt-get $APT_GET_OPTS --no-install-recommends install $KIOSK_WM
+        fi
+        ;;
+esac
+

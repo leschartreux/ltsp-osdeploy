@@ -1,0 +1,10 @@
+case "$MODE" in
+    before-install)
+        case "$DIST" in
+            sid)
+                echo "`eval_gettext "NOTE: disabling security APT source for sid.  It does not exist."`"
+                SECURITY_MIRROR=none
+                ;;
+        esac
+        ;;
+esac

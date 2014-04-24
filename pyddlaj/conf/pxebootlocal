@@ -1,0 +1,9 @@
+ #PXE config file to boot on local hard drive
+ default bootlocal
+ 
+ label bootlocal
+      menu label ^Boot local disk
+      menu default
+      localboot 0
+      timeout 80
+      TOTALTIMEOUT 9000

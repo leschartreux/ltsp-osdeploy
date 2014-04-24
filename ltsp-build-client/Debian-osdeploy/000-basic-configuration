@@ -1,0 +1,18 @@
+case "$MODE" in
+    configure)
+        ARCH=${ARCH:-"i386"}
+        APT_GET_OPTS=${APT_GET_OPTS:-"-y"}
+        DIST=${DIST:-"$(lsb_release -s -c)"}
+        MIRROR=${MIRROR:-"http://cdn.debian.net/debian"}
+        COMPONENTS=${COMPONENTS:-"main"}
+        EARLY_PACKAGES=${EARLY_PACKAGES:-"ltsp-client-core"}
+        DEBOOTSTRAPOPTS=${DEBOOTSTRAPOPTS:-"--variant=minbase"}
+        BOOTSTRAP=${BOOTSTRAP:-"debootstrap"}
+        CHROOT=${ARCH}-osdeploy
+        INCLUDE='python-mysql.connector,ntfsprogs,ntfs-3g,fsarchiver,partclone,python-paramiko,python-dmidecode,python-pip,python-netifaces,parted,python-parted'
+        OVERRIDE_EXPORTS='true'
+        NFS_EXPORT_STRING='*(rw,no_root_squash,async,no_subtree_check)'
+        HTTP_PROXY="http://10.11.0.5:3142"
+		;;
+esac
+

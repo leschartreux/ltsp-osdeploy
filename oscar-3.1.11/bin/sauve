@@ -32,6 +32,7 @@ grandeur_fichiers_sauvegarde_defaut=2000
 # pourcentage a enlever : pour 16,6% valeur_pourcentage_a_enlever=6 , pour 20% valeur_pourcentage_a_enlever=5 ...
 valeur_pourcentage_a_enlever=6 
 
+echo ICIC
 
 
 #----------------------------------------------------------------------------------------------------
@@ -1132,7 +1133,8 @@ taille_fichiers_compresses=$[$taille_fichiers_compresses]
 
 if [ "$valeur_fin_sauvegarde" != 1 ]
 then
-	fraction_compression=$[100*($taille_fichiers_compresses)/($taille_fichiers_avant_sauvegarde_corrigee)]
+	
+	echo "fraction_compression=$[100*($taille_fichiers_compresses)/($taille_fichiers_avant_sauvegarde_corrigee)]"
 else
 	fraction_compression=100
 	# taux de compression multiplie par 100 :
@@ -1204,6 +1206,7 @@ do
 	then
 		verification_pour_fsa
 	else
+		echo "____VERIFDAR____"
 		verification_pour_dar
 	fi
 	echo $pourcentage_compression
@@ -2291,6 +2294,7 @@ fi
 #-----------------------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------
     rm -f /tmp/sortir
+    echo ICICICI $taille_fichiers_avant_sauvegarde/$correcteur_compression
 #  commandes externes de procédures
 case "$1" in
     cherche_base_lvm)
@@ -2364,6 +2368,7 @@ case "$1" in
 esac
 sauvegarde_pour_client_nfs=non
 
+echo ----2367----
 # boite_sauver
 if ! ( test -e /etc/cdrom_ejecte )
 then
