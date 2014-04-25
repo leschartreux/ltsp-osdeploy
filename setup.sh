@@ -19,4 +19,11 @@ echo installing LTSP pyddlaj client builder
 cp -R ltsp-build-client/Debian-osdeploy /usr/share/ltsp/plugins/ltsp-build-client/
 
 echo adding default VENDOR to build LTSP client
-echo 'VENDOR="Debian-osdeploy"' >> /etc/ltsp/ltsp-build-client.conf
+if [ -f /etc/ltsp/ltsp-build-client.conf ]; then
+	. /etc/ltsp/ltsp-build-client.conf
+fi
+
+if [ -z $VENDOR ]; then
+	echo 'VENDOR="Debian-osdeploy"' >> /etc/ltsp/ltsp-build-client.conf
+fi
+

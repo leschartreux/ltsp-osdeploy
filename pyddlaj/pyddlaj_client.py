@@ -18,8 +18,8 @@ import pyddlaj.host
 import pyddlaj.db
 import pyddlaj.nettask
 import transfert.ssh
-import transfert.tftp
-import sys
+#import transfert.tftp
+#import sys
 import time
 import os
 
@@ -197,10 +197,10 @@ if __name__ == '__main__':
             #with each new device we store partition table and MBR
             if current_device != img['dev_path']: 
                 print "Sauvegarde table des partition"
-                cmd = "/usr/sbin/sfdisk -d %s > %s" % img['dev_path'],dst_dir + "/" + dst_file + ".dup"
+                cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + dst_file + ".dup")
                 call ( cmd,shell=True)
                 print "Sauvegarde MBR"
-                cmd = "dd if=%s of=%s bs=446 count=1" % img['dev_path'],dst_dir + "/" + dst_file + ".mbr"
+                cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + dst_file + ".mbr")
                 call ( cmd,shell=True)
                 current_device = img['dev_path']
 
