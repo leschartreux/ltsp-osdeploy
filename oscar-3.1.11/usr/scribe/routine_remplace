@@ -1,5 +1,0 @@
-set valeur=%1
-set valeur=%valeur:~1,-1%
-rem set valeur=%valeur:NOM_POSTE=%COMPUTERNAME%%
-echo %valeur%>>c:\sysprep\sysprep.inf
-

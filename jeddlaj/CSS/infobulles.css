@@ -1,0 +1,27 @@
+/*
+ inspiration de http://www.sebastiennoirie.fr/blog/2010/10/31/css-de-bien-jolies-info-bulles-en-css/
+*/
+.tooltip {
+    position: relative;
+    cursor: help; text-decoration: none;
+}
+.tooltip span {
+    margin-left: -999em;
+    position: absolute;
+}
+.tooltip:hover span {
+    border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+    position: absolute; left: 1em; top: 2em; z-index: 99;
+    margin-left: 0; width: 250px;
+}
+.info { 
+    background: #9FDAEE; border: 1px solid #2BB0D7; 
+    color: #000000;
+    display: block; padding: 0.2em 0 0.6em 0;
+}
+a.tooltip  {
+    text-decoration: none;
+    font-style: normal;
+    font-weight: lighter;
+}

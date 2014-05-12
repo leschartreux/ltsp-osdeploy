@@ -1,2 +1,0 @@
-\Zb\Z1OSCAR vous informe : \Zn \n\n 		\n\Zn\Z2Pour convertir votre partition \Zb\Z1Fat32 \Zn\Z2en \Zb\Z1NTFS \Zn\Z2 : \n 		\n\Zn\Z2     sous \Zb\Z4Windows\Zn\Z2 :
-		\n\Zn\Z2     installez la commande \Zb\Z3convert.exe\Z2  		\n\Zn\Z2     puis lancez   \Zb\Z7convert.exe c: /fs:ntfs /nochkdsk \n\n 		\n\Zn\Z2La conversion rapide se fera au démarrage suivant.

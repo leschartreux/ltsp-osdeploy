@@ -1,0 +1,50 @@
+'''
+copy this file to __init__.py in teh same directory
+then modify values to match your site
+
+Created on 10 avr. 2014
+
+@author: rignier
+'''
+
+"""global Conf variables"""
+
+#Location of pyddlaj Scripts
+BASE_DIR = "/usr/share/pyddlaj"
+
+#Mysql Settings
+MYSQL_HOST = 'localhost'
+MYSQL_DB = 'jeddlaj'
+MYSQL_USER = 'jeddlaj'
+MYSQL_PASSWORD = 'jeddlaj'
+MYSQL_PORT = 3306
+
+#The TFTP Server Which hosts LTSP PXE client images
+#thoses Settings must be in your DHCP server too
+TFTP_SERVER = '10.11.1.186'
+TFTP_PORT = 69
+TFTP_ROOT = '/ltsp/i386-osdeploy'
+TFTPD_ROOT = '/srv/tftp'
+
+#SCP is used to transfer TFTP PXE config between client and Server
+#to toggle LTSP boot and local boot
+#Better idea could be using the pyddlajd service to handle this 
+SSH_ROOT = '/srv/tftp' + TFTP_ROOT
+SSH_PORT = 22
+
+#NFS share hosting os images 
+IMG_SERVER = '10.11.1.186'
+IMG_NFS_SHARE = "/opt/pyddlaj/images"
+#Client Side Directory mount of NFS shared images
+IMG_NFS_MOUNT = "/nfsimg"
+
+#Local mont of partitions on clients
+CACHE_MOUNT = '/localimg'
+NTFS_MOUNT = '/mnt/win'
+
+
+#Here are the Settings to join cloned machines to your Active Diretory Forest
+#The user could be Domain's adminitrator but a user with Computer Objects rights is enough
+AD_DOMAIN = "leschartreux.com"
+AD_JOINUSER = "jeddlaj"
+AD_JOINPASSWORD = "jeddlaj"

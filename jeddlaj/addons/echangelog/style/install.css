@@ -1,0 +1,79 @@
+/* style de la vue InstallView */
+.comLog
+{
+    background-color:#ddd;
+}
+
+.comPis
+{
+    background-color:#ddd;
+}
+
+.comPdis
+{
+    background-color:#ddd;
+}
+
+/* style des notes */
+.noteScript
+{
+    border:1px solid #CCC;
+    float:right;
+    font:10px verdana, sans-serif;
+    height:32px;
+    margin:0 auto 40px auto;
+    overflow:visible;
+    padding:10px;
+    position:relative;
+    width:170px;    
+}
+
+.star1
+{
+    float:left;
+    height:31px;
+    width:31px;
+}
+
+.star2
+{
+    float:left;
+    height:31px;
+    width:31px;
+}
+
+.star3
+{
+    float:left;
+    height:31px;
+    width:31px;
+}
+
+.star4
+{
+    float:left;
+    height:31px;
+    width:31px;
+}
+
+.star5
+{
+    float:left;
+    height:31px;
+    width:31px;
+}
+
+.noteVote
+{
+    background:url('../img/j_bg.png') no-repeat;
+}
+
+.noteOver
+{
+    background:url('../img/j_h.png') no-repeat;
+}
+
+.totalVotes
+{
+    padding:50px 0px 0px 0px;
+}

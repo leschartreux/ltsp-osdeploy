@@ -1,0 +1,70 @@
+/* style du formulaire de contact */
+input
+{
+    float:left;
+    width:382px;
+}
+
+label
+{
+    float:left;
+    width:112px;
+}
+
+#consigne
+{
+    text-align:center;
+}
+
+.inputWrapper
+{
+    margin:auto;
+    width:600px;
+}
+
+#l_login
+{
+    padding:0px 0px 0px 114px;
+    width:56px;
+}
+
+#l_nom
+{
+    padding:0px 0px 0px 121px;
+    width:49px;
+}
+
+#l_prenom
+{
+    padding:0px 0px 0px 100px;
+    width:70px;
+}
+
+#l_adresseIP
+{
+    padding:0px;
+    width:170px;
+}
+
+#l_email
+{
+    padding:0px 0px 0px 116px;
+    width:54px;
+}
+
+#l_commentaire
+{
+    padding:0px 0px 0px 60px;
+    width:110px;
+}
+
+#commentaire
+{
+    width:382px;
+}
+
+#btn_send
+{
+    margin:0px 0px 0px 170px;
+    width:90px;
+}

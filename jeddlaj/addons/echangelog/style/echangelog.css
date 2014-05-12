@@ -1,0 +1,149 @@
+/*
+coller ici le copyright
+style de e-changelog
+*/
+
+html
+{
+    font-size:100%; /* Evite un bug d'IE 6-7*/
+}
+
+body
+{   
+    font-family : Arial, Helvetica ;
+    margin:0;
+    padding:0;
+}
+
+#document
+{
+    background-color:white;
+    border-left:1px solid #ccc;
+    border-right:1px solid #ccc;
+    color:black;
+    font-size: 0.625em;
+    line-height: 1.4;
+    margin: auto;
+    padding: 0;
+    width:960px;
+}
+
+#corps
+{
+    font-family:Arial,Helvetica;
+    font-size:1.6em;
+    padding:20px 20px 20px 20px;
+    text-align:justify ;
+}
+
+h1
+{
+    font-family:Verdana, Arial, Helvetica, Geneva, sans-serif;
+    font-size: 1.8em;
+    margin:0;
+    text-align:center;
+}
+
+h1 a
+{
+    color:black;
+    font-family:Verdana, Arial, Helvetica, Geneva, sans-serif;
+    text-decoration:none;
+}
+
+h2
+{
+    font-family:Verdana, Arial, Helvetica, Geneva, sans-serif;
+    font-size: 1.9em;
+ }
+
+h3
+{
+    font-family:times, verdana, sans-serif;
+    font-size: 1.5em;
+    text-align:center;
+}
+
+em
+{
+    font-style:italic;
+}
+
+strong
+{
+    font-weight:bold;
+}
+
+/* Formulaires */
+form, fieldset
+{
+    border:none;
+    margin:0;
+    padding:0;
+}
+
+input, button, select
+{
+    vertical-align:middle; /* Solution pb. d'alignement. (9) */
+}
+
+img
+{
+    border:0
+}
+
+.clear
+{
+    clear:both;
+}
+
+.clear hr
+{
+    display:none;
+}
+
+
+
+
+
+/* pied */
+#pied p {
+	margin:0;
+}
+#pied {
+    padding:1px 0px 0px 5px;
+    height:16px;
+}
+
+/* message de notification */
+.info
+{
+    border:2px solid blue;
+    color:blue;
+    padding:10px;
+    text-align:center;
+}
+
+.success
+{
+    border:2px solid green;
+    color:green;
+    padding:10px;
+    text-align:center;
+}
+
+.warning
+{
+    border:2px solid orange;
+    color:orange;
+    padding:10px;
+    text-align:center;
+}
+
+.error
+{
+    border:2px solid red;
+    color:red;
+    padding:10px;
+    text-align:center;
+}

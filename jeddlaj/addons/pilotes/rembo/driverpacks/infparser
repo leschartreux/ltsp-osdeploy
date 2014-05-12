@@ -1,0 +1,9 @@
+#!/bin/sh
+
+PARSERPATH=$0.pl
+TMPSQLFILE=/tmp/dp.sql
+
+echo "" > $TMPSQLFILE
+cd $1
+find $2 -iname "*.inf" -exec $PARSERPATH {} $3 $4 \; >> $TMPSQLFILE
+mysql -u rembo -p'MOT_DE_PASSE_UTILISATEUR_rembo' jeddlaj < $TMPSQLFILE

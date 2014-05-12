@@ -1,1 +1,0 @@
-\Zb\Z1Information : Il y a déjà un serveur DHCP sur le réseau.\Zn \n 		\n\n\Zn\Z2Modifiez la configuration de votre réseau pour PXE, dans le fichier 		\n\Zb\Z4dhcp.conf \Zn\Z2du serveur DHCP ajoutez les 2 lignes suivantes : 		\n\n\Zn\Z7next-server \Zb\Z7adresse_IP\Zn\Z7;

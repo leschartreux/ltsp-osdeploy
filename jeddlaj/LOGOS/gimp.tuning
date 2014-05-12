@@ -1,0 +1,42 @@
+bovination, font 80, comics cartoon ++, blippo, cooper, brushstroke, FlorenceLight ++, lauramcrary ++, polesemiscript (autre logo), RoosHeavy (autre logos), slogan (autre logos, pour phrases), sumdugoi (trop chinois mais beau), urw chancery I (pour texte), 
+3D Outline ComicsCartoon+++, 
+
+Je déploie dans la joie..., lauramcrary 28 (vert saturation 0.88, value 0.81)
+
+Le Samedi 15 Novembre 2003 :
+
+Logo = JeDDLaJ en comics cartoon taille 80, effet 3DOutline
++
+v0.5 en laudamccrary taille 20, text color vert saturation 1.0, value 1.0, hue 120, Red 0.0, Green 1.0, Blue 0.0 : layer shadow en opacity 51.4 
+Ensuite on rend invisible la layer Background puis on fait Edit -> Copy Visible et on paste dans JeDDLaj, sous le dernier J..
+
+
+À partir de la version 0.6p : 
+	- la police pour la version devient ComicsCartoon
+	- la version pour le background noir (layer VersionPourFondNoir) est faite avec scrip-fu Glowing Hot, taille 20. 
+	- la version pour le background blanc (layer VersionPourFondBlanc) est faite avec Script-Fu Basic I, taille 20, couleur vert : saturation 1.0, value 1.0, hue 120, Red 0.0, Green 1.0, Blue 0.0 et layer "Shadow"  en opacité 45.5
+
+Pour upgrader le logo :
+	- ouvrir avec GIMP le fichier JeDDLaJv06p_transparent.xcf
+	- rendre visible les layer BackgroundBlack et JeDDLaJ et invisibles les layers VersionPourFond*
+	- créer une nouvelle layer transparente, l'appeler NewVersion et la mettre en premier plan
+	- créer avec les script-fu la nouvelle version comme indiqué ci-dessus (voir "À partir de la version 0.6p"), rendre invisible la couche Background du script-fu, Faire Edit->Copy Visible et paster dans JeDDLaJv06p_transparent.xcf
+	- Ancrer la version au bon endroit sous le dernier J de JeDDLaJ
+	
+	On peut ensuite sauver en transparent png en ne laissant que les couches JeDDLaJ et Version, ou en fond blanc ou noir en png ou jpg selon que l'on laisse la couche BlackBackground, ou WhiteBackground (laisser alors visible la layer VersionPourFond adaptée au background)...
+
+	Ensuite, copier la nouvelle version du logo en JeDDLaJ_current.png (plutôt fond blanc) et JeDDLaJ_current.pcx (plutôt fond noir)
+	ATTENTION : lorsque l'on sauve en pcx pour l'interface REMBO, il faut sauver en mode d'image indexed et non RGB (GIMP : Image->Mode->Indexed : prendre le réglage par défaut) sinon l'image ne s'affichera pas...).
+
+##################### LOGO 1.0 avec Dimitri #######################
+
+Pour le 1.0 flamboyant : glowing hot police Crackling taille 100 plus rotate tool puis duplication de calques et mode de fusion à travailler. Différent pour la version fond blanc et fond noir (voir les noms des calques pour retrouver les bons selon le background)
+Pour passer en version blanc, dégradé DARK 1 sur le calque de la version (via le filtre color->map->gradient map) puis duplication et mode dodge.
+
+ET voilà...
+
+###################################################################
+
+	Pour les logos Copyleft, si on veut faire des modifs, on ouvre le xcf et on sauve en png. Ensuite, on réduit les png (scale image) à O.59 pour avoir ceux de la page d'accueil JeDDLaJ...
+
+	Pour les logos UnPeuDeDoc, pareil mais je suis resté en taille réelle.

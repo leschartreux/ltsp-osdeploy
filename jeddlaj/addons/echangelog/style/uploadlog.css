@@ -1,0 +1,67 @@
+/*
+Style du formulaire d'upload de fichier de log du module echangelog
+*/
+
+input
+{
+    float:left;
+    width:382px;
+}
+
+label
+{
+    float:left;
+    width:91px;
+}
+
+.inputWrapper
+{
+    margin:auto;
+    width:500px;
+
+}
+
+#l_idLogiciel
+{
+    width:100px;
+}
+
+#l_nomLogiciel
+{
+    padding:0px 0px 0px 51px;
+    width:60px;
+}
+
+#l_version
+{
+    padding:0px 0px 0px 30px;
+    width:81px;
+}
+
+
+#l_nomOS
+{
+    padding:0px 0px 0px 62px;
+    width:50px;
+}
+
+#l_mediaCD
+{
+    width:90px;
+}
+
+#l_mediaUrl
+{
+    padding:0px 0px 0px 30px;
+    width:60px;
+}
+
+.l_commentaire, .commentaire
+{
+    width:500px;
+}
+
+#btn_upload
+{
+    width:90px;
+}

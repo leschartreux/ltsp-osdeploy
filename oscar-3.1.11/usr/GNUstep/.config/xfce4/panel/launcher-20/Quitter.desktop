@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Quitter
-Comment=Exit Xfce
-Icon=system-log-out
-Exec=killall xinit
-Path=
-StartupNotify=false
-

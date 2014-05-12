@@ -1,0 +1,57 @@
+#!/bin/bash
+
+#URL Driverspack
+URL=http://driverpacks.net
+
+#répertoire où l'on stocke temporairement la page download 
+TMPDIR=/tmp
+
+#répertoire où l'on stocke les drivers
+DIR=/usr/local/tpmfos/files/global/pilotes/driverpacks
+
+#OS/arch
+ARCHS=(wnt5_x86 wnt6_x86 wnt6_x64)
+
+#Chemin vers le parser
+PARSERPATH=/usr/local/tpmfos/files/global/pilotes/infparser
+
+#Nom du client Bittorrent
+BTClient="btdownloadheadless" 
+
+#Motif indiquant que le téléchagement est terminé
+BTFOUNDPATTERN="Download Succeeded"
+
+#Chemin où seront stockés les messages du client torrent
+BTMESGPATH=/tmp/btmesg.txt
+
+#Nom du démon qui tue le client bittorrent quand le téléchagement est terminé
+BTKiller=btkiller.sh
+
+for i in ${ARCHS[@]}; do
+	mkdir -p $DIR/$i >/dev/null 2>&1
+done
+
+./$BTKiller $BTClient "$BTFOUNDPATTERN" $BTMESGPATH &
+
+cd $TMPDIR
+rm -f latest
+wget -l 0 $URL/driverpacks/latest
+for i in `grep "href=..driverpacks.*windows" /tmp/latest | sed 's/.*href=..\([^"]*\).*/\1/'` ; do 
+	arch=`echo $i | sed 's#.*windows/xp/\([^/]*\).*#wnt5_\1#' | sed 's#.*windows/7/\([^/]*\).*#wnt6_\1#'`
+	cd $DIR/$arch
+	rm -f torrent
+	wget -l 0 $URL/$i/download/torrent
+	$BTClient torrent > $BTMESGPATH
+done
+killall $BTKiller
+
+for i in ${ARCHS[@]}; do
+	cd $DIR/$i 
+	for j in *.7z; do
+		7zr x -y $j
+	done
+done
+
+for i in ${ARCHS[@]}; do
+	$PARSERPATH $DIR/.. driverpacks/$i $i DriverPacks	
+done

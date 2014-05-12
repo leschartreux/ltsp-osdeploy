@@ -1,0 +1,108 @@
+/*
+# ################################ GPL STUFF ################################
+#
+# ********************************* ENGLISH *********************************
+# 
+# --- Copyright notice :
+# 
+# Copyright 2003, 2004, 2005 Gérard Milhaud - Frédéric Bloise
+# 
+# 
+# --- Statement of copying permission
+# 
+# This file is part of JeDDLaJ.
+# 
+# JeDDLaJ is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# JeDDLaJ is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with JeDDLaJ; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# 
+# *********** TRADUCTION FRANÇAISE PERSONNELLE SANS VALEUR LÉGALE ***********
+#
+# --- Notice de Copyright :
+# 
+# Copyright 2003, 2004, 2005 Gérard Milhaud - Frédéric Bloise
+# 
+# 
+# --- Déclaration de permission de copie
+# 
+# Ce fichier fait partie de JeDDLaJ.
+# 
+# JeDDLaJ est un logiciel libre : vous pouvez le redistribuer ou le modifier
+# selon les termes de la Licence Publique Générale GNU telle qu'elle est
+# publiée par la Free Software Foundation ; soit la version 2 de la Licence,
+# soit (à votre choix) une quelconque version ultérieure.
+# 
+# JeDDLaJ est distribué dans l'espoir qu'il soit utile, mais SANS AUCUNE
+# GARANTIE ; sans même la garantie implicite de COMMERCIALISATION ou 
+# d'ADAPTATION DANS UN BUT PARTICULIER. Voir la Licence publique Générale GNU
+# pour plus de détails.
+# 
+*/
+
+void CopyDriversTrees(str query2) {
+	var result2=MySQLQuery(query2);
+	for (int i=0;i<sizeof(result2);i++) {
+		if (!FileExists(disk+"/pilotes"+result2[i][0])) {
+			var paths=StrParse(result2[i][0],"/");
+			str rpath=disk+"/pilotes";
+			for (int j=0;j<sizeof(paths)-1;j++) {
+				rpath+="/"+paths[j];
+				MkDirINE(rpath);
+			}
+			CopyTree("cache://global/pilotes/"+result2[i][0],rpath);
+		}
+	}
+}
+
+var FindDriversName(str inf_file) {
+	str drivers[];
+	str variables[];
+	int nbdrivers=0;
+	int nbvariables=0;
+	var lines=StrParse(LoadTextFile(inf_file),"\r\n");
+	for (int i=0;i<sizeof(lines);i++) {
+		if (StrMatch(lines[i],"ServiceBinary*")) {
+			var driver=StrParse(StrParse(lines[i],"\\")[1],".");
+			if (sizeof(driver)>0) 
+				if (driver[1]=="sys") drivers[nbdrivers++]=(str)driver[0]; 
+			else 
+				if (driver[0][0]=="%") variables[nbvariables++]=StrParse(driver[0],"%")[0];
+		} else 
+			for (int j=0;j<nbvariables;j++)	
+				if (StrMatch(lines[i],(str)variables[j]+"*")) drivers[nbdrivers++]=StrParse(StrParse(lines[i],"\"")[1],".")[0];
+    }
+	return drivers;
+}
+
+MkDir(disk+"/pilotes");
+
+CopyDriversTrees(Strf('SELECT DISTINCT inf_path FROM pilote_a_utiliser_sur AS a,pilotes AS b WHERE a.id_pilote=b.id_pilote AND signature="%s" AND nom_os="%s"',signature,nom_os));
+
+str query2=Strf('SELECT UCASE(a.id_composant),inf_path,inf_file FROM composants AS a, composant_est_installe_sur AS b, pilote_a_utiliser_sur AS c,pilotes AS d WHERE a.id_composant=b.id_composant AND b.id_composant=d.id_composant AND b.nom_dns="%s" AND type="controleur disque" AND c.id_pilote=d.id_pilote AND signature="%s" AND nom_os="%s"',nom_dns,signature,nom_os);
+var result2=MySQLQuery(query2);
+for (int i=0;i<sizeof(result2);i++) {
+	var drivers=FindDriversName(disk+"/pilotes/"+result2[i][1]+"/"+result2[i][2]+".inf");
+	for (int j=0;j<sizeof(drivers);j++) RegisterCriticalMassStorage(result2[i][0],drivers[j],"/pilotes/"+result2[i][1]);
+}
+
+if (!IsSysprepPrepared(disk)) {
+	OpenRegistry("ntsof",disk+"/"+NTSystemRoot+"/system32/config/software");
+	str reg="reg://ntsof/Microsoft/Windows NT/CurrentVersion/UnattendSettings/PnPUnattend/DriverPaths/1";
+	MMkDir(reg);
+	CreateUnicodeFile(reg+"/Path.unicode","C:\\pilotes");
+	CloseRegistry("ntsof");
+	str cmd="C:\\Windows\\System32\\pnpUnattend.exe AuditSystem /L\r\n" ;
+	MSWindowsRunOnce(cmd);
+}
+

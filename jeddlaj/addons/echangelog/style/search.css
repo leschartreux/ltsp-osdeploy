@@ -1,0 +1,63 @@
+/* style de l'interface de recherche */
+
+/* formulaire de recherche */
+form p
+{
+    float:left;
+    text-align:left;
+    width:230px;
+}
+
+#l_nomLogiciel
+{
+    padding:0px 0px 0px 56px;
+}
+
+#nomLogiciel
+{
+    margin:0px 0px 0px 15px;
+    width:200px;
+}
+
+#l_os
+{
+    padding:0px 93px 0px 96px;
+}
+
+#os
+{
+    display:block;
+    margin:auto;
+}
+
+#l_version
+{
+    padding:0px 80px 0px 82px;
+}
+
+#version
+{
+    display:block;
+    margin:auto;
+}
+
+#submit
+{
+    display:block;
+    margin:11px auto;
+}
+
+/* tableau des résultats */
+table
+{
+    width:100%;
+    border-collapse:collapse;
+}
+
+td
+{
+    width:25%;
+    text-align:center;
+    
+    border:1px black solid;
+}
