@@ -19,7 +19,7 @@ class NetTask(object):
         Constructor
         '''
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.connect((settings.TFTP_SERVER,12345))
+        self._sock.connect((settings.TFTP_SERVER,settings.PYDDLAD_PORT))
     
     
     def send(self,id_task,dns):
