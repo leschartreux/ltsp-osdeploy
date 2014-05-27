@@ -1,4 +1,13 @@
 #!/bin/bash
+
+
+#python 2.7 needs correct LANG env var
+#same language set should be set in /usr/share/pyddlaj/settings/__init.py__ 
+if [ -r /etc/default/locale ]; then
+	. /etc/default/locale
+fi
+
+export LANG
 /usr/bin/pyddlaj
 
 ret=$?
@@ -6,4 +15,7 @@ ret=$?
 #on normal exit we reboot computer
 if [ $ret = 0 ]; then
 	init 6
+else
+	echo "an error occured. Console in 30 sec"
+	sleep 30
 fi
