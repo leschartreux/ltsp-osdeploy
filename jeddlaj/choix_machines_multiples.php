@@ -84,6 +84,11 @@ include("UtilsMySQL.php");
 include("UtilsJeDDLaJ.php");
 include("Utils.php");
 
+####################
+#  Modif Pyddlaj  #
+###################
+include("UtilsPyDDLaJ.php");
+
 
 # Main()
 entete("Gérard Milhaud & Frédéric Bloise : La.Firme@esil.univ-mrs.fr", "CSS/g.css", "JeDDLaJ : Choix machines ($action)");
@@ -217,6 +222,16 @@ if (isset($deja_passe_dans_choix_machines))
 				{
 					deverrouille_pour_mon_ip($ordinateurs_concernes[$i]);
 				}
+				
+				#####################
+				#3 Modif pour pyddlaj
+				#On efface le fichier de boot local pour forcer le boot sur l'OS dédié à pyddlaj
+				####################
+				for($i=1;$i<=$nb_ordinateurs_concernes;$i++)
+				{
+					supprime_boot_local($ordinateurs_concernes[$i]);
+				}
+
 
 				# 3. On donne un peu d'info.
 				if ($nb_ordinateurs_concernes>1)
@@ -227,6 +242,8 @@ if (isset($deja_passe_dans_choix_machines))
 				{
 					print ("<P><I>La machine <FONT COLOR=RED>$liste_ordinateurs_concernes</FONT> est prête pour la fabrication d'images de base. Rebootez-la et laissez-vous guider...</I></P>\n");
 				}
+				
+				
 				break;
 
 		#	case "depannage":

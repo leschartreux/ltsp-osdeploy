@@ -29,7 +29,7 @@ class NetTask(object):
         transfert will launch as soon as all clients are connected or timeout
         '''
         data = str(id_task)+";"+dns #id_task and dns are simply separated with ;
-        print "j'envoie data : ", data
+        #print "j'envoie data : ", data
         self._sock.send(data)
         
     

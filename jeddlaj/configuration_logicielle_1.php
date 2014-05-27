@@ -73,31 +73,37 @@ function typePartitionQuery($nom_os) {
       return "type_partition=\"FAT32\"";
       break;
     case "WindowsNT" :
-      return "type_partition=\"NTFS\"";
+      return "type_partition=\"ntfs\"";
       break;
     case "Windows2000" :
-      return "type_partition=\"NTFS\"";
+      return "type_partition=\"ntfs\"";
       break;
     case "WindowsXP" :
-      return "type_partition=\"NTFS\"";
+      return "type_partition=\"ntfs\"";
       break;
     case "Windows2003" :
-      return "type_partition=\"NTFS\"";
+      return "type_partition=\"ntfs\"";
       break;
     case "WindowsVista" :
-      return "type_partition=\"NTFS\"";
+      return "type_partition=\"ntfs\"";
       break;
     case "Windows7" :
-      return "type_partition=\"NTFS\"";
+      return "type_partition=\"ntfs\"";
       break;
     case "Windows7_x64" :
-      return "type_partition=\"NTFS\"";
+      return "type_partition=\"ntfs\"";
+      break;
+    case "Windows8" :
+      return "type_partition=\"ntfs\"";
+      break;
+    case "Windows8_x64" :
+      return "type_partition=\"ntfs\"";
       break;
    case "Linux" :
-      return "(nom_partition=\"/\" AND (type_partition=\"EXT2\" OR type_partition=\"EXT3\"))";
+      return "(nom_partition=\"/\" AND (type_partition=\"ext2\" OR type_partition=\"ext3\" OR type_partition=\"ext4\"))";
       break;
    case "Linux_x64" :
-      return "(nom_partition=\"/\" AND (type_partition=\"EXT2\" OR type_partition=\"EXT3\"))";
+      return "(nom_partition=\"/\" AND (type_partition=\"ext2\" OR type_partition=\"ext3\" OR type_partition=\"ext4\"))";
       break;
   }
 }

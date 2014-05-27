@@ -1,5 +1,13 @@
+# -*- coding: utf-8 -*-
+
 import mysql.connector
 import host
+
+from flufl.i18n import initialize
+import languages
+
+_= initialize('pyddlaj_client')
+
 
 class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
     """special class to have cursors retunr dict"""
@@ -11,16 +19,16 @@ class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
 
 class jeddlajdb:    
     """Jeddlaj Mysql Database"""
-    def __init__(self, host, user, pwd, db, port):
+    def __init__(self, host, user, pwd, db, port=3306):
         self.host = host
         self.user = user
         self.pwd = pwd
         self.db = db
         self.port = port
         
-        self._dbconnect = mysql.connector.Connect(user=user, host=host, password=pwd, db=db, port=port)
+        self._dbconnect = mysql.connector.Connect(user=user, host=host, password=pwd, db=db, port=port, autocommit=True)
         self._cursor = self._dbconnect.cursor()
-        print ("Connecion OK")
+        print _("Connection OK")
         
     def ShowTables(self):
         cursor = self._dbconnect.cursor()
@@ -41,6 +49,29 @@ class jeddlajdb:
         cursor.close()
         return foundhost
     
+    def findHostByName(self,strdns,method='exact'):
+        
+        cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
+        query = "Select * from ordinateurs where nom_dns"
+        if method == "exact":
+            query += "=" + self.valsql(strdns)
+        else:
+            query += " like '%" + strdns + "%'"
+        
+        cursor.execute(query)
+        rows = []
+        #Row dictionary type is available for fetchone only
+        #we store them all in a list
+        while True:
+            row = cursor.fetchone()
+            if row:
+                rows.append(row)
+            else:
+                break
+        
+        cursor.close()
+        return rows
+    
     def newhost(self, host):
         """Insert newhost in database
         @param host: host object returned locally"""
@@ -51,9 +82,12 @@ class jeddlajdb:
         sql += self.valsql(host.dns) + "," + self.valsql(host.ip) + "," + self.valsql(host.mac) + "," + self.valsql(host.proc) + "," + str(host.nbcpu)
         sql += "," + self.valsql(host.manuf) + "," + self.valsql(host.model) +","+ self.valsql(host.serial)+ "," + meminfo['MemTotal'].replace(" kB","")
         sql += ")"
-        print "SQL req = ", sql
+        #print "SQL req = ", sql
         cursor = self._dbconnect.cursor()
         cursor.execute(sql)
+        sql = "INSERT into ord_appartient_a_gpe values ('%s','tous les ordinateurs')" % (host.dns)
+        cursor.execute(sql)
+        self._dbconnect.commit()
         cursor.close()
     
     def getdisks(self,dns):
@@ -85,8 +119,10 @@ class jeddlajdb:
             disklist[diskpath]['size']=capacite
             disklist[diskpath]['num']=num_disque
             
-            sql =  "SELECT linux_device,num_partition,taille_partition,type_partition,nom_partition from partitions p where "
-            sql += " p.num_disque=%s and p.nom_dns = %s" % (num_disque,self.valsql(dns))
+            sql =  "SELECT linux_device,idbs.num_partition,taille_partition,type_partition,nom_partition"
+            sql += " FROM partitions p, idb_est_installe_sur idbs, images_de_base idb"
+            sql += " WHERE p.num_disque=%s and p.nom_dns = %s" % (num_disque,self.valsql(dns))
+            
 #            print ("sql", sql)
             cursor2 = self._dbconnect.cursor()
             cursor2.execute(sql)
@@ -116,6 +152,216 @@ class jeddlajdb:
             
         sql = "UPDATE stockages_de_masse set dd_a_partitionner=" + self.valsql(action) + " where nom_dns=" + self.valsql(dns)
         cursor.execute(sql)
+        self._dbconnect.commit()
+    
+
+    def addDists(self,dns,diskinfo):
+        """Ask about distribution to associate with the host"""
+        sql = "Select DISTINCT id_logiciel,nom_logiciel from images_de_base idb,logiciels where idb.id_os=id_logiciel"
+        cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
+        cursor.execute(sql)
+        row=cursor.fetchone()
+        idbs = []
+        while row:
+            idbs.append((row['id_logiciel'],row['nom_logiciel']))
+            row=cursor.fetch_one()
+
+        print _("Please choose the distrib : ")
+        while True:
+            num=1
+            for idb in idbs:
+                print "[%d]: %s" % (idb[0],idb[1])
+                num+=1
+                
+            val = raw_input("Choice : ")
+            if not val.isdigit():
+                print _("Bad Number")
+                continue
+            val = int(val)
+            if val < 1 or val > num:
+                print _("Number not in range")
+                continue
+            break
+            
+        id_os = idbs[val-1][0]
+        sql = "Select * from images_de_base where id_os= " + id_os            
+        cursor.execute(sql)
+        row = cursor.fetchone()
+        while row:
+            disk = diskinfo[0]
+            while True:
+                print _("List of available partitions")
+                num=1
+                for part in disk['PPartitions']:
+                    print "[%d] : %d taille: %s" % (num,part['num'],part['size'])
+                    num+=1
+                val = raw_input("Choice for image " + row['nom_idb'] + " of size " + row['taille'])
+                if not val.isdigit():
+                    print _("Bad number")
+                    continue
+                val = int(val)
+                if val < 1 or val > num:
+                    print _("Number not in range")
+                    continue
+                break
+            
+            sql = "Insert into idb_est_installe_sur (id_idb,nom_dns,num_disque,num_partition,etat_idb,idb_active) VALUES("
+            sql += row['id_idb'] + ","
+            sql += self.valsql(dns) + ","
+            sql += "0," + disk['PPartitions'][val-1]
+            sql +="'installe','oui')"
+            
+            #print "verif sql" , sql
+            self._cursor.execute(sql)
+        print _("OK, Insert finished. I will now save the images.")
+                    
+            
+       
+    
+    def newDists(self,dns,diskinfo):
+        '''Ask questions about new Distributions  and set of base Image'''
+        oses = self.getOsList()
+        while True: #For multiboot oses, more than one distrib could be added
+
+            print "***********************************"
+            print _("*     Add distribution      *")
+            print "***********************************"
+            print _("Which os is installed on this host ?")
+            num=1
+            for os in oses:
+                print "[%d]: %s" % (num,os[1])
+                num+=1
+            val = raw_input(_("Choice : "))
+            if not val.isdigit():
+                print _("Bad number")
+                continue
+            val = int(val)
+            if val < 1 or val > num:
+                print _("Number not in range")
+                continue
+            #print 'oses',oses
+            nom_os = oses[val-1][1]
+            id_os = oses[val-1][0]
+            
+            #get default logo for distrib
+            if "XP" in nom_os:
+                logo = "windowsxpsp3.jpg"
+            elif "7" in nom_os:
+                logo = "win7.jpg"
+            elif "2008" in nom_os:
+                logo = "windows.png"
+            elif "8" in nom_os:
+                logo = "win8.jpg"
+            else:
+                logo = "windows.jpg" 
+            
+            val= raw_input(_("Enter name for this distribution\n Adding computer model is a good idea for easier reference (ex : Fujitsu Esprimo P2520 winxp SP3 2014): "))
+            nom_logiciel = val
+            
+            val = raw_input(_("Enter distribution version (SP1, R2, Lenny, ...) : "))
+            version = val
+            
+            sql =  "INSERT INTO logiciels (nom_logiciel,icone,version,nom_os,idos) VALUES("
+            sql += self.valsql(nom_logiciel) + ","
+            sql += self.valsql(logo) + ","
+            sql += self.valsql(version) + ","
+            sql += self.valsql(nom_os) + ","
+            sql += str(id_os) + ")";
+            self._cursor.execute(sql)
+           # print "verif requete : ", sql
+            self._cursor.execute("select LAST_INSERT_ID()")
+            result = self._cursor.fetchall()
+            for r in result:
+                num_logiciel = r[0]
+            
+            print _("Created dist number : "),num_logiciel
+           
+            
+            for disk in diskinfo: #all disks are scanned
+                print "disk", disk
+                disk_num = diskinfo[disk]['num']
+                print "***********************"
+                print _("Disk num ") + str(disk_num)
+                print "***********************"
+                num_part = 1
+                #add partitions loop
+                while True:
+                    print "*******************"
+                    print _("Partition num ") + str(num_part)
+                    print "*******************"
+                    num = 1
+                    if len( diskinfo[disk]['PPartitions']) == 0:
+                        print _("No more partition available")
+                        break
+                    
+                    print _("Choose one parition ")
+                    for partition in diskinfo[disk]['PPartitions']:
+                        print _("[%d]: %s type fs: %s size : %dMB" % (num,partition['num'],partition['fs_type'],partition['size']))
+                        num+=1
+                    np = raw_input(_("choice : "))
+                    if not np.isdigit():
+                        print _("Bad number")
+                        continue
+                    np = int(np)
+                    if (np <0 or np >num):
+                        print _('Number not in range')
+                        continue
+                    #extract partitions info
+                    part =  diskinfo[disk]['PPartitions'][np-1]
+                    size = part['size']
+                    print _("Filename for partition backup. example : manufacturer/model/osname/sdax.pc")
+                    repertoire= raw_input(_("Enter partition's backup filename : "))
+                    
+                    print _("Partition name")
+                    print _(" -For windows Vista and above you must type keyword 'boot' for the boot partition (ex : win81_boot)")
+                    print _(" -For linux distributions you must type  the mount point of the partition")
+                    nom_idb = raw_input(_("partition name : "))
+                    
+                    val = raw_input(_("Confirm for this partition (Y/N) ? "))
+                    if  not (val == 'Y' or val == 'y'):
+                        continue
+                    
+                    #add idb and idb_est_installe_sur records
+                    sql = "INSERT INTO images_de_base (id_os,nom_idb,repertoire,taille,num_part) VALUES ("
+                    sql += str(num_logiciel) + ","
+                    sql += self.valsql(nom_idb) + ","
+                    sql += self.valsql(repertoire) + ","
+                    sql += self.valsql(str(size) + " MB") + ","
+                    sql += str(num_part) + ")"
+                    self._cursor.execute(sql)
+                    #print "verif requete : ", sql
+                    self._cursor.execute(sql)
+                    self._cursor.execute("select LAST_INSERT_ID()")
+                    result = self._cursor.fetchall()
+                    for r in result:
+                        id_idb = r[0]
+                    sql = "INSERT INTO idb_est_installe_sur (id_idb,nom_dns,num_disque,num_partition,etat_idb,idb_active) VALUES("
+                    sql += str(id_idb) + ","
+                    sql += self.valsql(dns) + ","
+                    sql += str(disk_num)+ "," + str(num_part) + ","
+                    sql += "'installe','oui')"
+                    self._cursor.execute(sql)
+                    #print "verif requete : ", sql
+                    #remove partition entry as it is already allocated
+                    #it won't be listed in choice
+                    del  diskinfo[disk]['PPartitions'][np-1]
+                    
+                    val = raw_input("Other partition to add (Y/N) ? ")
+                    if  val == 'Y' or val == 'y':
+                        num_part+=1
+                    else:
+                        break
+                self._dbconnect.commit()
+            #Ask for other distribution present in the host    
+            val = raw_input(_("Another distrib on this computer you want to add (Y/N) ? "))
+            if  val == 'Y' or val == 'n':
+                continue #back to Distrib Prompt
+            else:
+                break #get out of loop, return to main program
+            
+            
+            
+        
         
     def getIdbToInstall(self,dns):
         """Get list of partitions and associated base image to Install"""
@@ -123,13 +369,13 @@ class jeddlajdb:
         cursor = self._dbconnect.cursor()
         sql =  "Select idb.id_idb, id_os, repertoire"
         sql += ",idbs.num_disque,num_partition,etat_idb"
-        sql += ",s.nom_dns, linux_device"
+        sql += ",s.nom_dns, s.linux_device"
         sql += " FROM images_de_base idb,idb_est_installe_sur idbs,stockages_de_masse s"
         sql += " WHERE s.nom_dns=" + self.valsql(dns)
         sql += " AND idbs.nom_dns=" + self.valsql(dns)
         sql += " AND idbs.num_disque=s.num_disque"
         sql += " AND idbs.id_idb = idb.id_idb"
-        print "Sql = ", sql
+        #print "Sql = ", sql
         cursor.execute(sql)
         res = cursor.fetchall()
         for (id_idb,id_os,repertoire,num_disque,num_partition,etat_idb,nom_dns,linux_device) in res:
@@ -147,32 +393,60 @@ class jeddlajdb:
         cursor.close()
         return listidb
     
-    def getTask(self,dns,idonly=True):
-        """Get task id of host
-        if id=True returns id only, else return row data
-        """
-        cur = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
-        sql = "SELECT t.id_tache as tid,type_tache,dte_deb,dte_fin,nb_ok,nb_ko from tache t,tache_est_assignee_a ta WHERE ta.id_tache=t.id_tache AND nom_dns=" + self.valsql(dns)
-        cur.execute(sql)
-        row = cur.fetchone()
-        print "row = " , row
-        if idonly == True:
-            task=row['tid']
-        else:
-            task=row
+    def getOs(self,dns):
+        """Get dict of Oses and partitions installed on the host """
+        
+        cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
+        listOs=[]
+        
+        sql = "Select os.nom_os,idb.nom_idb,concat(s.linux_device,cast(idbs.num_partition as char)) as dev_path"
+        sql +=" FROM os,logiciels,idb_est_installe_sur idbs,images_de_base idb,stockages_de_masse s"
+        sql += " WHERE logiciels.id_logiciel=idb.id_os"
+        sql += " AND os.idos=logiciels.idos"
+        sql += " AND idbs.id_idb=idb.id_idb"
+        sql += " AND idbs.num_disque=s.num_disque"
+        sql += " AND s.nom_dns=" + self.valsql(dns)
+        sql += " AND idbs.nom_dns=" + self.valsql(dns)
+        
+        #print "sql : ",sql
+        
+        cursor.execute(sql)
+        while True:
+            row = cursor.fetchone()
+            if row:
+                listOs.append(row)
+                print "row = ", row
+            else:
+                break
             
-        return task
+        cursor.close()
+        return listOs
+    
+    def getOsList(self):
+        """return list of oses in database"""
+        sql = "SELECT idos,nom_os from os"
+        self._cursor.execute(sql)
+        rows = self._cursor.fetchall()
+        oses = []
+        for row in rows:
+            oses.append( (row[0],row[1]) )
+        return oses
+    
+
     
     def getClientNumber(self,tid):
         """return number of hosts assiciated to task id"""
-        sql = "SELECT count(*) from tache_est_assignee_a where id_tache=" + str(tid)
-        self._cursor.execute(sql)
-        row = self._cursor.fetchone()
-        for (number) in row:
-            clientnumber=number
+        query = "SELECT count(*) as nb from tache_est_assignee_a where id_tache=%s" % ( str(tid) )
+        #print "requete en cours : ", query
+        cursor = self._dbconnect.cursor()
+        cursor.execute(query)
+        row =cursor.fetchall()
+        print "row : " ,row
+        for (r) in row:
+            clientnumber=r[0]
+        cursor.close()
         return clientnumber
             
-    
     
     def deldisks(self,dns):
         '''Remove all disk records in theb of the specified host'''
@@ -183,54 +457,148 @@ class jeddlajdb:
         cursor.execute(sql)
         cursor.close()
         
+    def getTask(self,dns,idonly=True):
+        """Get task id of host. Look into not terminated tasks only
+        if id=True returns id only, else return row data
+        """
+        cur = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
+        #
+        sql = "SELECT t.id_tache as tid,type_tache,dte_deb,dte_fin,nb_ok,nb_ko,speed from tache t,tache_est_assignee_a ta WHERE ta.id_tache=t.id_tache AND dte_fin is null AND nom_dns=" + self.valsql(dns)
+        cur.execute(sql)
+        row = cur.fetchone()
+        #print "row = " , row
+        if idonly == True: #Only first row is takend
+            task=row['tid']
+        else:
+            task=row
+        
+        while True: #Clean others rows
+            row = cur.fetchone()
+            if not row:
+                break
+        cur.close()
+            
+        return task
+    
+    def createTask(self,task_type):
+        """Create a new Task and return its id"""
+        sql = "INSERT INTO tache (type_tache) values(" + self.valsql(task_type) + ")"
+        self._cursor.execute(sql)
+        sql= "SELECT LAST_INSERT_ID()"
+        self._cursor.execute(sql)
+        row = self._cursor.fetchall()
+        for r in row:
+            newid=r[0]
+        
+        return newid
+    
+    def addTaskHost(self,tid,dns):
+        """Add host to a created task
+        @param tid: Task ID
+        @param dns: hostname"""
+        
+        sql = "INSERT into tache_est_assignee_a values (" + str(tid) + "," + self.valsql(dns) + ")"
+        self._cursor.execute(sql)
+        pass
+  
+        
+
     def setTaskDate(self,tid,start):
         """
-        update the task start time or end time fi start is false
+        update the task start time or end time if start is false
         """
         sql = "UPDATE tache set "
-        if (tid):
+        if (start):
             sql+= "dte_deb"
         else:
-            sql += "dte_end"
+            sql += "dte_fin"
         
+
         sql +="=now() Where id_tache=" + str(tid)
-        
-        self._cursor.execute(sql)
-        
-        
+
+        #we must check if all transferts are terminateted before updating table        
+        if not start:
+            testsql = "Select nb_ok + nb_ko as nbs from tache where id_tache=" + str(tid)
+            self._cursor.execute(testsql)
+            row = self._cursor.fetchall()
+            for r in row:
+                nb = r[0]
+            print _("Record : "), r , _(" tache :"), row
+            testsql = "Select count(*) from tache_est_assignee_a where id_tache=" + str(tid)
+            self._cursor.execute(testsql)
+            row = self._cursor.fetchall()
+            for r in row:
+                tot = r[0]
+            print "nb finished:",nb," tot:",tot
+            if nb >= tot:        
+                self._cursor.execute(sql)
+                self._dbconnect.commit()
+            else:
+                print _("There are still not finished transfers for this task. No update")
+        else:
+            self._cursor.execute(sql)
+            self._dbconnect.commit()        
         
     
-    def addpartitions(self,dns,diskinfo):
-        '''insert int db disks and partitions information'''
-        ''' following dictionary example '''
-        '''{'/dev/sdb': 
-               {'num': 1, 'PPartitions': 
-                          [{'num': 1, 'fs_type': 'ext4', 'name': None, 'size': 28},
-                           {'num': 2, 'fs_type': 'ext4', 'name': None, 'size': 122}],
-                'size': 150.0},
-            '/dev/sdc': 
-               {'num': 2, 'PPartitions': 
-                          [{'num': 1, 'fs_type': 'linux-swap(v1)', 'name': None, 'size': 4}],
-               'size': 4.0},
-            '/dev/sda': 
-               {'num': 0, 'PPartitions': 
-                          [{'num': 1, 'fs_type': 'ext3', 'name': None, 'size': 8}],
-               'size': 8.0}
-            }'''
+    def addTaskOK(self,tid):
+        """
+        Increment Successfull count of task
+        """
+        sql = "UPDATE tache set nb_ok=nb_ok+1 where id_tache=" + str(tid)
+        self._cursor.execute(sql)
+        self._dbconnect.commit()
+    
+    def addTaskKO(self,tid):
+        """
+        Increment unsuccessfull count of task
+        """
+        sql = "UPDATE tache set nb_ko=nb_ko+1 where id_tache=" + str(tid)
+        self._cursor.execute(sql)
+        self._dbconnect.commit()
+        
+    def updatePartitions(self,dns,diskinfo,disk_number):
+        """This should be called just after repartitionning from a dump file"""
+        
+        sql = "delete from partitions where nom_dns=" + self.valsql(dns)
+        self._cursor.execute(sql)
+        self._dbconnect.commit()
+        self.addpartitions(dns, diskinfo,disk_num_only=disk_number)
+
+        
+    def addpartitions(self,dns,diskinfo,disk_num_only=-1):
+        '''insert int db disks and partitions found
+        if disk_num_only >=0, insert only partition of the disk number
+        diskinfo is dict with following example
+        {'/dev/sdb': 
+              {'num': 1, 'PPartitions': 
+                         [{'num': 1, 'fs_type': 'ext4', 'name': None, 'size': 28},
+                          {'num': 2, 'fs_type': 'ext4', 'name': None, 'size': 122}],
+               'size': 150.0},
+           '/dev/sdc': 
+              {'num': 2, 'PPartitions': 
+                         [{'num': 1, 'fs_type': 'linux-swap(v1)', 'name': None, 'size': 4}],
+              'size': 4.0},
+           '/dev/sda': 
+              {'num': 0, 'PPartitions': 
+                         [{'num': 1, 'fs_type': 'ext3', 'name': None, 'size': 8}],
+              'size': 8.0}
+           }'''
         
         cursor = self._dbconnect.cursor()
         for disk in diskinfo:
             linux_device = disk
             capacite = diskinfo[disk]['size']
             num_disque =  diskinfo[disk]['num']
-            sql = "Insert into stockages_de_masse (nom_dns,num_disque,capacite,linux_device) values("
-            sql += self.valsql(dns) + "," + str(num_disque) + "," + str(capacite) + "," + self.valsql(linux_device) +")"
+            if (disk_num_only == -1 ):
+                sql = "Insert into stockages_de_masse (nom_dns,num_disque,capacite,linux_device) values("
+                sql += self.valsql(dns) + "," + str(num_disque) + "," + str(capacite) + "," + self.valsql(linux_device) +")"
+                cursor.execute(sql)
+                #print "Insertion disque :" , sql
+            else:
+                if num_disque != disk_num_only:
+                    continue
             
-            
-            cursor.execute(sql)
-            
-            print "Insertion disque :" , sql
-            print ("info disque : ", diskinfo)
+            print ("Disk informations : ", diskinfo)
             if 'PPartitions' in diskinfo[disk].keys(): #Partitions info could be empty 
                 for p_partition in diskinfo[disk]['PPartitions']:
                     num_partition = p_partition['num']
@@ -238,17 +606,20 @@ class jeddlajdb:
                     type_partition = p_partition['fs_type']
                     nom_partition = p_partition['name']
                     plinux_device = linux_device + str(num_partition)
-                    sql = "Insert into partitions (nom_dns,num_disque,num_partition,taille_partition,type_partition,nom_partition,linux_device) values("
+                    sql = "Insert into partitions (nom_dns,num_disque,num_partition,taille_partition,type_partition,nom_partition,systeme,linux_device) values("
                     sql += self.valsql(dns) + ","
                     sql += str(num_disque) + ","
                     sql += str(num_partition) + ","
                     sql += str(taille_partition) +","
                     sql += self.valsql(type_partition) + ","
                     sql += self.valsql(nom_partition) + ","
+                    sql += "'oui',"
                     sql += self.valsql(plinux_device) + ")"
-                    print "INSERTION PARTITION : ", sql
+                    #print "INSERTION PARTITION : ", sql
                     cursor.execute(sql)
         cursor.close()
+        self._dbconnect.commit()
+        
     
     def getState(self,dns):
         """Get status of host in Database
@@ -266,9 +637,11 @@ class jeddlajdb:
         """Set status of host in Database
         @param dns: host's dns name
         """
-        cursor = self._dbconnect.cursor()
-        sql = "UPDATE ordinateurs set etat_install=%s where nom_dns=%s" % self.valsql(state) ,self.valsql(dns)
-        cursor.execute(sql)            
+        
+        sql = "UPDATE ordinateurs set etat_install=%s where nom_dns=%s" % (self.valsql(state) ,self.valsql(dns))
+        #print "sql = ",sql
+        self._cursor.execute(sql)
+        self._dbconnect.commit()            
         
         
     def valsql(self, value):
@@ -283,6 +656,8 @@ class jeddlajdb:
             return ("'%s'" % value.replace("'", "''"))
     
     def close(self):
+        self._dbconnect.commit()
+        self._cursor.close()
         self._dbconnect.close()
         
     

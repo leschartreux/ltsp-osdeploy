@@ -1,0 +1,45 @@
+# Output for pyddlajd.py program
+# Copyright (C) 2014
+# This file is distributed under the same license as the ltsp-osdeploy package.
+# FIRST AUTHOR <raphael@rignier.com>, 2014
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-05-26 18:09+0200\n"
+"PO-Revision-Date: 2014-05-26 18:22+0100\n"
+"Last-Translator: Raphaël RIGNIER <raphael@rignier.com>\n"
+"Language-Team: French <inforeseau@leschartreux.net>\n"
+"Language: EN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: English\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: ../pyddlajd.py:28
+msgid "Connected by"
+msgstr ""
+
+#: ../pyddlajd.py:39
+msgid "Task info:"
+msgstr ""
+
+#: ../pyddlajd.py:47
+msgid "Clients number : "
+msgstr ""
+
+#: ../pyddlajd.py:48
+msgid "Master image to deploy"
+msgstr ""
+
+#: ../pyddlajd.py:66
+msgid "Wait 15s for update Database from clients"
+msgstr ""
+
+#: ../pyddlajd.py:72
+#, python-format
+msgid "Task ID %d already started. No need to launch UDP sender"
+msgstr ""
+

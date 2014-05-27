@@ -80,10 +80,16 @@ switch ($action)
 		EnteteFormulaire("POST","editer_ou_supprimer_image_de_base.php?action=ChoixLogiciel&mode=$mode");
 		$mode == "edition" ? $verbe = "éditer" : $verbe = "supprimer";
 		print("<FONT COLOR=BLUE SIZE=+1>Type d'OS associé à l'image de base à $verbe :</I> </FONT> <SELECT NAME=nom_os>\n");
-		foreach ($GLOBALS['oss'] as $os)
+		###modif RRIGNIER ########
+		#Utilise la base plutôt que les globales
+		$req = "select nom_os from os";
+		$result = mysql_query($req);
+		
+		while ( $row = mysql_fetch_array($result))
 		{
-		    print("<OPTION VALUE=\"$os\">$os</OPTION>\n");
+		    print("<OPTION VALUE=\"". $row['nom_os']."\">".$row['nom_os']."</OPTION>\n");
 		}
+		mysql_free_result($result);
 		print("</SELECT>\n");
 		print("<P><INPUT TYPE=SUBMIT VALUE=\"Valider\">   <INPUT TYPE=RESET VALUE=\"Annuler\"></P>\n");
 		FinFormulaire();

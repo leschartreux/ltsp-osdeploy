@@ -19,7 +19,7 @@ function launchJoin
 	For Each objComputer in colItems
 		wscript.echo "OK"
     	strComputerName = objComputer.Name
-    	if lcase(strComputerName) <> lcase($new_netbios) then
+    	if UCase(strComputerName) <> UCase($new_netbios) then
     		wscript.echo "renommage de " & strComputername & " en $new_netbios"
     		objComputer.Rename("$new_netbios")
     		opt = $OPTIONS + NETSETUP_JOIN_WITH_NEW_NAME
@@ -33,10 +33,24 @@ function launchJoin
     	launchjoin=ret
 	Next
 	
-
-	
 end function
 
+function restoreLUA
+    Dim WSHShell, value
+
+    On Error Resume Next
+    Set WSHShell = CreateObject("WScript.Shell")
+    value = WSHShell.RegRead( "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\EnableLUA_old" )
+
+    if err.number <> 0 then
+        WSHShell.regWrite( "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\EnableLUA",value,"REG_DWORD")
+        restoreLUA = err.number
+    else
+        restoreLUA = err.number
+    end if
+
+    set WSHShell = nothing
+end function
 
 Wscript.echo "Entree dans le {$affiliation_windows$} {$nom_affiliation$}..."
 
@@ -49,4 +63,9 @@ LOOP
  	
 If i < 6 Then
 	Wscript.echo "Entree reussie."
+	ret = restoreLUA
+	Wscript.echo "Récupération LUA : " & ret
+	
 End if
+
+

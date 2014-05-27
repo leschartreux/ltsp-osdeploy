@@ -214,7 +214,7 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
             mysql_select_db($db, $link);
 
             //On dump la base
-            importe_dump("DB_DUMPS/jeddlaj.sql");
+            importe_dump("DB_DUMPS/pyddlaj.sql");
 
         }
 

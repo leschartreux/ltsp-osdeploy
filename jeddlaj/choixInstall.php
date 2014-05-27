@@ -69,21 +69,21 @@ echo '<legend>Choisir un type d\'installation</legend>';
 
 echo '<form action="build.php" method="post">';
 
-echo '<p>';
-echo '<label for="update"><input type="radio" name="typeInstall" id="update" value="update" />Mise à jour</label>';
-echo '</p>';
+//echo '<p>';
+//echo '<label for="update"><input type="radio" name="typeInstall" id="update" value="update" />Mise à jour</label>';
+//echo '</p>';
 
-echo '<p>';
-echo '<label for="version">Version actuelle : </label>';
-echo '<select name="version" id="version">';
+//echo '<p>';
+//echo '<label for="version">Version actuelle : </label>';
+//echo '<select name="version" id="version">';
 
-echo '<option value=""> -- </option>';
+//echo '<option value=""> -- </option>';
 
-foreach ($tab_maj as $version => $script) {
+//foreach ($tab_maj as $version => $script) {
 
-    echo '<option value="'.$version.'">'.$version.'</option>';
+//    echo '<option value="'.$version.'">'.$version.'</option>';
             
-}
+//}
 
 echo '</select>';
 echo '<p>';

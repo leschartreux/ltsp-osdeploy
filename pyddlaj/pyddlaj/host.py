@@ -5,6 +5,7 @@ import platform
 import dmidecode
 import reparted #this api is easier than parted and sufficient
 import parted
+#import settings
 from collections import OrderedDict
 import socket
 from subprocess import call
@@ -18,13 +19,13 @@ import os
 
 class host:
     """Represents current host data needed for os deployment"""
-    
+ 
     # avaliable Device list should contains parted 
 
     
     def __init__(self):
         self.intf = netifaces.ifaddresses('eth0')
-        print ('test intf:', self.intf)
+        #print ('test intf:', self.intf)
         self.mac = self.intf[netifaces.AF_LINK][0]['addr']
         self.ip = self.intf[netifaces.AF_INET][0]['addr']
         self.uname = platform.uname()
@@ -94,7 +95,7 @@ class host:
     
     def cacheFormat(self):
         dev_path = self.cahePart
-        print "Formatage de la partition cache : ", dev_path
+        print _("Formating cache partition : "), dev_path
         cmd = "/sbin/mkfs.ext4"
         call( [cmd,dev_path])
         
@@ -112,7 +113,7 @@ class host:
             key= device path (/dev/sda) then tuplet ( Disk Object , [Primary partition list], extended partion object, [Logical partition list] )"""
         return self._disks
     
-    def cerateDosTableIfEmpty(self,path):
+    def createDosTableIfEmpty(self,path):
         """Returns True if Partition table is not empty
         If no partiton table detected, then create one and return False
         """
@@ -125,26 +126,47 @@ class host:
                 return False
             
         except reparted.exception.DiskError as de:
-            print "Erreur Disque : ", de
+            print _("Disk Error : "), de
             if de.code == 600: #Error with empty disk partition
-                print "Création d'une nouvelle table de partitions",
+                print _("New partition table :"),
                 #only way to create partition unattend is by calling parted command...
                 pcmd=("/sbin/parted") 
 #                print "Lancement commande : ", pcmd," ",parg
                 retcode = call([pcmd,'-s',path,'mklabel','msdos'])
                 if retcode != 0:
-                    print "Erreur de création de la table des partitions Ne peut continuer"
+                    print _("Error, can't create partition. Exiting")
                     sys.exit(1)
-                print "...OK!"
+                print _("...OK!")
                 pass
             else:
                 return False
             
+        """    def clonePartitions(self, diskinfo):
+        """"""Create partition table indicated in diskinfo dict""""""
+        print ("Disque à partitionner : ", diskinfo)
+        for disk_to_erase in diskinfo:
+            dev_path = disk_to_erase.encode('ascii')
+            print "dev_path: ", dev_path
+            
+            print "********************"
+            lDevice = reparted.Device(dev_path)
+            print "********************"
+            
+            #disk is not empty. This will destroy all data on disk !
+            if not self.createDosTableIfEmpty(dev_path):
+                lDisk = reparted.Disk(lDevice)
+                print '**********************************************************************************'
+                print '* Le Disque n''est pas vide ! J''EFFACE TOUTES LES DONNEES malgré tout           *'
+                print '**********************************************************************************'
+                lDisk.delete_all()
+                lDisk.commit()   
         
+            cmd = "sfdisk %s < %s" %(dev_path,)
+        """
         
     def makePartitions(self, diskinfo):
         """Create partition table indicated in diskinfo dict"""
-        print ("Disque à partitionner : ", diskinfo)
+        print (_("Disk to be partitionned : "), diskinfo)
         for disk_to_erase in diskinfo:
             dev_path = disk_to_erase.encode('ascii')
             print "dev_path: ", dev_path
@@ -155,10 +177,10 @@ class host:
             
             
             #disk is not empty. This will destroy all data on disk !
-            if not self.cerateDosTableIfEmpty(dev_path):
+            if not self.createDosTableIfEmpty(dev_path):
                 lDisk = reparted.Disk(lDevice)
                 print '**********************************************************************************'
-                print '* Le Disque n''est pas vide ! J''EFFACE TOUTES LES DONNEES malgré tout           *'
+                print _('* Disk is not empty ! ALL DATA ON DISK WILL BE DESTROYED WITHOUT PROMPT      *')
                 print '**********************************************************************************'
                 lDisk.delete_all()
                 lDisk.commit()
@@ -180,13 +202,13 @@ class host:
             #get number of partitions to create
             nbpart = len(diskinfo[disk_to_erase]) - 2 #last 2 elements of dict are not partitions 
             print ('**********************************************************************************')
-            print ('Nouveau partitionnnement du disque. Nombre de partition à créer : %d' % nbpart)
+            print _('New Disk partitioning. Number to create : %d') % nbpart
             print ('**********************************************************************************')
             
             for i in range(1,nbpart+1):
                 partition = diskinfo[disk_to_erase][i]
-                print "partitionnement à faire : ", partition
-                print 'Partition %d : nom=%s type=%s taille=%d MB' % (i, partition['name'], partition['type'], partition['size']),
+                print _("partition to make : "), partition
+                print _('Partition %d : nom=%s type=%s taille=%d MB' % (i, partition['name'], partition['type'], partition['size'])),
                 newSize = reparted.Size(partition['size'], 'MB')
                 if partition['type'] == "NTFS":
                     newPartition = reparted.Partition( disk=lDisk, size=newSize, fs='ntfs')
@@ -198,12 +220,12 @@ class host:
                     
                 lDisk.add_partition(newPartition)
                 lDisk.commit()
-                print ('....OK!')
+                print _('....OK!')
             
             #Free space on disk is used as cache partition (local storage for disk img)
-            print 'Ajout de la dernière partition cache : '
+            print _('Add last partition for cache : ')
             freeSize =  lDisk.usable_free_space
-            print "freesize = ", freeSize
+            #print "freesize = ", freeSize
             newPartition = reparted.Partition( disk=lDisk, size=freeSize, fs='ext4')
             lDisk.add_partition(newPartition)
             lDisk.commit()
@@ -224,9 +246,7 @@ class host:
                 num = p.num()
                 self._cachedev = p.path
             
-   
-        
-        
+ 
     def getdiskinfos(self):
         """return lits of disks with folowing elements
         {disk0 num,disq0 size, [ {part0 num, par0 size, part0 name, part0 fstype, part0 fssize}, ...]}"""
@@ -313,7 +333,7 @@ class host:
             Epartition = localdisk.getExtendedPartition()
             
         except: #could occur if no partition table
-            print ('pas de partition pour ce disque')
+            print _('No partition for this disk')
             
         if Epartition != None:
             Lpartitions = localdisk.getLogicalPartitions()
@@ -334,7 +354,4 @@ class host:
                 meminfo[line.split(':')[0]] = line.split(':')[1].strip()
         return meminfo
         
-            
-        
-        # self.pdev.
         

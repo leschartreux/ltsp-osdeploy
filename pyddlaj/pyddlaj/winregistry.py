@@ -23,10 +23,10 @@ class WinRegistry(object):
         @param dev_path: Path of Windows partition device (usually /dev/sda1 for XP or /dev/sda2 for Vista and above) 
         '''
         if not os.path.isdir(settings.NTFS_MOUNT):
-            print "Création du répertoire " + settings.NTFS_MOUNT
+            print _("Make directory ") + settings.NTFS_MOUNT
             os.mkdir(settings.NTFS_MOUNT)
         if not os.path.ismount(settings.NTFS_MOUNT):
-            print "Montage de la racine windows"
+            print _("Mount Windows system partition")
             #mount NTFS partition with lower case only to avoid file names between windows version v
             call(['/sbin/mount.lowntfs-3g',"-o","ignore_case",dev_path,settings.NTFS_MOUNT])
         
@@ -86,8 +86,9 @@ class WinRegistry(object):
         else:
             f.write("Call " + cmd + "\r\n")
         #f.write("Call C:\\Windows\\System32\\cmd.exe") # interactive cmd thi is for debug
-        f.write("pause\r\n")
-        f.write("suthdown -r")
+        #f.write("pause\r\n")
+        f.write("DEL " + cmd + "\r\n") #self suppress of file to hide join passwords
+        f.write("suthdown -r\r\n")
         f.close()
         shutil.copyfile('/tmp/launch.cmd',self._joindir + "/launch.cmd")
         
@@ -104,7 +105,7 @@ class WinRegistry(object):
         if self.isNT6System(type_os):
             reg2 = self.getReg("Microsoft\\Windows\\CurrentVersion\\Policies\\System", '/tmp/regpolsys.reg', 'software')
             lua = reg2.getValue("EnableLUA")
-            print "valeur LUA", lua.split('=')
+            #print "valeur LUA", lua.split('=')
             regfile.addKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System")
             regfile.addValue("EnableLUA_old", lua.split('=')[1])
             regfile.addValue("EnableLUA","dword:00000000")
@@ -122,10 +123,10 @@ class WinRegistry(object):
         self.UpdateReg('/tmp/regfilesys.reg', 'system')
     
     def renameComputer(self,newname):
-        """Edit Windows Registry for offline computer rename"""
+        """Modify Windows Registry for offline computer rename"""
         
         newname = newname.upper()
-        print "Renommage du poste dans le regsitre ", newname
+        print _("Rename host in registry "), newname
         
         regfile = RegFile('/tmp/regfileRename.reg',True)
         regfile.addKey('HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\ComputerName\\ComputerName')
@@ -194,10 +195,11 @@ class WinRegistry(object):
             
             #Use vbscript to rename and join new computer
             #python template is nice to genrate script
+            self.renameComputer(netbios);
             fr = open(settings.BASE_DIR + '/tools/jjoin.vbs','r')
             vbscript = fr.read()
             fr.close()
-            joinparms = dict(nom_affiliation='leschartreux.com',new_netbios=netbios,ADMINUSER='jeddlaj',ADMINPASSWD='jeddlaj',OU='NULL',OPTIONS="JOIN_DOMAIN + ACCT_CREATE + DOMAIN_JOIN_IF_JOINED")
+            joinparms = dict(nom_affiliation=settings.AD_DOMAIN,new_netbios=netbios,ADMINUSER=settings.AD_JOINUSER,ADMINPASSWD=settings.AD_JOINPASSWORD,OU='NULL',OPTIONS="JOIN_DOMAIN + ACCT_CREATE + DOMAIN_JOIN_IF_JOINED")
            
             tscript = Template(vbscript)
             joinscript = tscript.safe_substitute(joinparms) 
@@ -211,7 +213,8 @@ class WinRegistry(object):
         else:
             self.renameComputer(netbios)
             fh = open('/tmp/joincom.bat', 'w')
-            join_bat="net start dhcp\r\n"
+            join_bat="@echo off\r\n"
+            join_bat+="net start dhcp\r\n"
             join_bat+="ipconfig /renew\r\n"
             join_bat+="net start workstation\r\n"
             join_bat+="net start server\r\n"
@@ -222,7 +225,7 @@ class WinRegistry(object):
             join_bat+="reg add \"HKLM\\System\\Setup\" /v SystemSetupInProgress /t REG_DWORD /d 00000000 /f\r\n"
             fh.write(join_bat)
 #            join_bat="netdom renamecomputer %%COMPUTERNAME%% /newName=%s\r\n" % (netbios)
-            join_bat += "netdom.exe join %s /domain:leschartreux.com /UserD:leschartreux\\jeddlaj /PasswordD:jeddlaj\r\n" % (netbios)           
+            join_bat += "netdom.exe join %s /domain:%s /UserD:%s\\%s /PasswordD:%s\r\n" % (netbios,settings.AD_DOMAIN,settings.AD_DOMAIN,settings.AD_JOINUSER,settings.AD_JOINPASSWORD)           
             fh.write(join_bat)
             fh.close()
             shutil.copyfile("tools/netdomxp.exe",joindir + "/netdom.exe")
@@ -253,7 +256,7 @@ class RegFile(object):
                 fh.write("Windows Registry Editor Version 5.00\r\n") #Header of reg file
             self._fh = fh
         except:
-            print 'Erreur!'
+            print _('Error!')
             
 
     def addKey(self,key):

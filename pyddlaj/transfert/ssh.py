@@ -15,14 +15,14 @@ def createSSHClient(server, port, keyfile):
     return client
 
 def scplocalboot(mac):
-    """Copy bia SCP the pxelinux config for local boot
+    """Copy via SCP the pxelinux config for local boot
     @param mac: Mac address of host""" 
     sshclient = createSSHClient(settings.TFTP_SERVER, settings.SSH_PORT, 'conf/privkey')
     scp = SCPClient(sshclient.get_transport())
     
     source = 'conf/pxebootlocal'
     dest = '%s/pxelinux.cfg/01-%s' % (settings.SSH_ROOT, mac.replace(':', '-'))
-    print "SCP file from %s to %s" % (source, dest)
+    #print "SCP file from %s to %s" % (source, dest)
     scp.put(source, dest)
 
 # scp.py
