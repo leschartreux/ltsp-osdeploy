@@ -10,30 +10,30 @@ This is first development release with minimal features.
 - Full disk backup and clone of Windows XP and above hosts
   
 
-###OS Backup feature
+###OS Backup features
 - full Disk image backup of host
 - Small interactive text interface for first image creation task of host
 - NTFS support
 - Fast Compression. With 2 cores CPU and gigabit network card, disk partitions dumping rate is over 2GB/minute.
 - Central storage on NFS server
 
-###OS Clone feature
+###OS Clone features
 - Full disk clone on same disk size or greater
-- Totally unattended cloning process from Network Boot. No menu
-- Simultaneous deploy of multiple hosts via multicast
+- Totally unattended cloning process from Network Boot. No menu client client size.
+- Fast image deploy with multicast. Tested 81Mbs on 12 100mbs network PC.
 - Auto rename of computer and windows domain joining
  
  ###Technical features
-- Client uses PXE Network boot features of hosts to do the work
-- Boot image is a Linux 32 bits dedicated Debian 7 distribution, made with excellent LTSP project. http://www.ltsp.org
+- Client uses PXE PC's Network boot feature to the work (PXE)
+- Boot image is a Linux 32 bits dedicated Debian 7 distribution, based on excellent LTSP project. http://www.ltsp.org
 - All work is done with python scripts connected to central database
-- Dynamic local boot or LTSP boot with host's state from DB 
+- Local boot on hard drive or LTSP boot is dynamically managed with web GUI and scripts
 - Main difference with others cloning projects is that Windows Host customization is done with a registry edition tool from chntpasswd http://http://pogostick.net/~pnh/ntpasswd/. It offers
 offline Registry modifications with .Reg files import/export. Windows batch scripts are dynamically generated after clone and before reboot.
 No need to install complex scripts or agents on windows hosts before generating base image. 
-- Dump of partitions are done with partclone http://partclone.org
+- Dump of partitions is done with partclone http://partclone.org
 - fast compression is done with pigz. Which is a multithread version of gzip (Now, most of PC's CPUs have multithread, multicore support)
-- Multicast transfert uses udpcast project
+- Multicast transfert uses powerfull udpcast project http://www.udpcast.linux.lu/
 - A small python daemon is used to synchronize multicast image transfert. Only one multicast transfert at a time is implemented for now.
 - The MySQL database and Web inerface intend to be compatible with the base project from Jeddlaj https://sourcesup.renater.fr/projects/jeddlaj/
 
