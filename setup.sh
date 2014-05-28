@@ -47,7 +47,8 @@ chroot /opt/ltsp/i386-osdeploy ln -s /usr/share/pyddlaj/pyddlaj /usr/bin/pyddlaj
 
 
 echo "Deploying lts.conf on tftp server"
-cp ltsp-build-client/lts.conf /srv/tftp/ltsp/i386-osdeploy
+cp ltsp-build-client/lts.conf /etc/pyddlaj/srv/tftp/ltsp/i386-osdeploy
+ln -s /usr/share
 
 
 echo "All is ready."
