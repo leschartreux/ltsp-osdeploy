@@ -59,6 +59,7 @@
 include("UtilsHTML.php");
 include("UtilsMySQL.php");
 include("UtilsJeDDLaJ.php");
+include("UtilsPyDDLaJ.php");
 include("Utils.php");
 
 # On recupere les variables
@@ -160,8 +161,8 @@ switch ($action)
 		print("<INPUT TYPE=HIDDEN NAME=version VALUE=\"$ligne[version]\">\n");
 		print("<INPUT TYPE=HIDDEN NAME=nom_os VALUE=\"$nom_os\">\n");
 		EnteteTable("BORDER=0 CELLPADDING=2 CELLSPACING=5");
-		print("<TR><TD><I>Nom Image de base</I> </TD><TD>: <INPUT TYPE=TEXT NAME=nom_idb SIZE=50 VALUE=\"\"></TD></TR>\n");
-		print("<TR><TD><I>Répertoire</I> </TD><TD>: <FONT SIZE=-1 COLOR=GREEN><I>$RemboIDBDir</I></FONT><INPUT TYPE=TEXT NAME=repertoire SIZE=50 VALUE=\"\"></TD></TR>\n");
+		print("<TR><TD><I>Nom Image de base<BR>Pour les partitions Windows de boot,<BR> mettez le mot clé 'boot' (ex : win81_boot)</I> </TD><TD>: <INPUT TYPE=TEXT NAME=nom_idb SIZE=50 VALUE=\"\"></TD></TR>\n");
+		print("<TR><TD><I>Répertoire</I> </TD><TD>: <FONT SIZE=-1 COLOR=GREEN><I>$img_dir</I></FONT><INPUT TYPE=TEXT NAME=repertoire SIZE=50 VALUE=\"\"></TD></TR>\n");
 
 		print("<TR><TD><I>Spécificité</I> </TD><TD>: <SELECT NAME=specificite>\n");
 		print("<OPTION VALUE=\"aucune\">aucune</OPTION>\n");
@@ -171,6 +172,9 @@ switch ($action)
 		print("</SELECT>\n");
 		print("</TD></TR>\n");
 		print("<TR><TD><I>Valeur Spécificité</I> </TD><TD>: <INPUT TYPE=TEXT NAME=valeur_specificite SIZE=50 VALUE=\"\"></TD></TR>\n");
+		print("</TD></TR>\n");
+		print("<TR><TD><I>Taille de la partition (ex : 350 MB, 50 GB)</I> </TD><TD>: <INPUT TYPE=TEXT NAME=taille SIZE=20 VALUE=\"\"></TD></TR>\n");
+		print("<TR><TD><I>position partition (à partir de 1)</I> </TD><TD>: <INPUT TYPE=TEXT NAME=num_part SIZE=5 VALUE=\"\"></TD></TR>\n");
 		FinTable();
 		print("<P><INPUT TYPE=SUBMIT VALUE=\"Valider\">   <INPUT TYPE=RESET VALUE=\"Annuler\"></P>\n");
 		FinFormulaire();
@@ -183,9 +187,11 @@ switch ($action)
 		$nom_os = $_POST["nom_os"];
 		$nom_idb = $_POST["nom_idb"];
 		$repertoire = $_POST["repertoire"];
+		$taille = $_POST["taille"];
+		$num_part = $_POST["num_part"];
 		# On ajoute un slash final au chemin s'il n'y est pas déjà, sauf si répertoire est vide 
 		# sinon on aurait $RemboIDBDir/ (donc deux slashes finaux...)
-		if (substr($repertoire,-1) != "/" and $repertoire != "") {$repertoire .= "/";}
+		#if (substr($repertoire,-1) != "/" and $repertoire != "") {$repertoire .= "/";}
 		$specificite = $_POST["specificite"];
 		$valeur_specificite = $_POST["valeur_specificite"];
 		# toutes les variables ont ete recuperees
@@ -198,13 +204,20 @@ switch ($action)
 		# de type de specificite differentes OU (de meme type de specificite ET de meme valeur specificite).
 		# La requete suivante exprime ces cas interdits ET les compte : on ne veut donc editer que si la requete renvoie 0 
 		$request2 = "SELECT COUNT(*) AS total FROM images_de_base WHERE id_os=\"$id_os\" AND (\"$specificite\"=\"aucune\" OR specificite=\"aucune\" OR specificite<>\"$specificite\" OR (specificite=\"$specificite\" AND valeur_specificite=\"$valeur_specificite\"))";
+		
+		
 
 		$result = mysql_query($request);
 		$result2 = mysql_query($request2);
 		$line = mysql_fetch_array($result);
 		$line2 = mysql_fetch_array($result2);
-		$idb_incompatible_meme_rep_deja_existante = ($line["total"] != 0);
-		$idb_incompatible_meme_distrib_deja_existante = ($line2["total"] != 0);
+		# $idb_incompatible_meme_rep_deja_existante = ($line["total"] != 0);
+		# $idb_incompatible_meme_distrib_deja_existante = ($line2["total"] != 0);
+		#Modif Pyddlaj, en mode copie de disque on associe plusieurs images de bases à la distrib Par exemple windows 7 à une partition boot et une partition système.
+		#Elle ne se fait plus au niveau des partitions, pour pouvoir cloner des disques sans que ceux ci soient correctements paramétrés dans la base
+		#conscient que cela casse le concept Jeddlajique (Punissez moi ô maitre !)
+		$idb_incompatible_meme_rep_deja_existante = 0;
+		$idb_incompatible_meme_distrib_deja_existante = 0;
 		mysql_free_result($result);
 		mysql_free_result($result2);
 
@@ -221,9 +234,10 @@ switch ($action)
 			print("<P><FONT SIZE=-2>(*) Tous ces cas violent ce principe fondamental de JeDDLaJ : \"Pour une machine et une distribution données, il ne doit y avoir qu'une image de base possible\". Ceci pour que JeDDLaJ puisse toujours opérer le choix automatique de l'image de base lors des installations/réinstallations d'une distribution donnée sur une machine, ou un groupe quelconque de machines.</FONT></P>\n");
 		}
 		else # OK, on peut ajouter
+		
 		{
 			# On insère dans la table images_de_base
-			$request = "INSERT INTO images_de_base (id_os, nom_idb, repertoire, specificite, valeur_specificite) VALUES (\"$id_os\", \"$nom_idb\", \"$repertoire\", \"$specificite\", \"$valeur_specificite\")";
+			$request = "INSERT INTO images_de_base (id_os, nom_idb, repertoire, specificite, valeur_specificite, taille, num_part) VALUES (\"$id_os\", \"$nom_idb\", \"$repertoire\", \"$specificite\", \"$valeur_specificite\",'$taille',$num_part)";
 			$result = mysql_query($request);
 
 			print("<P><I>L'image de base <FONT COLOR=RED>$nom_idb</FONT> a été ajoutée avec grand brio à la table des images de base.</I></P>\n");
@@ -247,8 +261,8 @@ switch ($action)
 		FinTable();
 		print("<H2>Image de base</H2>");
 		EnteteTable("BORDER=0 CELLPADDING=2 CELLSPACING=5");
-		print("<TR><TD><I>Nom image de base</I> </TD><TD>: <INPUT TYPE=TEXT NAME=nom_idb SIZE=50 VALUE=\"\"></TD></TR>\n");
-		print("<TR><TD><I>Répertoire</I> </TD><TD>: <FONT SIZE=-1 COLOR=GREEN><I>$RemboIDBDir</I></FONT><INPUT TYPE=TEXT NAME=repertoire SIZE=50 VALUE=\"\"></TD></TR>\n");
+/*		print("<TR><TD><I>Nom image de base</I> </TD><TD>: <INPUT TYPE=TEXT NAME=nom_idb SIZE=50 VALUE=\"\"></TD></TR>\n");
+		print("<TR><TD><I>Répertoire</I> </TD><TD>: <FONT SIZE=-1 COLOR=GREEN><I>$img_dir</I></FONT><INPUT TYPE=TEXT NAME=repertoire SIZE=50 VALUE=\"\"></TD></TR>\n");
 
 		print("<TR><TD><I>Spécificité</I> </TD><TD>: <SELECT NAME=specificite>\n");
 		print("<OPTION VALUE=\"aucune\">aucune</OPTION>\n");
@@ -257,8 +271,24 @@ switch ($action)
 		print("</SELECT>\n");
 		print("</TD></TR>\n");
 		print("<TR><TD><I>Valeur Spécificité</I> </TD><TD>: <INPUT TYPE=TEXT NAME=valeur_specificite SIZE=50 VALUE=\"\"></TD></TR>\n");
+		*/
+		print("<TR><TD><I>Nom Image de base<BR>Pour les partitions Windows de boot,<BR> mettez le mot clé 'boot' (ex : win81_boot)</I> </TD><TD>: <INPUT TYPE=TEXT NAME=nom_idb SIZE=50 VALUE=\"\"></TD></TR>\n");
+		print("<TR><TD><I>Répertoire</I> </TD><TD>: <FONT SIZE=-1 COLOR=GREEN><I>$img_dir</I></FONT><INPUT TYPE=TEXT NAME=repertoire SIZE=50 VALUE=\"\"></TD></TR>\n");
+
+		print("<TR><TD><I>Spécificité</I> </TD><TD>: <SELECT NAME=specificite>\n");
+		print("<OPTION VALUE=\"aucune\">aucune</OPTION>\n");
+		print("<OPTION VALUE=\"nom_dns\">nom_dns</OPTION>\n");
+		print("<OPTION VALUE=\"signature\">signature</OPTION>\n");
+		print("<OPTION VALUE=\"id_composant\">id_composant</OPTION>\n");
+		print("</SELECT>\n");
+		print("</TD></TR>\n");
+		print("<TR><TD><I>Valeur Spécificité</I> </TD><TD>: <INPUT TYPE=TEXT NAME=valeur_specificite SIZE=50 VALUE=\"\"></TD></TR>\n");
+		print("</TD></TR>\n");
+		print("<TR><TD><I>Taille de la partition (ex : 350 MB, 50 GB)</I> </TD><TD>: <INPUT TYPE=TEXT NAME=taille SIZE=20 VALUE=\"\"></TD></TR>\n");
+		print("<TR><TD><I>position partition (à partir de 1)</I> </TD><TD>: <INPUT TYPE=TEXT NAME=num_part SIZE=5 VALUE=\"\"></TD></TR>\n");
 		FinTable();
-		print("<P><INPUT TYPE=SUBMIT VALUE=\"Valider\">   <INPUT TYPE=RESET VALUE=\"Annuler\"></P>\n");
+		print("<P><INPUT TYPE=SUBMIT VALUE=\"Valider\">   <INPUT TYPE=RESET VALUE=\"Annuler\"></P>\n");*/
+
 		FinFormulaire();
 		break;
 	case "NewIdbNewDistribValidation":
@@ -271,9 +301,11 @@ switch ($action)
 		$nom_os = $_POST["nom_os"];
 		$nom_idb = $_POST["nom_idb"];
 		$repertoire = $_POST["repertoire"];
+		$taille = $_POST["taille"];
+		$num_part = $_POST["num_part"];
 		# On ajoute un slash final au chemin s'il n'y est pas déjà, sauf si répertoire est vide sinon 
 		# on aurait $RemboIDBDir/ (donc deux slashes finaux...)
-		if (substr($repertoire,-1) != "/" and $repertoire != "") {$repertoire .= "/";}
+		#if (substr($repertoire,-1) != "/" and $repertoire != "") {$repertoire .= "/";}
 
 		$specificite = $_POST["specificite"];
 		$valeur_specificite = $_POST["valeur_specificite"];
@@ -309,8 +341,15 @@ switch ($action)
 		}
 		else # OK, on peut ajouter
 		{
+			$request = "Select idos from os where nom_os='$nnom_os'";
+			$result = mysql_query($request);
+			while ($res = mysql_fetch_array($result))
+			{
+				$idos = $res['idos'];
+			}
+			mysql_free_result($result);
 			# On insère dans la table logiciels
-			$request = "INSERT INTO logiciels (nom_logiciel, icone, version, nom_os) VALUES (\"$nom_logiciel\", \"$icone\", \"$version\", \"$nom_os\")";
+			$request = "INSERT INTO logiciels (nom_logiciel, icone, version, nom_os,idos) VALUES (\"$nom_logiciel\", \"$icone\", \"$version\", \"$nom_os\",$idos)";
 			$result = mysql_query($request);
 			$id_logiciel = mysql_insert_id();
 			# On pourrait aussi faire avec cette fonction interne MySQL qui marche même si id_logiciel est un bigint, ce qui n'est pas le 
@@ -319,7 +358,7 @@ switch ($action)
 			print("<P><I>La distribution <FONT COLOR=RED>$nom_logiciel</FONT>, version <FONT COLOR=RED>$version_a_afficher</FONT> a été ajoutée avec grand succès à la table des logiciels.</I></P>\n");
 
 			# On insère dans la table images_de_base
-			$request = "INSERT INTO images_de_base (id_os, nom_idb, repertoire, specificite, valeur_specificite) VALUES (\"$id_logiciel\", \"$nom_idb\", \"$repertoire\", \"$specificite\", \"$valeur_specificite\")";
+			$request = "INSERT INTO images_de_base (id_os, nom_idb, repertoire, specificite, valeur_specificite,taille,num_part) VALUES (\"$id_logiciel\", \"$nom_idb\", \"$repertoire\", \"$specificite\", \"$valeur_specificite\",'$taille',$num_part)";
 			$result = mysql_query($request);
 
 			print("<P><I>L'image de base <FONT COLOR=RED>$nom_idb</FONT> a été ajoutée like a charm à la table des images de base.</I></P>\n");

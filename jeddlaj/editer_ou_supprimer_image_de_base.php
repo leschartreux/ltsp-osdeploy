@@ -59,6 +59,7 @@
 include("UtilsHTML.php");
 include("UtilsMySQL.php");
 include("UtilsJeDDLaJ.php");
+include("UtilsPyDDLaJ.php");
 include("Utils.php");
 
 # On recupere les variables
@@ -236,7 +237,7 @@ switch ($action)
 			print("<TR><TD><IMG ALIGN=CENTER WIDTH=\"$largeur_image_distrib_et_idb\" HEIGHT=\"$hauteur_image_distrib_et_idb\" SRC=\"ICONES/$ligne1[icone]\"></TD><TD><I>$ligne1[nom_logiciel], version $ligne1[version]</I></TD></TR>\n");
 			FinTable();
 			print("<H2>Image de base</H2>");
-	        	$request2="SELECT * FROM images_de_base WHERE id_idb=\"$id_idb\"";
+	        $request2="SELECT * FROM images_de_base WHERE id_idb=\"$id_idb\"";
 			$result2=mysql_query($request2);
 			$ligne2 = mysql_fetch_array($result2);
 			mysql_free_result($result2);
@@ -246,8 +247,8 @@ switch ($action)
 			print("<INPUT TYPE=HIDDEN NAME=version VALUE=\"$ligne1[version]\">\n");
 			print("<INPUT TYPE=HIDDEN NAME=id_idb VALUE=\"$ligne2[id_idb]\">\n");
 			EnteteTable("BORDER=0 CELLPADDING=2 CELLSPACING=5");
-			print("<TR><TD><I>Nom image de base</I> </TD><TD>: <INPUT TYPE=TEXT NAME=nom_idb SIZE=50 VALUE=\"$ligne2[nom_idb]\"></TD></TR>\n");
-			print("<TR><TD><I>Répertoire</I> </TD><TD>: <FONT SIZE=-1 COLOR=GREEN><I>$RemboIDBDir</I></FONT><INPUT TYPE=TEXT NAME=repertoire SIZE=50 VALUE=\"$ligne2[repertoire]\"></TD></TR>\n");
+			print("<TR><TD><I>Nom image de base<BR>Pour les partitions Windows de boot,<BR> mettez le mot clé 'boot' (ex : win81_boot)</I> </TD><TD>: <INPUT TYPE=TEXT NAME=nom_idb SIZE=50 VALUE=\"$ligne2[nom_idb]\"></TD></TR>\n");
+			print("<TR><TD><I>Répertoire</I> </TD><TD>: <FONT SIZE=-1 COLOR=GREEN><I>$img_dir</I></FONT><INPUT TYPE=TEXT NAME=repertoire SIZE=50 VALUE=\"$ligne2[repertoire]\"></TD></TR>\n");
 			print("<TR><TD><I>Spécificité</I> </TD><TD>: <SELECT NAME=specificite>\n");
 			$ligne2['specificite'] == "aucune" ? $selected_aucune = "SELECTED" : $selected_aucune = "";
 			$ligne2['specificite'] == "nom_dns" ? $selected_nom_dns = "SELECTED" : $selected_nom_dns = "";
@@ -260,6 +261,9 @@ switch ($action)
 			print("</SELECT>\n");
 			print("</TD></TR>\n");
 			print("<TR><TD><I>Valeur Spécificité</I> </TD><TD>: <INPUT TYPE=TEXT NAME=valeur_specificite SIZE=50 VALUE=\"$ligne2[valeur_specificite]\"></TD></TR>\n");
+			print("</TD></TR>\n");
+			print("<TR><TD><I>Taille de la partition (ex : 350 MB, 50 GB)</I> </TD><TD>: <INPUT TYPE=TEXT NAME=taille SIZE=20 VALUE=\"".$ligne2['taille']."\"></TD></TR>\n");
+			print("<TR><TD><I>position partition (à partir de 1)</I> </TD><TD>: <INPUT TYPE=TEXT NAME=num_part SIZE=5 VALUE=\"".$ligne2['num_part']."\"></TD></TR>\n");
 			FinTable();
 			print("<P><INPUT TYPE=SUBMIT VALUE=\"Valider\">   <INPUT TYPE=RESET VALUE=\"Annuler\"></P>\n");
 			FinFormulaire();
@@ -275,6 +279,8 @@ switch ($action)
 			$id_idb = $_POST["id_idb"];
 			$nom_idb = $_POST["nom_idb"];
 			$repertoire = $_POST["repertoire"];
+			$taille = $_POST["taille"];
+			$num_part = $_POST["num_part"];
 			# On ajoute un slash final au chemin s'il n'y est pas déjà, sauf si répertoire est vide
 			# sinon on aurait $RemboIDBDir/ (donc deux slashes finaux...)
 			if (substr($repertoire,-1) != "/" and $repertoire != "") {$repertoire .= "/";}
@@ -304,8 +310,13 @@ switch ($action)
 				$result2 = mysql_query($request2);
 				$line = mysql_fetch_array($result);
 				$line2 = mysql_fetch_array($result2);
-				$idb_incompatible_meme_rep_deja_existante = ($line["total"] != 0);
-				$idb_incompatible_meme_distrib_deja_existante = ($line2["total"] != 0);
+				# $idb_incompatible_meme_rep_deja_existante = ($line["total"] != 0);
+				# $idb_incompatible_meme_distrib_deja_existante = ($line2["total"] != 0);
+				#Modif Pyddlaj, en mode copie de disque on associe plusieurs images de bases à la distrib.
+				#Elle ne se fait plus au niveau des partitions, pour pouvoir cloner des disques sans que ceux ci soient correctements paramétrés dans la base
+				#conscient que cela casse le concept Jeddlajique (Punissez moi ô maitre !)
+				$idb_incompatible_meme_rep_deja_existante = 0;
+				$idb_incompatible_meme_distrib_deja_existante = 0;
 				mysql_free_result($result);
 				mysql_free_result($result2);
 
@@ -324,7 +335,7 @@ switch ($action)
 				else # OK, on peut corriger dans la base
 				{
 					# On corrige dans la table images_de_base
-					mysql_query("UPDATE images_de_base SET id_os=\"$id_os\", nom_idb=\"$nom_idb\", repertoire=\"$repertoire\", specificite=\"$specificite\", valeur_specificite=\"$valeur_specificite\" WHERE id_idb=\"$id_idb\"");
+					mysql_query("UPDATE images_de_base SET id_os=\"$id_os\", nom_idb=\"$nom_idb\", repertoire=\"$repertoire\", specificite=\"$specificite\", valeur_specificite=\"$valeur_specificite\", taille='$taille' and num_part=$num_part WHERE id_idb=\"$id_idb\"");
 					print("<P><I>L'image de base <FONT COLOR=RED>$nom_idb</FONT> a été mise à jour souplement dans la table des images de base.</I></P>\n");
 					print("<P><I><FONT COLOR = RED>MAIS ATTENTION :</FONT> prenez grand soin de répercuter toute modification sur le serveur REMBO, en particulier les changements de nom d'image de base ou de répertoire, sous peine de perdre complètement la cohérence de la base !!!</I></FONT></P>");
 				}

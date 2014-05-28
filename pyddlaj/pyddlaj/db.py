@@ -70,7 +70,10 @@ class jeddlajdb:
                 break
         
         cursor.close()
-        return rows
+        if method == "exact":
+            return rows[0]
+        else:
+            return rows
     
     def newhost(self, host):
         """Insert newhost in database
@@ -86,6 +89,22 @@ class jeddlajdb:
         cursor = self._dbconnect.cursor()
         cursor.execute(sql)
         sql = "INSERT into ord_appartient_a_gpe values ('%s','tous les ordinateurs')" % (host.dns)
+        cursor.execute(sql)
+        self._dbconnect.commit()
+        cursor.close()
+        
+    def updateHost(self, host):
+        """update host info in database
+        @param host: host object returned locally"""
+        
+        meminfo = host.meminfo()
+    
+        sql = "update ordinateurs set "
+        sql +="adresse_ip=" + self.valsql(host.ip) + ",adresse_mac=" + self.valsql(host.mac) + ",processeur=" + self.valsql(host.proc) + ",nombre_proc=" + str(host.nbcpu)
+        sql += ",marque=" + self.valsql(host.manuf) + ",modele=" + self.valsql(host.model) +",numero_serie="+ self.valsql(host.serial)+ ",ram=" + meminfo['MemTotal'].replace(" kB","")
+        sql += " WHERE nom_dns=" + self.valsql(host.dns)
+        print "SQL req = ", sql
+        cursor = self._dbconnect.cursor()
         cursor.execute(sql)
         self._dbconnect.commit()
         cursor.close()
@@ -164,13 +183,13 @@ class jeddlajdb:
         idbs = []
         while row:
             idbs.append((row['id_logiciel'],row['nom_logiciel']))
-            row=cursor.fetch_one()
+            row=cursor.fetchone()
 
         print _("Please choose the distrib : ")
         while True:
             num=1
             for idb in idbs:
-                print "[%d]: %s" % (idb[0],idb[1])
+                print "[%d]: %s" % (num,idb[1])
                 num+=1
                 
             val = raw_input("Choice : ")
@@ -182,37 +201,44 @@ class jeddlajdb:
                 print _("Number not in range")
                 continue
             break
-            
+        print "idbs : " , idbs     
         id_os = idbs[val-1][0]
-        sql = "Select * from images_de_base where id_os= " + id_os            
+        sql = "Select * from images_de_base where id_os= " + str(id_os)            
         cursor.execute(sql)
         row = cursor.fetchone()
         while row:
-            disk = diskinfo[0]
-            while True:
-                print _("List of available partitions")
-                num=1
-                for part in disk['PPartitions']:
-                    print "[%d] : %d taille: %s" % (num,part['num'],part['size'])
-                    num+=1
-                val = raw_input("Choice for image " + row['nom_idb'] + " of size " + row['taille'])
-                if not val.isdigit():
-                    print _("Bad number")
-                    continue
-                val = int(val)
-                if val < 1 or val > num:
-                    print _("Number not in range")
-                    continue
-                break
-            
-            sql = "Insert into idb_est_installe_sur (id_idb,nom_dns,num_disque,num_partition,etat_idb,idb_active) VALUES("
-            sql += row['id_idb'] + ","
-            sql += self.valsql(dns) + ","
-            sql += "0," + disk['PPartitions'][val-1]
-            sql +="'installe','oui')"
-            
-            #print "verif sql" , sql
-            self._cursor.execute(sql)
+            for disk in diskinfo:
+                disk_num = diskinfo[disk]['num']
+                print "***********************"
+                print _("Disk num ") + str(disk_num)
+                print "***********************"
+                while True:
+                    print _("List of available partitions")
+                    num=1
+                    for part in diskinfo[disk]['PPartitions']:
+                        print "[%d] : Number:%d, size: %s" % (num,part['num'],part['size'])
+                        num+=1
+                    val = raw_input("Choice for image " + row['nom_idb'] + " of size " + row['taille'] + " : ")
+                    if not val.isdigit():
+                        print _("Bad number")
+                        continue
+                    val = int(val)
+                    if val < 1 or val > num:
+                        print _("Number not in range")
+                        continue
+                    break
+                
+                sql = "Insert into idb_est_installe_sur (id_idb,nom_dns,num_disque,num_partition,etat_idb,idb_active) VALUES("
+                sql += str(row['id_idb']) + ","
+                sql += self.valsql(dns) + ","
+                sql += str(disk_num) + "," + str(diskinfo[disk]['PPartitions'][val-1]['num']) + ","
+                sql +="'installe','oui')"
+                
+                #print "verif sql" , sql
+                self._cursor.execute(sql)
+                del  diskinfo[disk]['PPartitions'][val-1]
+                #next possible base image for the distrib
+                row = cursor.fetchone()
         print _("OK, Insert finished. I will now save the images.")
                     
             
@@ -467,7 +493,13 @@ class jeddlajdb:
         cur.execute(sql)
         row = cur.fetchone()
         #print "row = " , row
-        if idonly == True: #Only first row is takend
+        
+        
+        #There is no found task for specified host.
+        if not row:
+            return None
+        
+        if idonly == True: #Only first row is taken
             task=row['tid']
         else:
             task=row

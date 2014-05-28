@@ -67,7 +67,12 @@ SelectDb($GLOBALS['db']);
 
 function insertion_base($nom_dns,$nom_dns2) {
 	global $affected;
-	$request="INSERT INTO ordinateurs (nom_dns,nom_netbios,etat_install,affiliation_windows,nom_affiliation,ou,marque,modele,nombre_proc,processeur,frequence,socket,ram,type_ram,nombre_slots,slots_libres,signature,hres,vres,vfreq,hfreq,bpp,modeline,poweroff) SELECT \"$nom_dns2\",\"".substr($nom_dns2,0,strpos($nom_dns2,"."))."\",\"modifie\",affiliation_windows,nom_affiliation,ou,marque,modele,nombre_proc,processeur,frequence,socket,ram,type_ram,nombre_slots,slots_libres,signature,hres,vres,vfreq,hfreq,bpp,modeline,poweroff FROM ordinateurs WHERE nom_dns=\"$nom_dns\"";
+	#poweroff et ou ne sont plus des champs de ordinateurs ...
+	#les postes inseres sont en etat installe par defaut
+	#Pyddlaj fonctionne par Tâche. Elles sont correctement gérées lors des lancements de tâches
+	$request="INSERT INTO ordinateurs "
+	."(nom_dns,nom_netbios,etat_install,affiliation_windows,nom_affiliation,marque,modele,nombre_proc,processeur,frequence,socket,ram,type_ram,nombre_slots,slots_libres,signature,hres,vres,vfreq,hfreq,bpp,modeline)"
+	." SELECT \"$nom_dns2\",\"".substr($nom_dns2,0,strpos($nom_dns2,"."))."\",\"installe\",affiliation_windows,nom_affiliation,marque,modele,nombre_proc,processeur,frequence,socket,ram,type_ram,nombre_slots,slots_libres,signature,hres,vres,vfreq,hfreq,bpp,modeline FROM ordinateurs WHERE nom_dns=\"$nom_dns\"";
 	mysql_query($request);
 	// On vérifie que l'insertion de la machine dans la base a bien fonctionné
 	// car les enregistrements suivants dépendent tous de cette entrée
@@ -140,8 +145,8 @@ if (isset($nom_dns2) && !$copier) {
 			for ($i=$from;$i<$to;$i++) $request_end.=sprintf("\"%s%0${pad}d%s\",",$nom_dns2_pre,$i,$nom_dns2_suf);
 			$request_end.=sprintf("\"%s%0${pad}d%s\") LIMIT 1",$nom_dns2_pre,$i,$nom_dns2_suf);
 		} else $request_end="=\"$nom_dns2\"";
-		$request="SELECT nom_dns FROM ordinateurs WHERE nom_dns".$request_end;	
-  	$result=mysql_query($request);
+		$request="SELECT nom_dns FROM ordinateurs WHERE nom_dns='$request_end'";	
+		$result=mysql_query($request);
 		if (mysql_num_rows($result)!=0) {
 			$line=mysql_fetch_array($result);
 			print("<FONT COLOR=\"red\"><I>Le nom DNS $line[nom_dns] existe déjà dans la base</I></FONT>\n");

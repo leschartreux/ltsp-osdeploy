@@ -401,7 +401,7 @@ switch ($type_tache)
 	case 3:
 		$etat = "reboot";
 	case 4:
-		if ($etat == 'install') $etat = "depannage";
+		if ($etat == 'installe') $etat = "depannage";
 		print "<CENTER>";
 		print "\n<BR><FORM name='frmChangeState' action='lancement_tache_2.php' method='POST'>\n";
 		tableau_choix_poste($nom_dns,$nom_groupe);

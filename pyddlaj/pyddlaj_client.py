@@ -82,13 +82,22 @@ if __name__ == '__main__':
             else:
                 print "Update your DNS PTR Records and restart"
                 sys.exit(1)
-        
-        print "***************************************"
-        print _("Computer not in database. Adding this one")
-        jdb.newhost(myhost)
-        if myhost.isBootable():
-            print _("Localboot PXE File copy")
-            transfert.ssh.scplocalboot(myhost.mac)
+        #host not found on mac address.
+        #search now with DNS
+        fh = jdb.findHostByName(myhost.dns)
+        if fh == None:
+            print "***************************************"
+            print _("Computer not in database. Adding this one")
+            jdb.newhost(myhost)
+            if myhost.isBootable():
+                print _("Localboot PXE File copy")
+                transfert.ssh.scplocalboot(myhost.mac)
+        else:
+            print "*************************************"
+            print _("Computer found. updating info")
+            print "*************************************"
+            jdb.updateHost(myhost)
+            
             
     else:
         #force dns host name to be the same as database 
@@ -195,6 +204,10 @@ if __name__ == '__main__':
                 lbaseimg = jdb.getIdbToInstall(myhost.dns)
                 
                 task_id = jdb.getTask(myhost.dns)
+                if task_id == None:
+                    print _("No task for this host, switching to installed state")
+                    return installed()
+                    
                 #print "Les images de bases : ", lbaseimg
                 print _("Task ID "), task_id
                 okTask = True
@@ -291,6 +304,8 @@ if __name__ == '__main__':
                 jdb.newDists(myhost.dns, diskinfo)
             else:
                 jdb.addDists(myhost.dns, diskinfo)
+            #after prompt, Update list of base image 
+            lbaseimg = jdb.getIdbToInstall(myhost.dns)
            
         
         if not os.path.isdir(settings.IMG_NFS_MOUNT):

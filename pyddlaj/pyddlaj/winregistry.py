@@ -11,6 +11,9 @@ import settings
 import shutil
 from string import Template
 
+from flufl.i18n import initialize
+_ = initialize('pyddlaj_client')
+
 class WinRegistry(object):
     '''
     Manipulates the windows Registry via reged tool and ntfs3G mounting

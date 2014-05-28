@@ -139,18 +139,21 @@ print("</FORM>\n");
 
 # On attaque la tables Ordinateurs pour les infos générales
 
-print("<H2><A HREF=\"examine_machine.php\">Examiner</A>/<A HREF=\"copie_machine.php\">Copier</A>/<A HREF=\"modifier_machine_wrapper.php\">Modifier</A>/<A HREF=\"choix_machines_multiples.php?action=packages\">Passer en état \"Création de packages\"</A>/<A HREF=\"choix_machines_multiples.php?action=idbs\">Passer en état \"Création d'images de base\"</A>/<A HREF=\"choix_machines_multiples.php?action=suppression\">Supprimer</A> machine</H2>\n");
+print("<H2><A HREF=\"examine_machine.php\">Examiner</A>/<A HREF=\"copie_machine.php\">Copier</A>/<A HREF=\"modifier_machine_wrapper.php\">Modifier</A>/"
+#."<A HREF=\"choix_machines_multiples.php?action=packages\">Passer en état \"Création de packages\"</A>"
+."/<A HREF=\"choix_machines_multiples.php?action=idbs\">Passer en état \"Création d'images de base\"</A>/<A HREF=\"choix_machines_multiples.php?action=suppression\">Supprimer</A> machine</H2>\n");
 print("<H2><A HREF=\"examine_groupe.php\">Examiner</A>/<A HREF=\"choix_groupes_multiples.php?action=creation_de_groupe\">Créer</A>/<A HREF=\"choix_groupes_multiples.php?action=modification_de_groupe\">Modifier</A>/<A HREF=\"choix_groupes_multiples.php?action=suppression\">Supprimer</A> groupe</H2>\n");
-print("<H2><A HREF=\"configuration_logicielle_0.php\">Modifier configuration logicielle</A>/<A HREF=\"reinstallation.html\">Réinstaller/Synchroniser</A> machine ou groupe</H2>\n");
+#print("<H2><A HREF=\"configuration_logicielle_0.php\">Modifier configuration logicielle</A>/<A HREF=\"reinstallation.html\">Réinstaller/Synchroniser</A> machine ou groupe</H2>\n");
 print("<H2><A HREF=\"lancement_tache_0.php\">Lancement d'une tâche</A>/ avec Pyddlaj</H2>\n");
 print("<H2><A HREF=\"ajouter_image_de_base.php?action=NewIdb\">Ajouter</A>/<A HREF=\"editer_ou_supprimer_image_de_base.php?mode=edition&action=ChoixOS\">Éditer</A>/<A HREF=\"editer_ou_supprimer_image_de_base.php?mode=suppression&action=ChoixOS\">Supprimer</A> image_de_base</H2>\n");
-print("<H2><A HREF=\"examine_logiciel.php\">Examiner</A>/<A HREF=\"editer_ou_supprimer_logiciel.php?mode=edition&action=ChoixOS\">Éditer</A>/<A HREF=\"editer_ou_supprimer_logiciel.php?mode=suppression&action=ChoixOS\">Supprimer</A> logiciel</H2>\n");
+#print("<H2><A HREF=\"examine_logiciel.php\">Examiner</A>/<A HREF=\"editer_ou_supprimer_logiciel.php?mode=edition&action=ChoixOS\">Éditer</A>/<A HREF=\"editer_ou_supprimer_logiciel.php?mode=suppression&action=ChoixOS\">Supprimer</A> logiciel</H2>\n");
 print("<H2><A HREF=\"examine_distribution.php\">Examiner</A>/<A HREF=\"editer_ou_supprimer_distribution.php?mode=edition&action=ChoixOS\">Éditer</A>/<A HREF=\"editer_ou_supprimer_distribution.php?mode=suppression&action=ChoixOS\">Supprimer</A> distribution</H2>\n");
-print("<H2><A HREF=\"ajouter_package.php?action=NewPackage\">Ajouter</A>/<A HREF=\"editer_ou_supprimer_package.php?mode=edition&action=ChoixOS\">Éditer</A>/<A HREF=\"editer_ou_supprimer_package.php?mode=suppression&action=ChoixOS\">Supprimer</A> package</H2>\n");
-print("<H2><A HREF=\"ajouter_postinstall_script.php?action=AjoutPostInstScript\">Ajouter</A>/<A HREF=\"editer_ou_supprimer_postinstall_script.php?mode=edition&action=ChoixPostInstallScript\">Éditer</A>/<A HREF=\"editer_ou_supprimer_postinstall_script.php?mode=suppression&action=ChoixPostInstallScript\">Supprimer</A> postinstall_script</H2>\n");
-print("<H2><A HREF=\"ajouter_predeinstall_script.php?action=AjoutPreDeinstScript\">Ajouter</A>/<A HREF=\"editer_ou_supprimer_predeinstall_script.php?mode=edition&action=ChoixPreDeinstallScript\">Éditer</A>/<A HREF=\"editer_ou_supprimer_predeinstall_script.php?mode=suppression&action=ChoixPreDeinstallScript\">Supprimer</A> predeinstall_script</H2>\n");
-print("<H2><A HREF=\"wol.html\">Réveil par le réseau</A>/<A HREF=\"boot.html\">Paramètres de boot</A></H2>\n");
-print("<H2><A HREF=\"Interro.php\">Consulter la base JeDDLaJ</A>/<A HREF=\"connect.html\">Connexion au serveur Rembo</A></H2>\n");
+#print("<H2><A HREF=\"ajouter_package.php?action=NewPackage\">Ajouter</A>/<A HREF=\"editer_ou_supprimer_package.php?mode=edition&action=ChoixOS\">Éditer</A>/<A HREF=\"editer_ou_supprimer_package.php?mode=suppression&action=ChoixOS\">Supprimer</A> package</H2>\n");
+#print("<H2><A HREF=\"ajouter_postinstall_script.php?action=AjoutPostInstScript\">Ajouter</A>/<A HREF=\"editer_ou_supprimer_postinstall_script.php?mode=edition&action=ChoixPostInstallScript\">Éditer</A>/<A HREF=\"editer_ou_supprimer_postinstall_script.php?mode=suppression&action=ChoixPostInstallScript\">Supprimer</A> postinstall_script</H2>\n");
+#print("<H2><A HREF=\"ajouter_predeinstall_script.php?action=AjoutPreDeinstScript\">Ajouter</A>/<A HREF=\"editer_ou_supprimer_predeinstall_script.php?mode=edition&action=ChoixPreDeinstallScript\">Éditer</A>/<A HREF=\"editer_ou_supprimer_predeinstall_script.php?mode=suppression&action=ChoixPreDeinstallScript\">Supprimer</A> predeinstall_script</H2>\n");
+#print("<H2><A HREF=\"wol.html\">Réveil par le réseau</A>/<A HREF=\"boot.html\">Paramètres de boot</A></H2>\n");
+print("<H2><A HREF=\"Interro.php\">Consulter la base JeDDLaJ</A>");
+#/<A HREF=\"connect.html\">Connexion au serveur Rembo</A></H2>\n");
 
 ########### Les Addons
 

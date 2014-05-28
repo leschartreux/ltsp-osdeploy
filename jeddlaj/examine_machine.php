@@ -93,7 +93,7 @@ if (isset($_GET["nom_dns"])) {
 	insereLigne(2,"SID : ".$line["sid"],"true","false");
 	insereLigne(2,"Affiliation Windows : ".$line["affiliation_windows"],"true","false");
 	insereLigne(2,"Nom Affiliation: ".$line["nom_affiliation"],"true","false");
-	insereLigne(2,"OU : ".$line["ou"],"true","false");
+	#insereLigne(2,"OU : ".$line["ou"],"true","false");
 	insereLigne(1,"Paramètres d'affichage","false","false");
 	insereLigne(2,"Résolution horizontale : ".($line["hres"]==0?"<i>non définie</i>":$line["hres"]." px"),"true","false");
 	insereLigne(2,"Résolution verticale : ".($line["vres"]==0?"<i>non définie</i>":$line["vres"]." px"),"true","false");
@@ -173,14 +173,16 @@ if (isset($_GET["nom_dns"])) {
 	}
 	mysql_free_result($result1);
 	insereLigne(1,"Distributions et Logiciels","false","false");
-	$request1 = "SELECT id_logiciel,num_disque,num_partition,nom_os,nom_logiciel,version,etat_idb,cache,boot_options,date_install,date_creation FROM idb_est_installe_sur AS a, images_de_base AS b, logiciels  WHERE nom_dns=\"$nom_dns\" AND a.id_idb=b.id_idb AND id_os=id_logiciel ORDER BY num_disque,num_partition";
+	$request1 = "SELECT id_logiciel,num_disque,num_partition,nom_os,nom_logiciel,version,etat_idb,cache,boot_options,date_install FROM idb_est_installe_sur AS a, images_de_base AS b, logiciels  WHERE nom_dns=\"$nom_dns\" AND a.id_idb=b.id_idb AND id_os=id_logiciel ORDER BY num_disque,num_partition";
+	#echo "<br>req1 : $request1<br>";
 	$result1 = mysql_query($request1);
 	for ($i1=0;$i1<mysql_num_rows($result1);$i1++) {
 		$line1 = mysql_fetch_array($result1);
-		$request2 = " SELECT c.id_logiciel,nom_logiciel,version,etat_package FROM package_est_installe_sur AS a, packages AS b, logiciels AS c WHERE nom_dns=\"$nom_dns\" AND num_disque=\"".$line1["num_disque"]."\" AND num_partition=\"".$line1["num_partition"]."\" AND a.id_package=b.id_package AND b.id_logiciel=c.id_logiciel ORDER BY nom_logiciel,version";
+		$request2 = " SELECT c.id_logiciel,nom_logiciel,version,etat_package FROM package_est_installe_sur AS a, packages AS b, logiciels AS c WHERE nom_dns=\"$nom_dns\" AND num_disque=".$line1["num_disque"]." AND num_partition=".$line1["num_partition"]." AND a.id_package=b.id_package AND b.id_logiciel=c.id_logiciel ORDER BY nom_logiciel,version";
+		#echo "<br>req2 : $request2<br>";
 		$result2 = mysql_query($request2);
 		$ood="";
-		if ($line1["etat_idb"]!="a_ajouter" && $line1["date_creation"]>$line1["date_install"]) $ood="<font color='red'>...mais obsolète !</font>";
+#		if ($line1["etat_idb"]!="a_ajouter" ) $ood="<font color='red'>...mais obsolète !</font>";
 		insereLigne(2,"<A HREF='javascript:parent.location.href=\\\"examine_distribution.php?id_logiciel=".$line1["id_logiciel"]."\\\"'>".$line1["nom_logiciel"]." ".$line1["version"]."</A> <I>($line1[etat_idb]$ood)</I>","false","false");
 		insereLigne(3,"Paramètres de boot","false","false");
 		insereLigne(4,"Cachée : ".$line1["cache"],"true","false");
@@ -197,7 +199,7 @@ if (isset($_GET["nom_dns"])) {
 	}
 	mysql_free_result($result1);
 	insereLigne(1,"Autres","false","false");
-	insereLigne(2,"Extinction : ".$line["poweroff"],"true","false");
+	#insereLigne(2,"Extinction : ".$line["poweroff"],"true","false");
 	mysql_free_result($result);
 	DisconnectMySQL();
 	print("  { level:-1, opened:false, name:\"end\", isleaf:true } ]\n");

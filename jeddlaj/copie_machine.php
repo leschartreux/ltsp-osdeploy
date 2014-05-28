@@ -93,7 +93,7 @@ if (isset($_GET["nom_dns"])) {
 	insereLigne(2,"<i>SID : ".$line["sid"]."</i>","true","false");
 	insereLigne(2,"Affiliation Windows : ".$line["affiliation_windows"],"true","false");
 	insereLigne(2,"Nom Affiliation: ".$line["nom_affiliation"],"true","false");
-	insereLigne(2,"OU : ".$line["ou"],"true","false");
+	#insereLigne(2,"OU : ".$line["ou"],"true","false");
 	insereLigne(1,"Paramètres d'affichage","false","false");
 	insereLigne(2,"Résolution horizontale : ".($line["hres"]==0?"<i>non définie</i>":$line["hres"]." px"),"true","false");
 	insereLigne(2,"Résolution verticale : ".($line["vres"]==0?"<i>non définie</i>":$line["vres"]." px"),"true","false");
@@ -193,7 +193,7 @@ if (isset($_GET["nom_dns"])) {
 	}
 	mysql_free_result($result1);
 	insereLigne(1,"Autres","false","false");
-	insereLigne(2,"Extinction : ".$line["poweroff"],"true","false");
+	#insereLigne(2,"Extinction : ".$line["poweroff"],"true","false");
 	mysql_free_result($result);
 	DisconnectMySQL();
 	print("  { level:-1, opened:false, name:\"end\", isleaf:true } ]\n");
