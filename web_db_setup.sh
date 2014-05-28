@@ -7,14 +7,14 @@ if [ ! -f /var/www/jeddlaj ]; then
 	mkdir -p /var/www/jeddlaj
 	cp -R jeddlaj /var/www/jeddlaj/
 	chown -R www-data:www-data /var/www/jeddlaj
-	echo *************************************
+	echo "-------------------------------------"
 	echo "Done !"
-	echo *************************************
+	echo "-------------------------------------"
 fi
 
 echo "Installing Mysql Server"
 apt-get install mysql-server
-echo *************************************
+echo "-------------------------------------"
 echo "Done !"
-echo *************************************
-echo "finish server setup by launching http://your-server-ip/jeddlaj/setup.php"
+echo "-------------------------------------"
+echo "Finish server setup by launching http://your-server-ip/jeddlaj/setup.php"
