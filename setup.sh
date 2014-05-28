@@ -2,7 +2,7 @@
 #This will setup pyddlaj server on a new fresh host
 
 echo "installing dependencies"
-apt-get install thtpd-hpa nfs-kernel-server ltsp-server
+apt-get install tftpd-hpa nfs-kernel-server ltsp-server
 apt-get install udpcast
 
 echo "installing python dependencies"
@@ -17,8 +17,8 @@ ln -s /usr/share/pyddlaj/pyddlajd /usr/sbin/pyddlajd
 
 echo "linking Config file"
 mkdir -p /etc/pyddlaj
-cp /usr/share/settings/__init__.py.dist /usr/share/settings/__init__.py
-ln -s /usr/share/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
+cp /usr/share/pyddlaj/settings/__init__.py.dist /usr/share/pyddlaj/settings/__init__.py
+ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
 echo "installing LTSP pyddlaj client builder"
 cp -R ltsp-build-client/Debian-osdeploy /usr/share/ltsp/plugins/ltsp-build-client/
