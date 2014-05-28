@@ -108,7 +108,7 @@ if (isset($_POST['user']) && isset($_POST['password']) && isset($_POST['host']) 
 
         file_put_contents('DBParDefaut.php', $file);
 
-        header('Location:verifDBParDefautConsult.php');
+        header('Location:choixInstall.php');
 
     } else {
 
