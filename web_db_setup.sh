@@ -3,7 +3,7 @@
 
 echo "Installing Web Server"
 if [ ! -f /var/www/jeddlaj ]; then
-	apt-get install apache2 libapache2-mod-php5 php5-mysql php5-curl phop5-mysql
+	apt-get install apache2 libapache2-mod-php5 php5-mysql php5-curl php5-mysql
 	mkdir -p /var/www/jeddlaj
 	cp -R jeddlaj /var/www/jeddlaj/
 	chown -R www-data:www-data /var/www/jeddlaj
