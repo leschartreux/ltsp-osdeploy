@@ -42,7 +42,7 @@ echo "DONE !"
 echo "--------------------------------------------------"
 
 echo "installing pyddlaj tools on Client root"
-cp -R pyddlaj $ROOT/usr/share/
+cp -R pyddlaj $ROOT_OSDEPLOY/usr/share/
 echo "linking on server"
 ln -s $ROOT_OSDEPLOY/usr/share/pyddlaj /usr/share/pyddlaj
 
