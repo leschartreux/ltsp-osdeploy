@@ -1,27 +1,25 @@
 #!/bin/bash
 #This will setup pyddlaj server on a new fresh host
 
+ROOT_OSDEPLOY="/opt/ltsp/i386-osdeploy"
+
+echo "--------------------------------------------------"
 echo "installing dependencies"
+echo "--------------------------------------------------"
 apt-get install tftpd-hpa nfs-kernel-server ltsp-server
 apt-get install udpcast
 
+echo "--------------------------------------------------"
 echo "installing python dependencies"
-apt-get install python-mysql.connector python-netifaces python-pip python-paramiko python-daemon python-flufl.18n
+echo "--------------------------------------------------"
+apt-get install python-mysql.connector python-netifaces python-pip python-paramiko python-daemon python-flufl.i18n
 
 
-echo "installing pyddlaj program"
-cp -R pyddlaj /usr/share/
 
-echo "linking pyddlagd daemon"
-ln -s /usr/share/pyddlaj/pyddlajd /usr/sbin/pyddlajd
-
-echo "linking Config file"
-mkdir -p /etc/pyddlaj
-cp /usr/share/pyddlaj/settings/__init__.py.dist /usr/share/pyddlaj/settings/__init__.py
-ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
-
+echo "--------------------------------------------------"
 echo "installing LTSP pyddlaj client builder"
 cp -R ltsp-build-client/Debian-osdeploy /usr/share/ltsp/plugins/ltsp-build-client/
+echo "--------------------------------------------------"
 
 echo "adding default VENDOR to build LTSP client"
 if [ -f /etc/ltsp/ltsp-build-client.conf ]; then
@@ -35,20 +33,34 @@ fi
 if [ -z $DIST ]; then
 	echo 'DIST="stable"' >> /etc/ltsp/ltsp-build-client.conf
 fi
-
+echo "--------------------------------------------------"
 echo "DONE !"
+echo "--------------------------------------------------"
 echo "trying to build ltsp-client..."
 ltsp-build-client
 echo "DONE !"
+echo "--------------------------------------------------"
+
+echo "installing pyddlaj tools on Client root"
+cp -R pyddlaj $ROOT/usr/share/
+echo "linking on server"
+ln -s $ROOT_OSDEPLOY/usr/share/pyddlaj /usr/share/pyddlaj
+
+echo "--------------------------------------------------"
+echo "linking pyddlajd daemon"
+ln -s /usr/share/pyddlaj/pyddlajd /usr/sbin/pyddlajd
+echo "--------------------------------------------------"
+echo "Creating default Config file"
+mkdir -p /etc/pyddlaj
+cp /usr/share/pyddlaj/settings/__init__.py.dist /usr/share/pyddlaj/settings/__init__.py
+ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
 echo "Now installing pyddlaj script"
-cp -v -R /usr/share/pyddlaj /opt/ltsp/i386-osdeploy/usr/share/
 chroot /opt/ltsp/i386-osdeploy ln -s /usr/share/pyddlaj/pyddlaj /usr/bin/pyddlaj
 
 
 echo "Deploying lts.conf on tftp server"
-cp ltsp-build-client/lts.conf /etc/pyddlaj/srv/tftp/ltsp/i386-osdeploy
-ln -s /usr/share
+cp ltsp-build-client/lts.conf /srv/tftp/ltsp/i386-osdeploy
 
 
 echo "All is ready."
