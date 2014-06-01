@@ -14,7 +14,7 @@ LANG = 'fr'
 BASE_DIR = "/usr/share/pyddlaj"
 
 #Mysql Settings
-MYSQL_HOST = 'localhost'
+MYSQL_HOST = 'IP_SERVER_HERE'
 MYSQL_DB = 'jeddlaj'
 MYSQL_USER = 'jeddlaj'
 MYSQL_PASSWORD = 'jeddlaj'
@@ -22,7 +22,7 @@ MYSQL_PORT = 3306
 
 #The TFTP Server Which hosts LTSP PXE client images
 #thoses Settings must be in your DHCP server too
-TFTP_SERVER = '10.11.1.186'
+TFTP_SERVER = 'IP_SERVER_HERE'
 TFTP_PORT = 69
 TFTP_ROOT = '/ltsp/i386-osdeploy'
 TFTPD_ROOT = '/srv/tftp'
@@ -38,7 +38,7 @@ SSH_ROOT = '/srv/tftp' + TFTP_ROOT
 SSH_PORT = 22
 
 #NFS share hosting os images 
-IMG_SERVER = '10.11.1.186'
+IMG_SERVER = 'IP_SERVER_HERE'
 IMG_NFS_SHARE = "/opt/pyddlaj/images"
 #Client Side Directory mount of NFS shared images
 IMG_NFS_MOUNT = "/nfsimg"

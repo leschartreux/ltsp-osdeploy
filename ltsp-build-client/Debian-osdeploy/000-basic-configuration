@@ -9,7 +9,7 @@ case "$MODE" in
         DEBOOTSTRAPOPTS=${DEBOOTSTRAPOPTS:-"--variant=minbase"}
         BOOTSTRAP=${BOOTSTRAP:-"debootstrap"}
         CHROOT=${ARCH}-osdeploy
-        INCLUDE='python-mysql.connector,ntfsprogs,ntfs-3g,fsarchiver,partclone,python-paramiko,python-dmidecode,python-pip,python-netifaces,parted,python-parted,udpcast,python-flufl.i18n'
+        INCLUDE='openssh-client,python-mysql.connector,ntfsprogs,ntfs-3g,fsarchiver,partclone,python-paramiko,python-dmidecode,python-pip,python-netifaces,parted,python-parted,udpcast,python-flufl.i18n'
         OVERRIDE_EXPORTS='true'
         NFS_EXPORT_STRING='*(rw,no_root_squash,async,no_subtree_check)'
         HTTP_PROXY="http://10.11.0.5:3142"
