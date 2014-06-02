@@ -132,17 +132,17 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
 
         //initialisation des paramètres
         //on lit le fichier et on récupère les valeurs de connexion
-        $file = file_get_contents('DBParDefaut.php');
+        /*$file = file_get_contents('DBParDefaut.php');
 
         if (file_exists('.htaccess') && file_exists('.htpasswd')) {
             
             $password = $_SERVER['PHP_AUTH_PW'];
 
-        } else {        
+        } else {        */
 
             preg_match('#\$pwd = "(.*)"#', $file, $matches);
             $password = $matches[1];
-        }
+        //}
 
         preg_match('#\$user = "(.*)"#', $file, $matches);
         $user = $matches[1];
@@ -233,6 +233,12 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
         //Création d'un tableau d'host qui contient le nom DNS de l'hote et l'adresse IP de l'host
         $arrayHost = array($host, $hostname, $hostRembo, $hostnameRembo);
 
+        
+        //Création de l'utilisateur multi hote nécéssaire pour les connexions depuis les postes clients
+        $query = 'INSERT INTO `user` (Host, User, Password) '.
+                 'VALUES ("%", "'.$user.'", PASSWORD("'.$password.'")) '.
+                 'ON DUPLICATE KEY UPDATE Password = PASSWORD("'.$password.'");';
+                 
         
         foreach ($arrayHost as $host) {
 

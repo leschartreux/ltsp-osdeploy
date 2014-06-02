@@ -149,9 +149,9 @@ echo '<input type="text" name="db" id="db" value="'.$db.'" />';
 echo '</p>';
 
 echo '<p>';
-echo '<label for="protection">Voulez-vous protéger votre installation de JeDDLaJ par htaccess ?</label>';
-echo '<input type="checkbox" value="true" name="protection" id="protection" /><br />';
-echo '<em>Cette fonctionnalité nécessite que vous remplaciez la valeur de la propriété <strong>AllowOverride</strong> par <strong>AuthConfig</strong> dans votre virtual host</em>';
+#echo '<label for="protection">Voulez-vous protéger votre installation de JeDDLaJ par htaccess ?</label>';
+echo '<input type="checkbox" value="false" name="protection" id="protection" /><br />';
+#echo '<em>Cette fonctionnalité nécessite que vous remplaciez la valeur de la propriété <strong>AllowOverride</strong> par <strong>AuthConfig</strong> dans votre virtual host</em>';
 echo '</p>';
 
 echo '<p>';
