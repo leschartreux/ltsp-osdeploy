@@ -132,9 +132,9 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
 
         //initialisation des paramètres
         //on lit le fichier et on récupère les valeurs de connexion
-        /*$file = file_get_contents('DBParDefaut.php');
+        $file = file_get_contents('DBParDefaut.php');
 
-        if (file_exists('.htaccess') && file_exists('.htpasswd')) {
+        /*if (file_exists('.htaccess') && file_exists('.htpasswd')) {
             
             $password = $_SERVER['PHP_AUTH_PW'];
 
@@ -238,7 +238,8 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
         $query = 'INSERT INTO `user` (Host, User, Password) '.
                  'VALUES ("%", "'.$user.'", PASSWORD("'.$password.'")) '.
                  'ON DUPLICATE KEY UPDATE Password = PASSWORD("'.$password.'");';
-                 
+        mysql_query($query);
+        
         
         foreach ($arrayHost as $host) {
 

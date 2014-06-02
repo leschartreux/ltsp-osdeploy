@@ -150,7 +150,7 @@ echo '</p>';
 
 echo '<p>';
 #echo '<label for="protection">Voulez-vous protéger votre installation de JeDDLaJ par htaccess ?</label>';
-echo '<input type="checkbox" value="false" name="protection" id="protection" /><br />';
+echo '<input type="hidden" value="false" name="protection" id="protection" /><br />';
 #echo '<em>Cette fonctionnalité nécessite que vous remplaciez la valeur de la propriété <strong>AllowOverride</strong> par <strong>AuthConfig</strong> dans votre virtual host</em>';
 echo '</p>';
 
