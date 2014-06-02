@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import mysql.connector
-import host
+#import host
 
 from flufl.i18n import initialize
-import languages
+#import languages
 
 _= initialize('pyddlaj_client')
 

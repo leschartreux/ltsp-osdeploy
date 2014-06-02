@@ -1,0 +1,74 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-06-02 14:37+0200\n"
+"PO-Revision-Date: 2014-06-02 14:22+0100\n"
+"Last-Translator: Raphaël RIGNIER <raphael@rignier.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../changestate.py:24
+msgid "Adding host to task ID "
+msgstr "Ajout du poste à la tâche "
+
+#: ../changestate.py:43
+msgid "Usage : changestate hostname newstate"
+msgstr "Utilisation : changestate hostname newstate"
+
+#: ../changestate.py:44
+msgid "newstate must be one of : osdeploy,osbackup,rename,reboot,debug"
+msgstr ""
+"newstate doit etre un de ceux-ci déploieidb|idb|renomme|reboot|depannage"
+
+#: ../changestate.py:62
+msgid "Haven't found any host in database with the name : "
+msgstr "Je n'ai pas trouvé de nom correspondantg dans la base :"
+
+#: ../changestate.py:66
+msgid "Records found corresponding to your search"
+msgstr "Enregistreements correspondant à votre recherche"
+
+#: ../changestate.py:68
+msgid "Choose one from list :"
+msgstr "Sélectionnez celui qui vous intéresse :"
+
+#: ../changestate.py:73
+msgid "[0] : end"
+msgstr "[0]: Finir"
+
+#: ../changestate.py:74
+msgid "choice : "
+msgstr "Choix : "
+
+#: ../changestate.py:77
+msgid "Bad value, please try again"
+msgstr "Mauvaise valeur. Recommencez."
+
+#: ../changestate.py:81
+msgid "Bad number, please try again"
+msgstr "Mauvais nombre, recommencez"
+
+#: ../changestate.py:85
+msgid "Selected host : "
+msgstr "Hôte sélectionné :"
+
+#: ../changestate.py:90
+msgid "New task : "
+msgstr "Nouvelle tâche"
+
+#: ../changestate.py:93
+msgid "Database updated. Please reboot the host for changes to take effect"
+msgstr "Base mise àjour. Redémarrez le poste et laissez-vous guider"
+
+#: ../changestate.py:101
+msgid "Thank you! See ya"
+msgstr "Merci, à Bientôt"

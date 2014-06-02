@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-05-26 18:09+0200\n"
+"POT-Creation-Date: 2014-06-02 14:37+0200\n"
 "PO-Revision-Date: 2014-05-26 18:22+0100\n"
 "Last-Translator: Raphaël RIGNIER <raphael@rignier.com>\n"
 "Language-Team: French <inforeseau@leschartreux.net>\n"
@@ -18,28 +18,35 @@ msgstr ""
 "X-Poedit-Language: English\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: ../pyddlajd.py:28
+#: ../pyddlajd.py:29
 msgid "Connected by"
 msgstr ""
 
-#: ../pyddlajd.py:39
+#: ../pyddlajd.py:40
 msgid "Task info:"
 msgstr ""
 
-#: ../pyddlajd.py:47
+#: ../pyddlajd.py:48
 msgid "Clients number : "
 msgstr ""
 
-#: ../pyddlajd.py:48
+#: ../pyddlajd.py:49
 msgid "Master image to deploy"
 msgstr ""
 
-#: ../pyddlajd.py:66
+#: ../pyddlajd.py:67
 msgid "Wait 15s for update Database from clients"
 msgstr ""
 
-#: ../pyddlajd.py:72
+#: ../pyddlajd.py:73
 #, python-format
 msgid "Task ID %d already started. No need to launch UDP sender"
 msgstr ""
 
+#: ../pyddlajd.py:106
+msgid "Testing Database connection"
+msgstr ""
+
+#: ../pyddlajd.py:113
+msgid "Waiting for task to launch"
+msgstr ""

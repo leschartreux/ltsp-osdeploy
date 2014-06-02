@@ -48,7 +48,7 @@ ln -s $ROOT_OSDEPLOY/usr/share/pyddlaj /usr/share/pyddlaj
 
 echo "--------------------------------------------------"
 echo "linking pyddlajd daemon"
-ln -s /usr/share/pyddlaj/pyddlajd /usr/sbin/pyddlajd
+ln -s /usr/share/pyddlaj/pyddlajd.py /usr/sbin/pyddlajd
 echo "--------------------------------------------------"
 echo "Creating default Config file"
 mkdir -p /etc/pyddlaj
@@ -56,7 +56,7 @@ cp /usr/share/pyddlaj/settings/__init__.py.dist /usr/share/pyddlaj/settings/__in
 ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
 echo "Now installing pyddlaj script"
-chroot /opt/ltsp/i386-osdeploy ln -s /usr/share/pyddlaj/pyddlaj /usr/bin/pyddlaj
+chroot /opt/ltsp/i386-osdeploy ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
 
 
 echo "Deploying lts.conf on tftp server"
@@ -65,5 +65,5 @@ cp ltsp-build-client/lts.conf /srv/tftp/ltsp/i386-osdeploy
 
 echo "All is ready."
 echo "Next step : edit /etc/pyddlaj/pyddlaj.conf to fit your needs"
-echo "Then launch /usr/sbin/pyddlajd daemon on a console to listen"
+echo "Then launch /usr/sbin/pyddlajd daemon on a console"
 

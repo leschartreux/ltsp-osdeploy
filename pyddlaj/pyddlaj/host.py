@@ -2,7 +2,7 @@
 
 import netifaces
 import platform
-import dmidecode
+
 import reparted #this api is easier than parted and sufficient
 import parted
 #import settings
@@ -24,6 +24,8 @@ class host:
 
     
     def __init__(self):
+        import dmidecode
+        
         self.intf = netifaces.ifaddresses('eth0')
         #print ('test intf:', self.intf)
         self.mac = self.intf[netifaces.AF_LINK][0]['addr']

@@ -58,8 +58,6 @@ if __name__ == '__main__':
     print _('CPU : '), myhost.cpuinf['proc0']['model name']
     print _('nbcpu:'), myhost.nbcpu
     print '**********************************************'
-
-    
     
     #Get Local Disks infos
     myhost.listdisks()
