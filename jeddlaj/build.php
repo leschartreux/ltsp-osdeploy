@@ -235,7 +235,7 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
         
         mysql_select_db('mysql', $link);
         //Création de l'utilisateur multi hote nécéssaire pour les connexions depuis les postes clients
-        $query = "grant all privileges on $db.* to  '$user'@'%' identified by '$password')";
+        $query = "grant all privileges on $db.* to  '$user'@'%' identified by '$password'";
         echo "<br>La requete : $query<br>";
         mysql_query($query);
         
