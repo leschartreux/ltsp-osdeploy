@@ -12,8 +12,8 @@ apt-get install udpcast
 echo "--------------------------------------------------"
 echo "installing python dependencies"
 echo "--------------------------------------------------"
-apt-get install python-mysql.connector python-netifaces python-pip python-paramiko python-daemon python-flufl.i18n
-
+apt-get install python-mysql.connector python-netifaces python-pip python-paramiko python-daemon python-flufl.i18n python-parted python-dmidecode
+pip install reparted
 
 
 echo "--------------------------------------------------"
