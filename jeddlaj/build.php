@@ -163,15 +163,14 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
         preg_match('#\$pwd = "(.*)"#', $fileConsult, $matches);
         $passwordConsult = $matches[1];
 
-
         //on lit le fichier et on récupère les valeurs de connexion
-        $fileRembo = file_get_contents('ExpectDefs.php');
+        //$fileRembo = file_get_contents('ExpectDefs.php');
 
-        preg_match('#\$rembo_server = "(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"#', $fileRembo, $matches);
-        $hostRembo = $matches[1];
+        //preg_match('#\$rembo_server = "(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"#', $fileRembo, $matches);
+        //$hostRembo = $matches[1];
 
-        preg_match('#\$netclnt_program = "(.*)"#', $fileRembo, $matches);
-        $netclient = $matches[1];
+        //preg_match('#\$netclnt_program = "(.*)"#', $fileRembo, $matches);
+        //$netclient = $matches[1];
 
 
         $link = mysql_connect($host, $_POST['login'], $_POST['password']) or die('Veuillez entrer des identifiants valides');
@@ -225,10 +224,10 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
 
         }
 
-        if (preg_match('#\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}#', $hostRembo)) {
+        //if (preg_match('#\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}#', $hostRembo)) {
 
-            $hostnameRembo = gethostbyaddr($hostRembo);
-        }
+//            $hostnameRembo = gethostbyaddr($hostRembo);
+//        }
 
         //Création d'un tableau d'host qui contient le nom DNS de l'hote et l'adresse IP de l'host
         $arrayHost = array($host, $hostname, $hostRembo, $hostnameRembo);
@@ -239,6 +238,7 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
         $query = 'INSERT INTO `user` (Host, User, Password) '.
                  'VALUES ("%", "'.$user.'", PASSWORD("'.$password.'")) '.
                  'ON DUPLICATE KEY UPDATE Password = PASSWORD("'.$password.'");';
+        echo "<br>La requete : $query<br>";
         mysql_query($query);
         
         
