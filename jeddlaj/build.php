@@ -235,14 +235,12 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
         
         mysql_select_db('mysql', $link);
         //Création de l'utilisateur multi hote nécéssaire pour les connexions depuis les postes clients
-        $query = 'INSERT INTO `user` (Host, User, Password) '.
-                 'VALUES ("%", "'.$user.'", PASSWORD("'.$password.'")) '.
-                 'ON DUPLICATE KEY UPDATE Password = PASSWORD("'.$password.'");';
+        $query = "grant all privileges on $db.* to  '$user'@'%' identified by '$password')";
         echo "<br>La requete : $query<br>";
         mysql_query($query);
         
         
-        foreach ($arrayHost as $host) {
+        /*foreach ($arrayHost as $host) {
 
             //On créer les users
             //On vérifie par rapport au fichier existant, l'existance des user rembo et rembo_consult
@@ -288,15 +286,15 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
 
                 mysql_query($queryConsult);
             }
-        }
+        }*/
 
         mysql_close($link);
 
         //suppression du fichier ExpectDefs.php si le netclient n'est pas utilisé
-        if ($netclient === '') {
-
-            unlink('ExpectDefs.php');
-        }
+        //if ($netclient === '') {
+		//
+        //    unlink('ExpectDefs.php');
+        //}
 
 
         //ajout du droits d'execution à l'utilisateur pour les fichiers *.expect
@@ -308,7 +306,7 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
 
 
         //génération du htaccess et htpasswd
-        if (file_exists('#protection#')) {
+        /*if (file_exists('#protection#')) {
 
             unlink('#protection#');
 
@@ -342,7 +340,7 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
                 }
             }
 
-        }
+        }*/
 
         echo '<strong>Installation terminée</strong>';
     }
