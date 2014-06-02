@@ -10,6 +10,7 @@ import threading
 import daemon
 import pyddlaj.db
 import settings
+from sys import exit
 from subprocess import call
 from time import sleep
 
@@ -102,6 +103,14 @@ os.environ['LANG'] = settings.LANG;
 os.environ['LOCPATH'] = os.path.dirname(languages.__file__)
 _ = initialize('pyddlajd')
 
+print _("Testing Database connection")
+jdb = pyddlaj.db.jeddlajdb(settings.MYSQL_HOST,settings.MYSQL_USER,settings.MYSQL_PASSWORD,settings.MYSQL_DB,3306)
+if jdb == None:
+    print 'Error on DB connection. Please check your configuration in /etc/pyddlaj/pyddlaj.conf'
+    exit(1)
+jdb.close()
+
+print _('Waiting for task to launch')
 HOST = ''                 # Symbolic name meaning all available interfaces
 PORT = settings.PYDDLAD_PORT     # Arbitrary non-privileged port
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
