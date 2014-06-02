@@ -234,6 +234,7 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
         $arrayHost = array($host, $hostname, $hostRembo, $hostnameRembo);
 
         
+        mysql_select_db('mysql', $link);
         //Création de l'utilisateur multi hote nécéssaire pour les connexions depuis les postes clients
         $query = 'INSERT INTO `user` (Host, User, Password) '.
                  'VALUES ("%", "'.$user.'", PASSWORD("'.$password.'")) '.
