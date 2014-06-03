@@ -71,6 +71,8 @@ class jeddlajdb:
         
         cursor.close()
         if method == "exact":
+            if not row:
+                return None
             return rows[0]
         else:
             return rows
