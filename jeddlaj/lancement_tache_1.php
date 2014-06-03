@@ -156,7 +156,12 @@ function statusOrdinateur($total,$nom_dns,$mon_ip) {
 function tableau_choix_poste($nom_dns,$nom_groupe)
 {
 	global $indice;
-	$request = "SELECT o.nom_dns,etat_install FROM ord_appartient_a_gpe ogrp,ordinateurs o WHERE nom_groupe=\"$nom_groupe\" and ogrp.nom_dns=o.nom_dns ORDER BY nom_dns";
+	
+	if ($nom_groupe !="")
+		$request = "SELECT o.nom_dns,etat_install FROM ord_appartient_a_gpe ogrp,ordinateurs o WHERE nom_groupe=\"$nom_groupe\"  and ogrp.nom_dns=o.nom_dns ORDER BY nom_dns";
+	else
+		$request = "SELECT o.nom_dns,etat_install FROM ordinateurs o WHERE nom_dns=\"$nom_dns\" ";
+		$nom_groupe = "tous les ordinateurs";
 	$result = mysql_query($request);
 	print("<TABLE>");
 	print("<TR><TD></TD><TD ALIGN=\"center\"  BGCOLOR=\"#CC00AA\"><b>Sélection</b></TD><TD ALIGN=\"center\" BGCOLOR=\"#CC00AA\"><b>Nom DNS</b></TD><TD ALIGN=\"left\"  BGCOLOR=\"#CC00AA\"><b>Status</b></TD></TR>\n");
@@ -167,10 +172,10 @@ function tableau_choix_poste($nom_dns,$nom_groupe)
 			$line=mysql_fetch_array($result);
 			$nd = $line['nom_dns'];
 			$etat = $line['etat_install'];
-			if ( $etat != 'modifie' &&  $etat != 'installe'  &&  $etat != 'depannage')
+			if ( $etat != 'modifie' &&  $etat != 'installe'  &&  $etat != 'depannage' && $etat != 'idb' && $etat  !='reboot') # Dans ces états, le changement est possible
 				print ("<TR><TD><IMG SRC=\"ICONES/ordi_lock.png\"></TD><TD></TD><TD>$nd</TD><TD></TD><TD>Cet ordinateur est en état $etat</TD></TR>\n");
 			else
-				print ("<TR><TD><IMG SRC=\"ICONES/ordi_ok.png\"></TD><TD ALIGN=CENTER><INPUT TYPE=\"checkbox\" NAME=\"check[".$indice++."]\" VALUE=\"$nd\" ></TD><TD>$nd</TD><TD>OK</TD></TR>\n");
+				print ("<TR><TD><IMG SRC=\"ICONES/ordi_ok.png\"></TD><TD ALIGN=CENTER><INPUT TYPE=\"checkbox\" NAME=\"check[".$indice++."]\" VALUE=\"$nd\" ></TD><TD>$nd</TD><TD>$etat</TD></TR>\n");
 		}
 	}
 		
@@ -397,9 +402,9 @@ switch ($type_tache)
 		break;
 		
 	case 2:
-		$etat = "renomme";
+		if ($etat=='installe') $etat = "renomme";
 	case 3:
-		$etat = "reboot";
+		if ($etat=='installe') $etat = "reboot";
 	case 4:
 		if ($etat == 'installe') $etat = "depannage";
 		print "<CENTER>";

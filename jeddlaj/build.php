@@ -230,13 +230,13 @@ if (isset($_POST['login']) && isset($_POST['password'])) {
 //        }
 
         //Création d'un tableau d'host qui contient le nom DNS de l'hote et l'adresse IP de l'host
-        $arrayHost = array($host, $hostname, $hostRembo, $hostnameRembo);
+        //$arrayHost = array($host, $hostname, $hostRembo, $hostnameRembo);
 
         
         mysql_select_db('mysql', $link);
         //Création de l'utilisateur multi hote nécéssaire pour les connexions depuis les postes clients
         $query = "grant all privileges on $db.* to  '$user'@'%' identified by '$password'";
-        echo "<br>La requete : $query<br>";
+        #echo "<br>La requete : $query<br>";
         mysql_query($query);
         
         

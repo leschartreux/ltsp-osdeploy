@@ -96,7 +96,6 @@ for ($i=0;$i<mysql_num_rows($result);$i++) {
 print("</TR>\n</TABLE>\n");
 mysql_free_result($result);
 print("<BR>Sélectionnez une tâche : <SELECT name=\"id_typetache\">\n");
-# 21-06-2006 : On ne montre maintenant que les distributions visibles 
 $request = "SELECT * FROM type_tache";
 $result = mysql_query($request);
 $os="";
