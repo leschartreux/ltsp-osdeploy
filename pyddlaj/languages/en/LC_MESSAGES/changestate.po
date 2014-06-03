@@ -3,19 +3,21 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-06-02 14:37+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"POT-Creation-Date: 2014-06-03 11:53+0200\n"
+"PO-Revision-Date: 2014-06-03 15:13+0100\n"
+"Last-Translator: Raphaël RIGNIER <raphael@rignier.com>\n"
+"Language-Team: Les Chartreux <inforeseau@leschartreux.net>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: English\n"
+"X-Poedit-Country: UNITED STATES\n"
+"X-Poedit-SourceCharset: utf-8\n"
 
 #: ../changestate.py:24
 msgid "Adding host to task ID "
@@ -72,3 +74,4 @@ msgstr ""
 #: ../changestate.py:101
 msgid "Thank you! See ya"
 msgstr ""
+
