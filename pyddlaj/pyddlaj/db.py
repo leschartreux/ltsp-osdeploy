@@ -356,7 +356,6 @@ class jeddlajdb:
                     sql += self.valsql(repertoire) + ","
                     sql += self.valsql(str(size) + " MB") + ","
                     sql += str(num_part) + ")"
-                    self._cursor.execute(sql)
                     #print "verif requete : ", sql
                     self._cursor.execute(sql)
                     self._cursor.execute("select LAST_INSERT_ID()")
