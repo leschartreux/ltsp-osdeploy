@@ -217,7 +217,8 @@ class WinRegistry(object):
             fr = open(settings.BASE_DIR + '/tools/jjoin.vbs','r')
             vbscript = fr.read()
             fr.close()
-            joinparms = dict(nom_affiliation=settings.AD_DOMAIN,new_netbios=netbios,ADMINUSER=settings.AD_JOINUSER,ADMINPASSWD=settings.AD_JOINPASSWORD,OU='NULL',OPTIONS="JOIN_DOMAIN + ACCT_CREATE + DOMAIN_JOIN_IF_JOINED")
+            #netbios from database needs to be ascii encoded before using substitute
+            joinparms = dict(nom_affiliation=settings.AD_DOMAIN,new_netbios=netbios.encode('ascii','ignore'),ADMINUSER=settings.AD_JOINUSER,ADMINPASSWD=settings.AD_JOINPASSWORD,OU='NULL',OPTIONS="JOIN_DOMAIN + ACCT_CREATE + DOMAIN_JOIN_IF_JOINED")
            
             tscript = Template(vbscript)
             joinscript = tscript.safe_substitute(joinparms) 
