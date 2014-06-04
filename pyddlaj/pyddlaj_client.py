@@ -7,7 +7,7 @@ Created on 8 avr. 2014
 '''
 
 #import sys ;sys.path.append(r'/home/rignier/.eclipse/org.eclipse.platform_3.8_155965261/plugins/org.python.pydev_3.4.1.201403181715/pysrc')
-import sys ;sys.path.append(r'pydevd')
+#import sys ;sys.path.append(r'pydevd')
 #import pydevd; pydevd.settrace(host='10.11.1.186')
  
 
@@ -20,7 +20,7 @@ import pyddlaj.nettask
 import transfert.ssh
 import pyddlaj.winregistry
 #import transfert.tftp
-#import sys
+import sys
 import time
 
 import os
@@ -44,9 +44,9 @@ if __name__ == '__main__':
     print '************************************************'
     print _('system detection')
     print _('mac:') , myhost.mac
-    print _('uname:'), myhost.uname
+#    print _('uname:'), myhost.uname
     print _('ip:'), myhost.ip
-    print _('proc:'), myhost.proc
+#    print _('proc:'), myhost.proc
     print _('machine : ') , myhost.machine
     print _('dns :'), myhost.dns
     print '**********************************************'
