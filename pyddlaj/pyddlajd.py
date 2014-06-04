@@ -47,6 +47,7 @@ def handle_client(sock):
             lidb = jdb.getIdbToInstall(tdata[2])
             print _("Clients number : "), clinumber
             print _("Master image to deploy"), lidb
+            i=1 #store number
             for img in lidb:
                 cmd = ["/usr/bin/udp-sender"]
                 cmd+= ["--file",settings.IMG_NFS_SHARE+"/" +  img['imgfile'] + ".gz"]
@@ -62,13 +63,14 @@ def handle_client(sock):
                 #print ("cmd",cmd)
                 result = call(cmd);
                 if result == 0:
-         
-                    jdb.close()
-                    print _("Wait 15s for update Database from clients")
-                    sleep(15)
-                    #reconnect to get updates from client
-                    jdb = pyddlaj.db.jeddlajdb(settings.MYSQL_HOST,settings.MYSQL_USER,settings.MYSQL_PASSWORD,settings.MYSQL_DB,3306)
-                    jdb.setTaskDate(task['tid'], False)
+                    if i == len(lidb): #pause, after all partitions are cloned
+                        jdb.close()
+                        print _("Wait 15s for update Database from clients")
+                        sleep(15)
+                        #reconnect to get updates from client
+                        jdb = pyddlaj.db.jeddlajdb(settings.MYSQL_HOST,settings.MYSQL_USER,settings.MYSQL_PASSWORD,settings.MYSQL_DB,3306)
+                        jdb.setTaskDate(task['tid'], False)
+                    i+=1
     else:
         print _("Task ID %d already started. No need to launch UDP sender") % (task['tid'])
     jdb.close()

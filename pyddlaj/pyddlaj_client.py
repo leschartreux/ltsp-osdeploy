@@ -83,6 +83,7 @@ if __name__ == '__main__':
         #host not found on mac address.
         #search now with DNS
         fh = jdb.findHostByName(myhost.dns)
+        print 
         if fh == None:
             print "***************************************"
             print _("Computer not in database. Adding this one")
