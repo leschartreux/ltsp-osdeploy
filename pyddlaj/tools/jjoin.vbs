@@ -64,7 +64,7 @@ LOOP
 If i < 6 Then
 	Wscript.echo "Entree reussie."
 	ret = restoreLUA
-	Wscript.echo "Récupération LUA : " & ret
+	Wscript.echo "Recuperation LUA : " & ret
 	
 End if
 

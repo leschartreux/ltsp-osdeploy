@@ -106,6 +106,7 @@ class WinRegistry(object):
         #f.write("Call C:\\Windows\\System32\\cmd.exe") # interactive cmd thi is for debug
         #f.write("pause\r\n")
         f.write("DEL " + cmd + "\r\n") #self suppress of file to hide join passwords
+        f.write("pause")
         f.write("suthdown -r\r\n")
         f.close()
         shutil.copyfile('/tmp/launch.cmd',self._joindir + "/launch.cmd")
@@ -218,7 +219,7 @@ class WinRegistry(object):
             vbscript = fr.read()
             fr.close()
             #netbios from database needs to be ascii encoded before using substitute
-            joinparms = dict(nom_affiliation=settings.AD_DOMAIN,new_netbios=netbios.encode('ascii','ignore'),ADMINUSER=settings.AD_JOINUSER,ADMINPASSWD=settings.AD_JOINPASSWORD,OU='NULL',OPTIONS="JOIN_DOMAIN + ACCT_CREATE + DOMAIN_JOIN_IF_JOINED")
+            joinparms = dict(nom_affiliation=settings.AD_DOMAIN,new_netbios=netbios,ADMINUSER=settings.AD_JOINUSER,ADMINPASSWD=settings.AD_JOINPASSWORD,OU='NULL',OPTIONS="JOIN_DOMAIN + ACCT_CREATE + DOMAIN_JOIN_IF_JOINED")
            
             tscript = Template(vbscript)
             joinscript = tscript.safe_substitute(joinparms) 
