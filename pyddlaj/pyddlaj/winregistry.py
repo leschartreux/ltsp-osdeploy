@@ -104,9 +104,8 @@ class WinRegistry(object):
         else:
             f.write("Call " + cmd + "\r\n")
         #f.write("Call C:\\Windows\\System32\\cmd.exe") # interactive cmd thi is for debug
-        #f.write("pause\r\n")
+        f.write("pause\r\n")
         f.write("DEL " + cmd + "\r\n") #self suppress of file to hide join passwords
-        f.write("pause")
         f.write("suthdown -r\r\n")
         f.close()
         shutil.copyfile('/tmp/launch.cmd',self._joindir + "/launch.cmd")
