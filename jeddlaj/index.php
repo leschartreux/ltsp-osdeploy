@@ -67,9 +67,9 @@ SelectDb($GLOBALS['db']);
 print("<CENTER>");
 print("<TABLE BORDER=0 WIDTH=100%>");
 print("<TR ALIGN=CENTER>");
-print("<TD ALIGN=LEFT><A HREF=\"http://la.firme.perso.esil.univmed.fr\" TARGET=\"LaFIRME\" ><IMG ALIGN=CENTER BORDER=0 SRC=\"LOGOS/CopyleftLaFirmeWhiteBack.png\" ALT=\"CopyLeft La FIRME@ESIL\"></TD>");
+print("<TD ALIGN=LEFT><A HREF=\"http://www.leschartreux.com\" TARGET=\"LaFIRME\" ><IMG ALIGN=CENTER BORDER=0 SRC=\"LOGOS/logoChartreux.png\" ALT=\"CopyLeft La FIRME@ESIL\"></TD>");
 print("<TD ALIGN=CENTER><A HREF=\"HWC/index.php\"><IMG ALIGN=CENTER SRC=\"LOGOS/JeDDLaJ_current.png\" BORDER=0 ALT=\"JeDDLaJ's Logo\"></A></TD>");
-print("<TD ALIGN=RIGHT><A HREF=\"http://la.firme.perso.esil.univmed.fr/website/rubrique.php3?id_rubrique=11\" TARGET=\"LaDoc\" ><IMG ALIGN=CENTER BORDER=0 SRC=\"LOGOS/UnPeuDeDocWhiteBack.png\" ALT=\"De la doc...\"></TD>");
+print("<TD ALIGN=RIGHT><A HREF=\"https://github.com/leschartreux/ltsp-osdeploy/wiki\" TARGET=\"LaDoc\" ><IMG ALIGN=CENTER BORDER=0 SRC=\"LOGOS/UnPeuDeDocWhiteBack.png\" ALT=\"De la doc...\"></TD>");
 print("</TR>");
 print("</TABLE>");
 print("</CENTER>");
@@ -154,7 +154,6 @@ print("<H2><A HREF=\"examine_distribution.php\">Examiner</A>/<A HREF=\"editer_ou
 #print("<H2><A HREF=\"wol.html\">Réveil par le réseau</A>/<A HREF=\"boot.html\">Paramètres de boot</A></H2>\n");
 print("<H2><A HREF=\"Interro.php\">Consulter la base JeDDLaJ</A>");
 #/<A HREF=\"connect.html\">Connexion au serveur Rembo</A></H2>\n");
-
 
 ########### Les Addons
 
