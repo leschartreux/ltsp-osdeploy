@@ -67,7 +67,11 @@ class jeddlajdb:
         return foundhost
     
     def findHostByName(self,strdns,method='exact'):
+        '''Find computer(s) in database with dns name
+        if method = exact, nom_dns from database must match strdns. return None when not found
+        else it will return all rows containing strdns'''
         
+        #it is better to get rows as dict : {field1:value1,field2:value2, ...}
         cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
         query = "Select * from ordinateurs where nom_dns"
         if method == "exact":
