@@ -12,7 +12,6 @@ case "$MODE" in
         INCLUDE='openssh-client,python-mysql.connector,ntfsprogs,ntfs-3g,fsarchiver,partclone,python-paramiko,python-dmidecode,python-pip,python-netifaces,parted,python-parted,udpcast,python-flufl.i18n,pigz,nfs-common'
         OVERRIDE_EXPORTS='true'
         NFS_EXPORT_STRING='*(rw,no_root_squash,async,no_subtree_check)'
-        HTTP_PROXY="http://10.11.0.5:3142"
 		;;
 esac
 
