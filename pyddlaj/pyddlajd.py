@@ -58,7 +58,7 @@ def handle_client(sock):
         if task['type_tache'] == "deploieidb":
             #get needed info
             #jdb = pyddlaj.db.jeddlajdb(settings.MYSQL_HOST,settings.MYSQL_USER,settings.MYSQL_PASSWORD,settings.MYSQL_DB,3306)
-            speed = task['speed'] - task['speed'] / 10 #10% less bandwith to avoid flood
+            speed = min(settings.MAX_BANDWIDTH,task['speed'] - task['speed'] / 10) #10% less bandwith to avoid flood must not be above MAX_BANDWIDTH from settings
             clinumber = jdb.getClientNumber(tdata[0])
             lidb = jdb.getIdbToInstall(tdata[2])
             print _("Clients number : "), clinumber

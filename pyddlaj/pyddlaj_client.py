@@ -42,6 +42,7 @@ import time
 import os
 from flufl.i18n import initialize
 import languages
+import pyddlaj.linux_host
 
 
 from subprocess import call #to launch shell cmds
@@ -250,7 +251,10 @@ if __name__ == '__main__':
                         jdb.updatePartitions(myhost.dns, newdi, img['num_disk'])
                         
                     dstpart = img['dev_path'] + str(img['num_part'])
-                    cmd = "/usr/bin/udp-receiver  --mcast-rdv-address %s --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.ntfs --ncurses -r -o %s" % (settings.TFTP_SERVER,dstpart)
+                    
+                    print "img : " , img
+                    cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
+                    
                         
                     """cmd = ["/usr/bin/udp-receiver","--pipe" , settings.CACHE_MOUNT + "/" +os.path.basename(img['imgfile']),
                            "--mcast-rdv-address" , settings.TFTP_SERVER, "--nokbd", "--ttl" , str(task_id+5)]"""
@@ -353,7 +357,9 @@ if __name__ == '__main__':
                 current_device = img['dev_path']
 
             print _('Backup partition in progress')
-            cmd = "/usr/sbin/partclone.ntfs --ncurses -c -s " + src_dev + " | /usr/bin/pigz -c --fast > "+ dst_dir +"/" +dst_file + ".gz"
+            fs = img['fs_type'].lower()
+            
+            cmd = "/usr/sbin/partclone." +fs +" -c -s " + src_dev + " | /usr/bin/pigz -c --fast > "+ dst_dir +"/" +dst_file + ".gz"
             #print "commande : ", cmd
             ret = call(cmd,shell=True)
             #ret = 0
@@ -397,6 +403,12 @@ if __name__ == '__main__':
                 winreg.RenameJoinScript(os['nom_os'], myhost.dns)
                 winreg.close()
 #                transfert.ssh.scplocalboot(myhost.mac)
+            if 'lin' in os['nom_os'].lower():
+                if os['nom_idb'] == '/':
+                    l = pyddlaj.linux_host.LinuxHost(os['dev_path'])
+                    l.rename(myhost.dns)
+                    l.cleanUdev()
+                    
         return reboot()
                 
             

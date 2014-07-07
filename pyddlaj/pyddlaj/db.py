@@ -301,6 +301,10 @@ class jeddlajdb:
                 logo = "windows.png"
             elif "8" in nom_os:
                 logo = "win8.jpg"
+            elif "ubuntu" in nom_os:
+                logo = "linux.jpg"
+            elif "debian" in nom_os:
+                logo = "debian.png"
             else:
                 logo = "windows.jpg" 
             
@@ -358,6 +362,8 @@ class jeddlajdb:
                     #extract partitions info
                     part =  diskinfo[disk]['PPartitions'][np-1]
                     size = part['size']
+                    fs_type = part['fs_type']
+                    
                     print _("Filename for partition backup. example : manufacturer/model/osname/sdax.pc")
                     repertoire= raw_input(_("Enter partition's backup filename : "))
                     
@@ -371,12 +377,13 @@ class jeddlajdb:
                         continue
                     
                     #add idb and idb_est_installe_sur records
-                    sql = "INSERT INTO images_de_base (id_os,nom_idb,repertoire,taille,num_part) VALUES ("
+                    sql = "INSERT INTO images_de_base (id_os,nom_idb,repertoire,taille,num_part,fs_type) VALUES ("
                     sql += str(num_logiciel) + ","
                     sql += self.valsql(nom_idb) + ","
                     sql += self.valsql(repertoire) + ","
                     sql += self.valsql(str(size) + " MB") + ","
-                    sql += str(num_part) + ")"
+                    sql += str(num_part) + "," 
+                    sql += self.valsql(fs_type) + ")"
                     #print "verif requete : ", sql
                     self._cursor.execute(sql)
                     self._cursor.execute("select LAST_INSERT_ID()")
@@ -417,7 +424,7 @@ class jeddlajdb:
         cursor = self._dbconnect.cursor()
         sql =  "Select idb.id_idb, id_os, repertoire"
         sql += ",idbs.num_disque,num_partition,etat_idb"
-        sql += ",s.nom_dns, s.linux_device"
+        sql += ",s.nom_dns, s.linux_device, fs_type"
         sql += " FROM images_de_base idb,idb_est_installe_sur idbs,stockages_de_masse s"
         sql += " WHERE s.nom_dns=" + self.valsql(dns)
         sql += " AND idbs.nom_dns=" + self.valsql(dns)
@@ -426,7 +433,7 @@ class jeddlajdb:
         #print "Sql = ", sql
         cursor.execute(sql)
         res = cursor.fetchall()
-        for (id_idb,id_os,repertoire,num_disque,num_partition,etat_idb,nom_dns,linux_device) in res:
+        for (id_idb,id_os,repertoire,num_disque,num_partition,etat_idb,nom_dns,linux_device,fs_type) in res:
             row = {}
             row['id_idb']=id_idb
             row['id_os']=id_os
@@ -436,6 +443,7 @@ class jeddlajdb:
             row['state']=etat_idb
             row['dns']=nom_dns
             row['dev_path']=linux_device
+            row['fs_type']=fs_type
             
             listidb.append(row)
         cursor.close()
