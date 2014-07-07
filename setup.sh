@@ -72,6 +72,9 @@ mkdir -p /etc/pyddlaj
 cp /usr/share/pyddlaj/settings/__init__.py.dist /usr/share/pyddlaj/settings/__init__.py
 ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
+echo "Installing NFS client package"
+chroot /opt/ltsp/i386-osdeploy apt-get install nfs-common
+
 echo "Now installing pyddlaj script"
 chroot /opt/ltsp/i386-osdeploy ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
 
