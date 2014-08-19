@@ -181,9 +181,10 @@ def modified(clone_type="fsa"):
                 jdb.addTaskOK(task_id)
                 jdb.setState(myhost.dns, 'renomme')
                 #get from task if Computer needs to be joined to windows domain
-                full_task = jdb.getTask(myhost.dns,id_only=False)
+                full_task = jdb.getTask(myhost.dns,idonly=False)
+                print "infos tache : ",full_task
     
-                rename( full_task['faire_jointure'])
+                return rename( full_task['faire_jointure'])
             else:
                 jdb.addTaskKO(task_id)
                 return 1
@@ -404,7 +405,7 @@ if __name__ == '__main__':
     #jdb.deldisks(myhost.dns)
     dbdisk = []
     dbdisk = jdb.getdisks(myhost.dns)     
-    #print "Les disques dans la base : ", dbdisk
+    print "Les disques dans la base : ", dbdisk
 
     if len(dbdisk) == 0:
         print _("Can't find Disks informations. Adding it")
