@@ -21,6 +21,8 @@ import mysql.connector
 #import host
 
 from flufl.i18n import initialize
+import settings
+
 #import languages
 
 _= initialize('pyddlaj_client')
@@ -56,15 +58,31 @@ class jeddlajdb:
     
     def findhost(self, strmac):
         """Find existing host in database. returns host object if found"""
-        
+
+        cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
         query = "Select * from ordinateurs where adresse_mac='" + strmac + "'"
-        cursor = self._dbconnect.cursor()
+        
+        ''' cursor = self._dbconnect.cursor()
         cursor.execute(query)
         foundhost = None
         for c in cursor:
             foundhost = c
         cursor.close()
-        return foundhost
+        return foundhost'''
+        
+        cursor.execute(query)
+        #Row dictionary type is available for fetchone only
+        #we store them all in a list
+        fh = None
+        while True:
+            row = cursor.fetchone()
+            if row:
+                fh = row
+            else:
+                break
+        
+        cursor.close()
+        return fh
     
     def findHostByName(self,strdns,method='exact'):
         '''Find computer(s) in database with dns name
@@ -104,9 +122,10 @@ class jeddlajdb:
         
         meminfo = host.meminfo()
     
-        sql = "insert into ordinateurs(nom_dns,adresse_ip,adresse_mac,processeur,nombre_proc,marque,modele,numero_serie,ram) values("
+        sql = "insert into ordinateurs(nom_dns,adresse_ip,adresse_mac,processeur,nombre_proc,marque,modele,numero_serie,ram,affiliation_widows,nom_affiliation) values("
         sql += self.valsql(host.dns) + "," + self.valsql(host.ip) + "," + self.valsql(host.mac) + "," + self.valsql(host.proc) + "," + str(host.nbcpu)
         sql += "," + self.valsql(host.manuf) + "," + self.valsql(host.model) +","+ self.valsql(host.serial)+ "," + meminfo['MemTotal'].replace(" kB","")
+        sql += ",'domain'," + self.valsql(settings.AD_DOMAIN)
         sql += ")"
         #print "SQL req = ", sql
         cursor = self._dbconnect.cursor()
@@ -364,7 +383,7 @@ class jeddlajdb:
                     size = part['size']
                     fs_type = part['fs_type']
                     
-                    print _("Filename for partition backup. example : manufacturer/model/osname/sdax.pc")
+                    print _("Filename for partition backup. example : osname/manufacturer/model_[version]/sdax.pc")
                     repertoire= raw_input(_("Enter partition's backup filename : "))
                     
                     print _("Partition name")
@@ -409,14 +428,11 @@ class jeddlajdb:
                 self._dbconnect.commit()
             #Ask for other distribution present in the host    
             val = raw_input(_("Another distrib on this computer you want to add (Y/N) ? "))
-            if  val == 'Y' or val == 'n':
+            if  val == 'Y' or val == 'y':
                 continue #back to Distrib Prompt
             else:
                 break #get out of loop, return to main program
-            
-            
-            
-        
+                 
         
     def getIdbToInstall(self,dns):
         """Get list of partitions and associated base image to Install"""
@@ -519,7 +535,7 @@ class jeddlajdb:
         """
         cur = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
         #
-        sql = "SELECT t.id_tache as tid,type_tache,dte_deb,dte_fin,nb_ok,nb_ko,speed from tache t,tache_est_assignee_a ta WHERE ta.id_tache=t.id_tache AND dte_fin is null AND nom_dns=" + self.valsql(dns)
+        sql = "SELECT t.id_tache as tid,type_tache,dte_deb,dte_fin,nb_ok,nb_ko,speed,faire_jointure from tache t,tache_est_assignee_a ta WHERE ta.id_tache=t.id_tache AND dte_fin is null AND nom_dns=" + self.valsql(dns)
         cur.execute(sql)
         row = cur.fetchone()
         #print "row = " , row

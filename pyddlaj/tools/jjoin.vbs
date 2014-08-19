@@ -53,7 +53,7 @@ function restoreLUA
     set WSHShell = nothing
 end function
 
-Wscript.echo "Entree dans le domaine {$nom_affiliation$}..."
+Wscript.echo "Entree dans le domaine {$nom_affiliation}..."
 
 i=1
 Do While i<6 And launchJoin>0

@@ -72,6 +72,9 @@ if (isset( $_POST["photo"]))
 $partition = "0:1";
 if (isset( $_POST['link_speed']))
 	$speed = $_POST['link_speed'];
+	
+if (isset ( $_POST['joindom']))
+	$joindom = $_POST['joindom'];
 
 print_r ($_POST);
 ?>
@@ -221,7 +224,7 @@ if (count($check) == 0) {
 			//print_r($images);
 			print "<P>";
 			# On crée une tâche pour le déploiement des idb
-			$request = "Insert into tache (type_tache,speed) values('deploieidb',$speed)";
+			$request = "Insert into tache (type_tache,speed,faire_jointure) values('deploieidb',$speed,$joindom)";
 			mysql_query($request);
 			# On stocke le numéro de la tâche créée
 			$request = "Select LAST_INSERT_ID()";

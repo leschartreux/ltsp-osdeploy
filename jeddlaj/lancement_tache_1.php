@@ -62,6 +62,11 @@ if (isset( $_GET['link_speed'] ))
 	$link_speed = $_GET['link_speed'];
 else $link_speed = 100;
 
+if ( isset ($_GET['cb_join'] ))
+	$cb_join=1;
+else
+	$cb_join=0;
+
 //print_r($_GET);
 include("UtilsHTML.php");
 include("UtilsMySQL.php");
@@ -323,6 +328,12 @@ switch ($type_tache)
 		print ">100mb/s</OPTION><OPTION value='1000'";
 		if ($link_speed == "1000") print " selected ";
 		print ">1gb/s</OPTION></SELECT><BR>\n";
+		if ( $cb_join ==1)
+			$cbjoinval='Checked';
+		else
+			$cbjoinval='';
+			
+		print ("<INPUT Type='checkbox' Name='cb_join' Value ='JoinDom' $cbjoinval />Jointure au domaine<BR>\n");
 
 		print "<input type='submit' value='Valider'>\n";
 		 
@@ -387,6 +398,7 @@ switch ($type_tache)
 			print("<INPUT TYPE=\"hidden\" NAME=\"nb_check\" VALUE=\"$indice\">\n");
 			print("<INPUT TYPE=\"hidden\" NAME=\"photo\" VALUE=\"$photo\">\n");
 			print("<INPUT TYPE=\"hidden\" NAME=\"link_speed\" VALUE=\"$link_speed\">\n");
+			print("<INPUT TYPE=\"hidden\" NAME=\"joindom\" VALUE=\"$cb_join\">\n");
 			print("<BR>");
 			print("<TABLE><TR>\n");
 			print("<TD><INPUT TYPE=\"button\" VALUE=\"ACTUALISER\" onClick=\"javascript:location.reload()\"></TD>\n");

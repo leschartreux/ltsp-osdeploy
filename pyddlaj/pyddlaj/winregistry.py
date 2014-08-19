@@ -80,14 +80,16 @@ class WinRegistry(object):
     
     def addRunOnceJoin(self,type_os,cmd):
         """This method will modify windows registry to run command once
-        before login screen
+        before login screen empty cmd means no sub command to launch
         """
         
         launchfile = "/tmp/launch.cmd"
         f = open (launchfile,'w')
         f.write("C:\r\n")
         f.write("CD C:\\joindom\r\n")
-        if "vbs" in cmd:
+        if (len(cmd)== 0):
+            f.write("\r\n")
+        elif ("vbs" in cmd):
             join_bat="net start dhcp\r\n"
             join_bat+="ipconfig /renew\r\n"
             join_bat+="net start workstation\r\n"
@@ -182,7 +184,7 @@ class WinRegistry(object):
             return type_os.lower() in NT6sys
         
     
-    def RenameJoinScript(self,type_os,dns):
+    def RenameJoinScript(self,type_os,dns,joindom=1):
         """Generate Script to rename then join the computer in the domain
         There is netdom version for XP or older, and VBScript version for windows Vista and newer
         """ 
@@ -212,22 +214,25 @@ class WinRegistry(object):
             '''
             
             #Use vbscript to rename and join new computer
-            #python template is nice to genrate script
+            #python template is nice to generate script
             self.renameComputer(netbios);
-            fr = open(settings.BASE_DIR + '/tools/jjoin.vbs','r')
-            vbscript = fr.read()
-            fr.close()
-            #netbios from database needs to be ascii encoded before using substitute
-            joinparms = dict(nom_affiliation=settings.AD_DOMAIN,new_netbios=netbios,ADMINUSER=settings.AD_JOINUSER,ADMINPASSWD=settings.AD_JOINPASSWORD,OU='NULL',OPTIONS="JOIN_DOMAIN + ACCT_CREATE + DOMAIN_JOIN_IF_JOINED")
-           
-            tscript = Template(vbscript)
-            joinscript = tscript.safe_substitute(joinparms) 
-            #print "le script vbs : " , joinscript
-            fh = open('/tmp/jjoin.vbs','w')
-            fh.write(joinscript)
-            fh.close()
-            shutil.copyfile('/tmp/jjoin.vbs',joindir + "/jjoin.vbs")
-            self.addRunOnceJoin(type_os,'jjoin.vbs')
+            if ( joindom == 1):
+                fr = open(settings.BASE_DIR + '/tools/jjoin.vbs','r')
+                vbscript = fr.read()
+                fr.close()
+                #netbios from database needs to be ascii encoded before using substitute
+                joinparms = dict(nom_affiliation=settings.AD_DOMAIN,new_netbios=netbios,ADMINUSER=settings.AD_JOINUSER,ADMINPASSWD=settings.AD_JOINPASSWORD,OU='NULL',OPTIONS="JOIN_DOMAIN + ACCT_CREATE + DOMAIN_JOIN_IF_JOINED")
+               
+                tscript = Template(vbscript)
+                joinscript = tscript.safe_substitute(joinparms) 
+                #print "le script vbs : " , joinscript
+                fh = open('/tmp/jjoin.vbs','w')
+                fh.write(joinscript)
+                fh.close()
+                shutil.copyfile('/tmp/jjoin.vbs',joindir + "/jjoin.vbs")
+                self.addRunOnceJoin(type_os,'jjoin.vbs')
+            else:
+                self.addRunOnceJoin(type_os,'')
         
         else:
             self.renameComputer(netbios)
@@ -244,10 +249,12 @@ class WinRegistry(object):
             join_bat+="reg add \"HKLM\\System\\Setup\" /v SystemSetupInProgress /t REG_DWORD /d 00000000 /f\r\n"
             fh.write(join_bat)
 #            join_bat="netdom renamecomputer %%COMPUTERNAME%% /newName=%s\r\n" % (netbios)
-            join_bat += "netdom.exe join %s /domain:%s /UserD:%s\\%s /PasswordD:%s\r\n" % (netbios,settings.AD_DOMAIN,settings.AD_DOMAIN,settings.AD_JOINUSER,settings.AD_JOINPASSWORD)           
+            if ( joindom == 1):
+                join_bat += "netdom.exe join %s /domain:%s /UserD:%s\\%s /PasswordD:%s\r\n" % (netbios,settings.AD_DOMAIN,settings.AD_DOMAIN,settings.AD_JOINUSER,settings.AD_JOINPASSWORD)           
             fh.write(join_bat)
             fh.close()
-            shutil.copyfile("tools/netdomxp.exe",joindir + "/netdom.exe")
+            if ( joindom == 1):
+                shutil.copyfile("tools/netdomxp.exe",joindir + "/netdom.exe")
             shutil.copyfile('/tmp/joincom.bat',joindir + "/joincom.bat")
             self.addRunOnceJoin(type_os,'joincom.bat')
         
