@@ -368,14 +368,19 @@ if __name__ == '__main__':
         #Can't go on if non DNS record (host's primary key)
         if len(myhost.dns) == 0:
             print "!! No DNS record correspond to your IP !!"
+
+            print _("Inserting Host with mac-adress as hostname. This should be change with Web GUI")
+            myhost.dns = myhost.mac.replace(':','-') + '.' + settings.AD_DOMAIN
             
+            jdb.newhost(myhost)
             if myhost.isBootable():
                 print "The system seems bootable I Copy local boot PXE File"
                 transfert.ssh.scplocalboot(myhost.mac)
-                sys.exit(0)
+                #sys.exit(0)
             else:
                 print "Update your DNS PTR Records and restart"
-                sys.exit(1)
+                #sys.exit(1)
+            
         #host not found on mac address.
         #search now with DNS
         fh = jdb.findHostByName(myhost.dns)
@@ -400,19 +405,19 @@ if __name__ == '__main__':
         print _("Computer Found in DB ")
     
     print '**********************************************'
-    print _(' Disks and Partitions detection')
+    print _(' Disks and Partitions from database')
     print '**********************************************'
     #jdb.deldisks(myhost.dns)
     dbdisk = []
     dbdisk = jdb.getdisks(myhost.dns)     
-    print "Les disques dans la base : ", dbdisk
+    #print "Les disques dans la base : ", dbdisk
 
     if len(dbdisk) == 0:
         print _("Can't find Disks informations. Adding it")
         jdb.addpartitions(myhost.dns,mydiskinfo)
 
     print '**********************************************'    
-    print _('Partitions list '), mydiskinfo
+    print _('Local Partitions list '), mydiskinfo
     print '**********************************************'
 
     state = jdb.getState(myhost.dns)

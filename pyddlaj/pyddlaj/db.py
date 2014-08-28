@@ -28,7 +28,7 @@ import settings
 _= initialize('pyddlaj_client')
 
 
-class MySQLCursorDict(mysql.connector.cursor.MySQLCursor):
+class MySQLCursorDict(mysql.connector.cursor.MySQLCursorBuffered):
     """special class to have cursors retunr dict"""
     def fetchone(self):
         row = self._fetch_row()
@@ -45,7 +45,7 @@ class jeddlajdb:
         self.db = db
         self.port = port
         
-        self._dbconnect = mysql.connector.Connect(user=user, host=host, password=pwd, db=db, port=port, autocommit=True)
+        self._dbconnect = mysql.connector.Connect(user=user, host=host, password=pwd, db=db, port=port, autocommit=True, buffered=True)
         self._cursor = self._dbconnect.cursor()
         print _("Connection OK")
         
@@ -59,7 +59,7 @@ class jeddlajdb:
     def findhost(self, strmac):
         """Find existing host in database. returns host object if found"""
 
-        cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
+        cursor = self._dbconnect.cursor(buffered=True,cursor_class=MySQLCursorDict)
         query = "Select * from ordinateurs where adresse_mac='" + strmac + "'"
         
         ''' cursor = self._dbconnect.cursor()
@@ -90,7 +90,7 @@ class jeddlajdb:
         else it will return all rows containing strdns'''
         
         #it is better to get rows as dict : {field1:value1,field2:value2, ...}
-        cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
+        cursor = self._dbconnect.cursor(buffered=True,cursor_class=MySQLCursorDict)
         query = "Select * from ordinateurs where nom_dns"
         if method == "exact":
             query += "=" + self.valsql(strdns)
@@ -136,7 +136,7 @@ class jeddlajdb:
         cursor.close()
         
     def updateHost(self, host):
-        """update host info in database
+        """update host info in database leave unchanged partitions data
         @param host: host object returned locally"""
         
         meminfo = host.meminfo()
@@ -152,7 +152,6 @@ class jeddlajdb:
         cursor.close()
     
     def getdisks(self,dns):
-        
         sql = "Select * from stockages_de_masse where nom_dns=" + self.valsql(dns)
         cursor = self._dbconnect.cursor()
         cursor.execute(sql)
@@ -219,7 +218,7 @@ class jeddlajdb:
     def addDists(self,dns,diskinfo):
         """Ask about distribution to associate with the host"""
         sql = "Select DISTINCT id_logiciel,nom_logiciel from images_de_base idb,logiciels where idb.id_os=id_logiciel"
-        cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
+        cursor = self._dbconnect.cursor(buffered=True,cursor_class=MySQLCursorDict)
         cursor.execute(sql)
         row=cursor.fetchone()
         idbs = []
@@ -243,7 +242,10 @@ class jeddlajdb:
                 print _("Number not in range")
                 continue
             break
+        #row=cursor.fetchall()
+        
         print "idbs : " , idbs     
+        print "cursorclass", cursor.__class__
         id_os = idbs[val-1][0]
         sql = "Select * from images_de_base where id_os= " + str(id_os)            
         cursor.execute(sql)
@@ -257,30 +259,45 @@ class jeddlajdb:
                 while True:
                     print _("List of available partitions")
                     num=1
-                    for part in diskinfo[disk]['PPartitions']:
-                        print "[%d] : Number:%d, size: %s" % (num,part['num'],part['size'])
-                        num+=1
+                    tval = [] #store possible values in list
+                    if 'PPartitions' in diskinfo[disk].keys():
+                        for part in diskinfo[disk]['PPartitions']:
+                            print "[%d] : Number:%d, size: %s" % (num,part['num'],part['size'])
+                            tval.append(num)
+                            num+=1
+                    if 'EPartitions' in diskinfo[disk].keys():
+                        for part in diskinfo[disk]['EPartitions']:
+                            print "[%d] : [Logical] Number:%d, size: %s" % (num+10,part['num'],part['size'])
+                            tval.append(num+10)
+                            num+=1
                     val = raw_input("Choice for image " + row['nom_idb'] + " of size " + row['taille'] + " : ")
                     if not val.isdigit():
                         print _("Bad number")
                         continue
                     val = int(val)
-                    if val < 1 or val > num:
+                    if not val in tval:
                         print _("Number not in range")
                         continue
                     break
-                
+                #Logical partitions are numbered above 10 so we could select corrsponding array
                 sql = "Insert into idb_est_installe_sur (id_idb,nom_dns,num_disque,num_partition,etat_idb,idb_active) VALUES("
                 sql += str(row['id_idb']) + ","
                 sql += self.valsql(dns) + ","
-                sql += str(disk_num) + "," + str(diskinfo[disk]['PPartitions'][val-1]['num']) + ","
+                sql += str(disk_num) + ","
+                if ( val >10):
+                    sql += str(diskinfo[disk]['EPartitions'][val-11]['num']) + ","
+                else:
+                    sql += str(diskinfo[disk]['PPartitions'][val-1]['num']) + ","
                 sql +="'installe','oui')"
                 
-                #print "verif sql" , sql
+                print "verif sql" , sql
+#                r= self._cursor.fetchall()
+                self._dbconnect.commit();
                 self._cursor.execute(sql)
                 del  diskinfo[disk]['PPartitions'][val-1]
                 #next possible base image for the distrib
                 row = cursor.fetchone()
+        cursor.close()
         print _("OK, Insert finished. I will now save the images.")
                     
             
@@ -362,24 +379,35 @@ class jeddlajdb:
                     print _("Partition num ") + str(num_part)
                     print "*******************"
                     num = 1
-                    if len( diskinfo[disk]['PPartitions']) == 0:
+                    tval=[]
+                    if len( diskinfo[disk]['PPartitions']) == 0 and len( diskinfo[disk]['EPartitions']) == 0:
                         print _("No more partition available")
                         break
                     
                     print _("Choose one parition ")
-                    for partition in diskinfo[disk]['PPartitions']:
-                        print _("[%d]: %s type fs: %s size : %dMB" % (num,partition['num'],partition['fs_type'],partition['size']))
-                        num+=1
+                    if 'PPartitions' in diskinfo[disk].keys():
+                        for partition in diskinfo[disk]['PPartitions']:
+                            print _("[%d]: %s type fs: %s size : %dMB" % (num,partition['num'],partition['fs_type'],partition['size']))
+                            tval.append(num)
+                            num+=1
+                    if 'EPartitions' in diskinfo[disk].keys():
+                        for partition in diskinfo[disk]['EPartitions']:
+                            print _("[%d]: %s type fs: %s size : %dMB" % (num+10,partition['num'],partition['fs_type'],partition['size']))
+                            tval.append(num+10)
+                            num+=1
                     np = raw_input(_("choice : "))
                     if not np.isdigit():
                         print _("Bad number")
                         continue
                     np = int(np)
-                    if (np <0 or np >num):
+                    if (np not in tval):
                         print _('Number not in range')
                         continue
                     #extract partitions info
-                    part =  diskinfo[disk]['PPartitions'][np-1]
+                    if (np <10):
+                        part =  diskinfo[disk]['PPartitions'][np-1]
+                    else:
+                        part =  diskinfo[disk]['EPartitions'][np-1]
                     size = part['size']
                     fs_type = part['fs_type']
                     
@@ -418,7 +446,11 @@ class jeddlajdb:
                     #print "verif requete : ", sql
                     #remove partition entry as it is already allocated
                     #it won't be listed in choice
-                    del  diskinfo[disk]['PPartitions'][np-1]
+                    
+                    if (np <10):
+                        del  diskinfo[disk]['PPartitions'][np-1]
+                    else:
+                        del  diskinfo[disk]['EPartitions'][np-11]
                     
                     val = raw_input("Other partition to add (Y/N) ? ")
                     if  val == 'Y' or val == 'y':
@@ -642,10 +674,35 @@ class jeddlajdb:
         self._dbconnect.commit()
         self.addpartitions(dns, diskinfo,disk_num_only=disk_number)
 
+    def _insertPartitions (self, cursor,dns,linux_device,num_disque, lPartitions):
+        '''insert partition list in database
+        @param cursor: already opened db cursor (optimimzation hint)
+        @param dns: dns_name of Host
+        @param lPartitions : partitions list could be Primary or extended
+        '''
         
+        for p_partition in lPartitions:
+            num_partition = p_partition['num']
+            taille_partition = p_partition['size']
+            type_partition = p_partition['fs_type']
+            nom_partition = p_partition['name']
+            plinux_device = linux_device + str(num_partition)
+            sql = "Insert into partitions (nom_dns,num_disque,num_partition,taille_partition,type_partition,nom_partition,systeme,linux_device) values("
+            sql += self.valsql(dns) + ","
+            sql += str(num_disque) + ","
+            sql += str(num_partition) + ","
+            sql += str(taille_partition) +","
+            sql += self.valsql(type_partition) + ","
+            sql += self.valsql(nom_partition) + ","
+            sql += "'oui',"
+            sql += self.valsql(plinux_device) + ")"
+            #print "INSERTION PARTITION : ", sql
+            cursor.execute(sql)
+
+           
     def addpartitions(self,dns,diskinfo,disk_num_only=-1):
         '''insert int db disks and partitions found
-        if disk_num_only >=0, insert only partition of the disk number
+        if disk_num_only >=0, insert only partition of the specified disk number
         diskinfo is dict with following example
         {'/dev/sdb': 
               {'num': 1, 'PPartitions': 
@@ -662,7 +719,7 @@ class jeddlajdb:
               'size': 8.0}
            }'''
         
-        cursor = self._dbconnect.cursor()
+        cursor = self._dbconnect.cursor(buffered=True)
         for disk in diskinfo:
             linux_device = disk
             capacite = diskinfo[disk]['size']
@@ -678,23 +735,10 @@ class jeddlajdb:
             
             print ("Disk informations : ", diskinfo)
             if 'PPartitions' in diskinfo[disk].keys(): #Partitions info could be empty 
-                for p_partition in diskinfo[disk]['PPartitions']:
-                    num_partition = p_partition['num']
-                    taille_partition = p_partition['size']
-                    type_partition = p_partition['fs_type']
-                    nom_partition = p_partition['name']
-                    plinux_device = linux_device + str(num_partition)
-                    sql = "Insert into partitions (nom_dns,num_disque,num_partition,taille_partition,type_partition,nom_partition,systeme,linux_device) values("
-                    sql += self.valsql(dns) + ","
-                    sql += str(num_disque) + ","
-                    sql += str(num_partition) + ","
-                    sql += str(taille_partition) +","
-                    sql += self.valsql(type_partition) + ","
-                    sql += self.valsql(nom_partition) + ","
-                    sql += "'oui',"
-                    sql += self.valsql(plinux_device) + ")"
-                    #print "INSERTION PARTITION : ", sql
-                    cursor.execute(sql)
+                self._insertPartitions( cursor,dns,linux_device,num_disque,diskinfo[disk]['PPartitions'])
+            if 'EPartitions' in diskinfo[disk].keys(): #Partitions info could be empty 
+                self._insertPartitions( cursor,dns,linux_device,num_disque,diskinfo[disk]['EPartitions'])
+
         cursor.close()
         self._dbconnect.commit()
         

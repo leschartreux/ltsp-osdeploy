@@ -31,6 +31,11 @@ import re
 import sys
 import os
 
+from flufl.i18n import initialize
+
+#import languages
+
+_= initialize('pyddlaj_client')
 
 class host:
     """Represents current host data needed for os deployment"""
@@ -273,10 +278,16 @@ class host:
         listdisks = {}
         localdisk = ''
         for localdisk in self._disks:
-            #som usefulle disk info
+            #som usefull disk info
             diskdesc = {}
             ld= self._disks[localdisk]
-            #print ("retour ld = ", ld)
+            print ("retour ld = ", ld[0].partitions)
+            for ll in ld[0].partitions:
+                print "*****ll",ll
+            #    print ll
+            #    if ll is parted.Disk:
+            #        print "************l",ll.partitions
+                
             #we coud consider last letter in path of disk (/dev/sd? is the disk number
             diskdesc['num'] = ord( localdisk[-1]) - 97 #fast convert letter to integer using (utf-8) code
             diskdesc['size'] = self._size( '/sys/block/' + os.path.basename(localdisk) )
@@ -288,22 +299,37 @@ class host:
                     d_part = {}
                     d_part['num']=p_partition.number
                     d_part['size']=int(round(p_partition.getSize('MB')))
-                    
                     d_part['name']=p_partition.name
                     if p_partition.fileSystem is None: #This could be free partition
                         d_part['fs_type'] = 'Unused'
                     else:
                         d_part['fs_type']=p_partition.fileSystem.type
                     l_localpart.append(d_part)
-                        
                 diskdesc['PPartitions'] = l_localpart
             
+            if not ld[1][1] is None:
+                l_localpart=[]
+                for e_partition in ld[1][2]:
+                    d_part = {}
+                    d_part['num']=e_partition.number
+                    d_part['size']=int(round(e_partition.getSize('MB')))
+                    d_part['name']=e_partition.name
+                    if e_partition.fileSystem is None: #This could be free partition
+                        d_part['fs_type'] = 'Unused'
+                    else:
+                        d_part['fs_type']=e_partition.fileSystem.type
+                    l_localpart.append(d_part)
+                diskdesc['EPartitions'] = l_localpart
+
             """TODO
             Add code for extended and Logical Partition
             """
+
             listdisks[localdisk] = diskdesc
         
-        self._diskinfo = listdisks    
+        self._diskinfo = listdisks
+        print 'List disks : ', listdisks
+        #sys.exit()    
         return listdisks
     
     def isBootable(self):
