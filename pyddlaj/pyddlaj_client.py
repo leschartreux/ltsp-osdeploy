@@ -96,6 +96,7 @@ def modified(clone_type="fsa"):
             Nt.send(task_id, myhost.dns)
         for img in lbaseimg:
             cmd = ["/usr/bin/udp-receiver","--file" , settings.CACHE_MOUNT + "/" +os.path.basename(img['imgfile']),
+                   #"--mcast-rdv-address" , settings.TFTP_SERVER, "--nokbd", "--ttl" , str(task_id+5)]
                    "--mcast-rdv-address" , settings.TFTP_SERVER, "--nokbd", "--ttl" , str(task_id+5)]
             print _("Wait 5 secondes pour le sender")
             time.sleep(5)
@@ -158,7 +159,8 @@ def modified(clone_type="fsa"):
                 dstpart = img['dev_path'] + str(img['num_part'])
                 
                 print "img : " , img
-                cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
+                #cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
+                cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
                 
                     
                 """cmd = ["/usr/bin/udp-receiver","--pipe" , settings.CACHE_MOUNT + "/" +os.path.basename(img['imgfile']),

@@ -69,26 +69,41 @@ $img_dir = "/opt/pyddlaj/images/";
 function supprime_boot_local($nom_dns) {
 	//global $mon_ip;
 	global $tftp_root;
-	$request = "SELECT adresse_mac FROM ordinateurs WHERE nom_dns=\"$nom_dns\""; 
+	$request = "SELECT adresse_mac,bootparams FROM ordinateurs WHERE nom_dns=\"$nom_dns\""; 
 	$result= mysql_query($request);
 	if (mysql_num_rows($result) > 0 ) # L'ordianteur a été trouvé on va supprimer le fichier concerné
 	{
 		$line = mysql_fetch_array($result);
 		$mac = $line["adresse_mac"];
+		$bootparams = $lin["bootparams"];
 		mysql_free_result($result);
 		#genere le fichier de conf PXE à supprimer (01-Adresse mac)
 		$rep_pxe = $tftp_root . "/pxelinux.cfg/";
 		$macfile = "01-" . str_replace(":","-",$mac);
 		
-		if ( file_exists ( $rep_pxe . $macfile))
+		#On verifie si l'ordinateur possèdes des paramètres de boot spéciaux
+		if (strlen( $bootparams) == 0)
 		{
-			if ( unlink($rep_pxe . $macfile) )
-				print "<P>Le fichier de boot local $rep_pxe $macfile a été supprimé</P>";
+			if ( file_exists ( $rep_pxe . $macfile))
+			{
+				
+				if ( unlink($rep_pxe . $macfile) )
+					print "<P>Le fichier de boot local $rep_pxe $macfile a été supprimé</P>";
+				else
+					print "<P>Impossible de supprimer le fichier $rep_pxe $macfile</P>";
+			}
 			else
-				print "<P>Impossible de supprimer le fichier $rep_pxe $macfile</P>";
+				print "<P>Ce poste boote déjà sur Pyddlaj</P>";
 		}
+		//Si l'odinateur possède des paramètres particuliers, le fichier ne doit pas être supprimé
+		//Il doit contenir les paramètres supplémentaires par rapport à  default
 		else
-			print "<P>Ce poste boote déjà sur Pyddlaj</P>";
+		{
+			$fdefault = fopen($tftp_root . "/pxelinux.cfg/default",'r');
+			$ftowrite = fopen($tftp_root . "/pxelinux.cfg/" . $macfile,'w');
+			
+			
+		}
 		
 	}
 	else # l'ordinateur n'est pas verrouillé

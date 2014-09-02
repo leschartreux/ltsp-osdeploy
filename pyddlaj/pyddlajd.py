@@ -68,12 +68,14 @@ def handle_client(sock):
                 cmd = ["/usr/bin/udp-sender"]
                 cmd+= ["--file",settings.IMG_NFS_SHARE+"/" +  img['imgfile'] + ".gz"]
                 cmd+= ["--ttl","32"]
-                cmd+= ["--mcast-data-address" ,"239.11.1.186"]
+                mcast_addr = "239.%s.%s.%s" % settings.TFTP_SERVER.split('.')[1],settings.TFTP_SERVER.split('.')[2],settings.TFTP_SERVER.split('.')[3]
+                cmd+= ["--mcast-data-address" ,mcast_addr]
                 cmd+=["--min-receivers",str(clinumber)]
-                cmd+=["--nokbd"]
+                #cmd+=["--nokbd"]
                 cmd+=["--max-wait","900"]
                 cmd+=["--full-duplex"]
                 cmd+=["--max-bitrate", str(speed) + "m"]
+                cmd +=["--rexmit-hello-interval","50"] 
                 
                 jdb.setTaskDate(task['tid'], True)
                 #print ("cmd",cmd)
