@@ -339,6 +339,8 @@ class jeddlajdb:
                 logo = "win8.jpg"
             elif "ubuntu" in nom_os:
                 logo = "linux.jpg"
+            elif "linux" in nom_os:
+                logo = "linux.jpg"
             elif "debian" in nom_os:
                 logo = "debian.png"
             else:
@@ -357,7 +359,7 @@ class jeddlajdb:
             sql += self.valsql(nom_os) + ","
             sql += str(id_os) + ")";
             self._cursor.execute(sql)
-           # print "verif requete : ", sql
+            print "verif requete : ", sql
             self._cursor.execute("select LAST_INSERT_ID()")
             result = self._cursor.fetchall()
             for r in result:
@@ -384,6 +386,8 @@ class jeddlajdb:
                         print _("No more partition available")
                         break
                     
+                    print "diskinf : ",diskinfo
+                    
                     print _("Choose one parition ")
                     if 'PPartitions' in diskinfo[disk].keys():
                         for partition in diskinfo[disk]['PPartitions']:
@@ -392,9 +396,9 @@ class jeddlajdb:
                             num+=1
                     if 'EPartitions' in diskinfo[disk].keys():
                         for partition in diskinfo[disk]['EPartitions']:
-                            print _("[%d]: %s type fs: %s size : %dMB" % (num+10,partition['num'],partition['fs_type'],partition['size']))
-                            tval.append(num+10)
-                            num+=1
+                            print _("[%d]: %s type fs: %s size : %dMB" % (partition['num'],partition['num'],partition['fs_type'],partition['size']))
+                            tval.append(int(partition['num']))
+                            #num+=1
                     np = raw_input(_("choice : "))
                     if not np.isdigit():
                         print _("Bad number")
@@ -404,10 +408,13 @@ class jeddlajdb:
                         print _('Number not in range')
                         continue
                     #extract partitions info
-                    if (np <10):
+                    if (np <=4):
                         part =  diskinfo[disk]['PPartitions'][np-1]
+                        idp = np
                     else:
-                        part =  diskinfo[disk]['EPartitions'][np-1]
+                        part =  diskinfo[disk]['EPartitions'][np-5]
+                        idp = np
+                        
                     size = part['size']
                     fs_type = part['fs_type']
                     
@@ -429,9 +436,9 @@ class jeddlajdb:
                     sql += self.valsql(nom_idb) + ","
                     sql += self.valsql(repertoire) + ","
                     sql += self.valsql(str(size) + " MB") + ","
-                    sql += str(num_part) + "," 
+                    sql += str(idp) + "," 
                     sql += self.valsql(fs_type) + ")"
-                    #print "verif requete : ", sql
+                    print "verif requete : ", sql
                     self._cursor.execute(sql)
                     self._cursor.execute("select LAST_INSERT_ID()")
                     result = self._cursor.fetchall()
@@ -440,17 +447,18 @@ class jeddlajdb:
                     sql = "INSERT INTO idb_est_installe_sur (id_idb,nom_dns,num_disque,num_partition,etat_idb,idb_active) VALUES("
                     sql += str(id_idb) + ","
                     sql += self.valsql(dns) + ","
-                    sql += str(disk_num)+ "," + str(num_part) + ","
+                    sql += str(disk_num)+ "," + str(idp) + ","
                     sql += "'installe','oui')"
+                    print "verif requete : ", sql
                     self._cursor.execute(sql)
-                    #print "verif requete : ", sql
+                    
                     #remove partition entry as it is already allocated
                     #it won't be listed in choice
                     
-                    if (np <10):
+                    if (np <=4):
                         del  diskinfo[disk]['PPartitions'][np-1]
                     else:
-                        del  diskinfo[disk]['EPartitions'][np-11]
+                        del  diskinfo[disk]['EPartitions'][np-5]
                     
                     val = raw_input("Other partition to add (Y/N) ? ")
                     if  val == 'Y' or val == 'y':

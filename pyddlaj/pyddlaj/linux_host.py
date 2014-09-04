@@ -48,5 +48,5 @@ class LinuxHost(object):
         
         dev_files = os.listdir(settings.FS_MOUNT + "/etc/udev/rules.d")
         for f in dev_files:
-            os.remove(f)
+            os.remove(settings.FS_MOUNT + "/etc/udev/rules.d/"+f)
         

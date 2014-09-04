@@ -160,7 +160,7 @@ def modified(clone_type="fsa"):
                 
                 print "img : " , img
                 #cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
-                cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
+                cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
                 
                     
                 """cmd = ["/usr/bin/udp-receiver","--pipe" , settings.CACHE_MOUNT + "/" +os.path.basename(img['imgfile']),
