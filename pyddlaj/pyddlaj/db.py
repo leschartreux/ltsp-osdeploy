@@ -406,6 +406,7 @@ class jeddlajdb:
                             #num+=1
                     if 'EPartitions' in diskinfo[disk].keys():
                         for partition in diskinfo[disk]['EPartitions']:
+                            num = int(partition['num'])
                             print _("[%d]: %s type fs: %s size : %dMB" % (num,partition['num'],partition['fs_type'],partition['size']))
                             tval.append(num)
                             #num+=1
@@ -465,10 +466,10 @@ class jeddlajdb:
                     #remove partition entry as it is already allocated
                     #it won't be listed in choice
                     
-                    if (np <=4):
-                        del  diskinfo[disk]['PPartitions'][np-1]
-                    else:
-                        del  diskinfo[disk]['EPartitions'][np-5]
+                    #if (np <=4):
+                    #    del  diskinfo[disk]['PPartitions'][np-1]
+                    #else:
+                    #    del  diskinfo[disk]['EPartitions'][np-5]
                     
                     val = raw_input("Other partition to add (Y/N) ? ")
                     if  val == 'Y' or val == 'y':
