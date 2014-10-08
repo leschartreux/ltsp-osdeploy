@@ -19,7 +19,7 @@
 
 import mysql.connector
 #import host
-
+from pyddlaj import *
 from flufl.i18n import initialize
 import settings
 
@@ -261,15 +261,18 @@ class jeddlajdb:
                     num=1
                     tval = [] #store possible values in list
                     if 'PPartitions' in diskinfo[disk].keys():
+                        
                         for part in diskinfo[disk]['PPartitions']:
+                            num = int(part['num'])
                             print "[%d] : Number:%d, size: %s" % (num,part['num'],part['size'])
                             tval.append(num)
-                            num+=1
+                            #num+=1
                     if 'EPartitions' in diskinfo[disk].keys():
                         for part in diskinfo[disk]['EPartitions']:
+                            num = int(part['num'])
                             print "[%d] : [Logical] Number:%d, size: %s" % (num+10,part['num'],part['size'])
                             tval.append(num+10)
-                            num+=1
+                            #num+=1
                     val = raw_input("Choice for image " + row['nom_idb'] + " of size " + row['taille'] + " : ")
                     if not val.isdigit():
                         print _("Bad number")
@@ -284,8 +287,8 @@ class jeddlajdb:
                 sql += str(row['id_idb']) + ","
                 sql += self.valsql(dns) + ","
                 sql += str(disk_num) + ","
-                if ( val >10):
-                    sql += str(diskinfo[disk]['EPartitions'][val-11]['num']) + ","
+                if ( val >4):
+                    sql += str(diskinfo[disk]['EPartitions'][val-5]['num']) + ","
                 else:
                     sql += str(diskinfo[disk]['PPartitions'][val-1]['num']) + ","
                 sql +="'installe','oui')"
@@ -294,7 +297,10 @@ class jeddlajdb:
 #                r= self._cursor.fetchall()
                 self._dbconnect.commit();
                 self._cursor.execute(sql)
-                del  diskinfo[disk]['PPartitions'][val-1]
+                if val<=4:
+                    del  diskinfo[disk]['PPartitions'][val-1]
+                else:
+                    del  diskinfo[disk]['EPartitions'][val-5]
                 #next possible base image for the distrib
                 row = cursor.fetchone()
         cursor.close()
@@ -376,6 +382,9 @@ class jeddlajdb:
                 print "***********************"
                 num_part = 1
                 #add partitions loop
+                repertoire=""
+                #First we delete already associated base image to the host and the disk
+                self._cursor.execute("delete from idb_est_installe_sur where nom_dns=%s and num_disque=%s" % (self.valsql(dns),str(disk_num)))
                 while True:
                     print "*******************"
                     print _("Partition num ") + str(num_part)
@@ -391,13 +400,14 @@ class jeddlajdb:
                     print _("Choose one parition ")
                     if 'PPartitions' in diskinfo[disk].keys():
                         for partition in diskinfo[disk]['PPartitions']:
+                            num = int(partition['num'])
                             print _("[%d]: %s type fs: %s size : %dMB" % (num,partition['num'],partition['fs_type'],partition['size']))
                             tval.append(num)
-                            num+=1
+                            #num+=1
                     if 'EPartitions' in diskinfo[disk].keys():
                         for partition in diskinfo[disk]['EPartitions']:
-                            print _("[%d]: %s type fs: %s size : %dMB" % (partition['num'],partition['num'],partition['fs_type'],partition['size']))
-                            tval.append(int(partition['num']))
+                            print _("[%d]: %s type fs: %s size : %dMB" % (num,partition['num'],partition['fs_type'],partition['size']))
+                            tval.append(num)
                             #num+=1
                     np = raw_input(_("choice : "))
                     if not np.isdigit():
@@ -419,7 +429,7 @@ class jeddlajdb:
                     fs_type = part['fs_type']
                     
                     print _("Filename for partition backup. example : osname/manufacturer/model_[version]/sdax.pc")
-                    repertoire= raw_input(_("Enter partition's backup filename : "))
+                    repertoire= rlinput(_("Enter partition's backup filename : "),repertoire.rsplit('/',1)[0])
                     
                     print _("Partition name")
                     print _(" -For windows Vista and above you must type keyword 'boot' for the boot partition (ex : win81_boot)")

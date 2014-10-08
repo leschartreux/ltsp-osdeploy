@@ -126,6 +126,7 @@ class host:
         # Add any other device pattern to read from
         dev_pattern = ['sd.*', 'mmcblk*', 'hd*']
         self._detect_devs(dev_pattern)
+
         for dev in self._devices:
             self._detect_partition(dev)
     
@@ -281,7 +282,7 @@ class host:
             #som usefull disk info
             diskdesc = {}
             ld= self._disks[localdisk]
-            print ("retour ld = ", ld[0].partitions)
+            print ("retour ld = ", ld)
             for ll in ld[0].partitions:
                 print "*****ll",ll
             #    print ll
@@ -372,7 +373,9 @@ class host:
 
         try:
             localdisk = parted.Disk(device)
+            print ("localdisk = ", localdisk)
             Ppartitions = localdisk.getPrimaryPartitions()
+            print "partitions = ", localdisk.getPrimaryPartitions()
             Epartition = localdisk.getExtendedPartition()
             
         except: #could occur if no partition table

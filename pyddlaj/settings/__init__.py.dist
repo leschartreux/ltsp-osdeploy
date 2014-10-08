@@ -63,6 +63,7 @@ IMG_NFS_MOUNT = "/nfsimg"
 CACHE_MOUNT = '/localimg'
 NTFS_MOUNT = '/mnt/win'
 
+MAX_BANDWIDTH = 500
 
 #Here are the Settings to join cloned machines to your Active Diretory Forest
 #The user could be Domain's adminitrator but a user with Computer Objects rights is enough
