@@ -360,8 +360,11 @@ class host:
             for pattern in dev_pattern:
                 if re.compile(pattern).match(os.path.basename(device)):
                     print('Device:: {0}, Size:: {1} GiB'.format(device, self._size(device)))
-                    self._devices.append(parted.Device('/dev/%s' % os.path.basename(device)))
-                    self.nbdev += self.nbdev
+                    if (self._size(device) == 0):
+                        print _("***ignoring 0 size disk***")
+                    else:
+                        self._devices.append(parted.Device('/dev/%s' % os.path.basename(device)))
+                        self.nbdev += self.nbdev
     
     
     def _detect_partition(self, device):
