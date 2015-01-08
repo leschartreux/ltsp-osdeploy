@@ -220,9 +220,9 @@ def create_idb():
         while True:
             print _("What do you want to do for this host ? ")
             
-            print _("[0]: Associate existing distrib")
+            print _("[2]: Associate existing distrib")
             print _("[1]: Create new distrib")
-            print _("[2]: Exit create state and reboot")
+            print _("[3]: Exit create state and reboot")
             val = raw_input(_("choix : "))
             if not val.isdigit():
                 print _("Bad number, please try again")
@@ -324,6 +324,7 @@ def rename(joindom=1):
                 l = pyddlaj.linux_host.LinuxHost(os['dev_path'])
                 l.rename(myhost.dns)
                 l.cleanUdev()
+                l.installGrub()
                 
     return reboot()
 

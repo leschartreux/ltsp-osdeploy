@@ -25,6 +25,7 @@ class LinuxHost(object):
             call(['/bin/mount',"-o","rw",dev_path,settings.FS_MOUNT])
         
         self.hostname_file = "/etc/hostname"
+        self.dev_path=dev_path
     
     
     def rename(self,new_name):
@@ -50,3 +51,8 @@ class LinuxHost(object):
         for f in dev_files:
             os.remove(settings.FS_MOUNT + "/etc/udev/rules.d/"+f)
         
+    def installGrub(self):
+        """
+        Reinstall grub on disk mbr
+        """
+        call(['/usr/sbin/grub-install','--boot-directory='+settings.FS_MOUNT+'/boot', self.dev_path[:-1]]);
