@@ -356,6 +356,12 @@ class host:
         return (float(nr_sectors) * float(sect_size)) / (1024.0 * 1024.0 * 1024.0)
         
     def _detect_devs(self, dev_pattern):
+        """Detect block devices from /sys/block/ filesystem
+        @param dev_patern: list of file dev paterns to look at (usually ['sd.*', 'mmcblk*', 'hd*'])  
+        Add device path in _devices list member
+        O size disks that may be detetected are ignored. This usually correspond to embeded multi-card readers
+        """
+        
         for device in glob.glob('/sys/block/*'):
             for pattern in dev_pattern:
                 if re.compile(pattern).match(os.path.basename(device)):
