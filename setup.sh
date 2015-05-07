@@ -18,7 +18,8 @@
  
 #This will setup pyddlaj server on a new fresh host
 
-ROOT_OSDEPLOY="/opt/ltsp/i386-osdeploy"
+ROOT_OSDEPLOY="/opt/ltsp/i386-osdeploy-j"
+TFTP_OSDEPLOY="/srv/tftp/ltsp/i386-osdeploy-j"
 
 echo "--------------------------------------------------"
 echo "installing dependencies"
@@ -73,14 +74,14 @@ cp /usr/share/pyddlaj/settings/__init__.py.dist /usr/share/pyddlaj/settings/__in
 ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
 echo "Installing NFS client package"
-chroot /opt/ltsp/i386-osdeploy apt-get install nfs-common
+chroot $ROOT_OSDEPLOY apt-get install nfs-common
 
 echo "Now installing pyddlaj script"
-chroot /opt/ltsp/i386-osdeploy ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
+chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
 
 
 echo "Deploying lts.conf on tftp server"
-cp ltsp-build-client/lts.conf /srv/tftp/ltsp/i386-osdeploy
+cp ltsp-build-client/lts.conf $TFTP_OSDEPLOY
 
 
 echo "All is ready."
