@@ -1,0 +1,72 @@
+# Copyright 2014 R. RIGNIER
+#This file is part of ltsp-osdeploy.
+#
+#    Foobar is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    ltsp-osdeploy is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with ltsp-osdeploy.  If not, see <http://www.gnu.org/licenses/>.
+ 
+'''
+copy this file to __init__.py in the same directory
+then modify values to match your site
+
+Created on 10 avr. 2014
+
+@author: rignier
+'''
+
+"""global Conf variables"""
+LANG = 'fr'
+
+#Location of pyddlaj Scripts
+BASE_DIR = "/usr/share/pyddlaj"
+
+#Mysql Settings
+MYSQL_HOST = 'IP_SERVER_HERE'
+MYSQL_DB = 'jeddlaj'
+MYSQL_USER = 'jeddlaj'
+MYSQL_PASSWORD = 'jeddlaj'
+MYSQL_PORT = 3306
+
+#The TFTP Server Which hosts LTSP PXE client images
+#thoses Settings must be in your DHCP server too
+TFTP_SERVER = 'IP_SERVER_HERE'
+TFTP_PORT = 69
+TFTP_ROOT = '/ltsp/i386-osdeploy'
+TFTPD_ROOT = '/srv/tftp'
+
+#pyddlajd daemon listen port
+PYDDLAD_PORT=33001
+
+
+#SCP is used to transfer TFTP PXE config between client and Server
+#to toggle LTSP boot and local boot
+#Better idea could be using the pyddlajd service to handle this 
+SSH_ROOT = '/srv/tftp' + TFTP_ROOT
+SSH_PORT = 22
+
+#NFS share hosting os images 
+IMG_SERVER = 'IP_SERVER_HERE'
+IMG_NFS_SHARE = "/opt/pyddlaj/images"
+#Client Side Directory mount of NFS shared images
+IMG_NFS_MOUNT = "/nfsimg"
+
+#Local mont of partitions on clients
+CACHE_MOUNT = '/localimg'
+NTFS_MOUNT = '/mnt/win'
+
+MAX_BANDWIDTH = 500
+
+#Here are the Settings to join cloned machines to your Active Diretory Forest
+#The user could be Domain's adminitrator but a user with Computer Objects rights is enough
+AD_DOMAIN = "domain.local"
+AD_JOINUSER = "administrator"
+AD_JOINPASSWORD = "pa$$w0rd"

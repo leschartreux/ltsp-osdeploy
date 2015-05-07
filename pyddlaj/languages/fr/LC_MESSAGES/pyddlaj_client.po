@@ -1,0 +1,434 @@
+# Pyddlaj French language catalog
+# Copyright (C) R2014
+# This file is distributed under the same license as the iltsp-osdeploy package.
+# FIRST AUTHOR Rphaël RIGNIER <r.rignier@leschartreux.net>.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Pyddlaj 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-06-03 11:53+0200\n"
+"PO-Revision-Date: 2014-06-03 15:16+0100\n"
+"Last-Translator: Raphaël RIGNIER <raphael@rignier.com>\n"
+"Language-Team: Les chartreux <inforeseau@leschartreux.net>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: French\n"
+"X-Poedit-Country: FRANCE\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: ../pyddlaj_client.py:45
+msgid "system detection"
+msgstr "Détection du système"
+
+#: ../pyddlaj_client.py:46
+msgid "mac:"
+msgstr "mac:"
+
+#: ../pyddlaj_client.py:47
+msgid "uname:"
+msgstr "uname:"
+
+#: ../pyddlaj_client.py:48
+msgid "ip:"
+msgstr "ip:"
+
+#: ../pyddlaj_client.py:49
+msgid "proc:"
+msgstr "proc:"
+
+#: ../pyddlaj_client.py:50
+msgid "machine : "
+msgstr "Machine : "
+
+#: ../pyddlaj_client.py:51
+msgid "dns :"
+msgstr "dns :"
+
+#: ../pyddlaj_client.py:54
+msgid "Memory : "
+msgstr "Mémoire : "
+
+#: ../pyddlaj_client.py:55
+msgid "Total : {0}"
+msgstr "Totale : {0}"
+
+#: ../pyddlaj_client.py:56
+msgid "Free: {0}"
+msgstr "Libre: {0}"
+
+#: ../pyddlaj_client.py:58
+msgid "CPU : "
+msgstr "CPU : "
+
+#: ../pyddlaj_client.py:59
+msgid "nbcpu:"
+msgstr "Nombre de processeurs :"
+
+#: ../pyddlaj_client.py:68
+msgid "Finding in DB by MAC Address : "
+msgstr "Recherche sur l'adresse MAC : "
+
+#: ../pyddlaj_client.py:88
+msgid "Computer not in database. Adding this one"
+msgstr "Ordi non trouvé, je l'ajoute dans la base"
+
+#: ../pyddlaj_client.py:91
+msgid "Localboot PXE File copy"
+msgstr "Copie du localboot"
+
+#: ../pyddlaj_client.py:95
+msgid "Computer found. updating info"
+msgstr ""
+
+#: ../pyddlaj_client.py:103
+msgid "Computer Found in DB "
+msgstr "Ordi trouvé dans la base "
+
+#: ../pyddlaj_client.py:106
+msgid " Disks and Partitions detection"
+msgstr " Détection des disques et partitions"
+
+#: ../pyddlaj_client.py:114
+msgid "Can't find Disks informations. Adding it"
+msgstr "Je n'ai pas d'info disques. Je les ajoutes"
+
+#: ../pyddlaj_client.py:118
+msgid "Partitions list "
+msgstr "Les partitions"
+
+#: ../pyddlaj_client.py:124
+msgid "Computer state in DB : "
+msgstr "Etat du poste dans la base : "
+
+#: ../pyddlaj_client.py:131
+msgid "Localboot PXE file copy"
+msgstr "Je recopie le pxe localboot"
+
+#: ../pyddlaj_client.py:166
+msgid "Mounting cache partition"
+msgstr "Montage du répertoire cache"
+
+#: ../pyddlaj_client.py:171
+msgid "Task ID"
+msgstr "ID tâche : "
+
+#: ../pyddlaj_client.py:178
+msgid "Wait 5 secondes pour le sender"
+msgstr "Wait 5 secondes pour le sender"
+
+#: ../pyddlaj_client.py:185
+msgid "Partition dump of "
+msgstr "Recopie de la partition "
+
+#: ../pyddlaj_client.py:206
+msgid "No task for this host, switching to installed state"
+msgstr ""
+
+#: ../pyddlaj_client.py:210
+msgid "Task ID "
+msgstr "ID tâche "
+
+#: ../pyddlaj_client.py:220
+msgid "Mounting NFS master Images directory"
+msgstr "Montage du répertoire Images"
+
+#: ../pyddlaj_client.py:229
+msgid "Disk partitionning : "
+msgstr "Partitionnement du disque : "
+
+#: ../pyddlaj_client.py:241
+msgid "Wait 5s then launch udp-reciever"
+msgstr "attente 5 secondes pour le sender"
+
+#: ../pyddlaj_client.py:246
+msgid "MBR Backup"
+msgstr "Sauvegarde MBR"
+
+#: ../pyddlaj_client.py:251
+msgid "Error: can't connect to sender."
+msgstr "Erreur : Je n'ai pas pu me connecter à l'envoyeur."
+
+#: ../pyddlaj_client.py:261
+msgid "No Disk in partitionning state"
+msgstr "Aucun Disque a partitionner"
+
+#: ../pyddlaj_client.py:275
+msgid "Disk list : "
+msgstr "Les disques : "
+
+#: ../pyddlaj_client.py:279
+msgid "Associated master images : "
+msgstr "Images de bases associées :"
+
+#: ../pyddlaj_client.py:283
+msgid "can't find any associated master image for this computer. I'll ask for this"
+msgstr "Je n'ai pas trouvé d'image de base associé à cette machine."
+
+#: ../pyddlaj_client.py:287
+msgid "What do you want to do for this host ? "
+msgstr "Que voulez-vous faire pour ce poste ? "
+
+#: ../pyddlaj_client.py:289
+msgid "[0]: Associate existing distrib"
+msgstr "[0]: Associer une distribution existante"
+
+#: ../pyddlaj_client.py:290
+msgid "[1]: Create new distrib"
+msgstr "[1]: Créer une nouvelle distribution"
+
+#: ../pyddlaj_client.py:291
+msgid "choix : "
+msgstr "choix : "
+
+#: ../pyddlaj_client.py:293
+msgid "Bad number, please try again"
+msgstr "Mauvais nombre, recommencez"
+
+#: ../pyddlaj_client.py:297
+msgid "Bad input, please try again"
+msgstr "Mauvaise saisie, recommencez"
+
+#: ../pyddlaj_client.py:313
+msgid "Mounting NFS master images directory"
+msgstr "Montage NFS du répertoire des image"
+
+#: ../pyddlaj_client.py:329
+msgid "Backup partition table"
+msgstr "Sauvegarde de la table des partitions"
+
+#: ../pyddlaj_client.py:332
+msgid "Backup MBR"
+msgstr "Sauvegarde MBR"
+
+#: ../pyddlaj_client.py:337
+msgid "Backup partition in progress"
+msgstr "Sauvegarde de la partition "
+
+#: ../pyddlaj_client.py:347
+msgid "Something went wrong ! can't reboot"
+msgstr "Something went wrong ! can't reboot"
+
+#: ../pyddlaj_client.py:358
+msgid "host in debug mode. Please connect to console and manualy launch pyddlaj"
+msgstr "Poste en dépannage"
+
+#: ../pyddlaj_client.py:365
+msgid "Renaming computer"
+msgstr "Renommage du poste"
+
+#: ../pyddlaj_client.py:370
+msgid "Detected OS(es) : "
+msgstr "OS détectés : "
+
+#: ../pyddlaj_client.py:393
+msgid "Database closed"
+msgstr "Base fermée"
+
+#: ../pyddlaj_client.py:394
+msgid "Wait for 10s"
+msgstr "Attente 10 secondes"
+
+#: ../pyddlaj/db.py:31
+msgid "Connection OK"
+msgstr "Connexion OK"
+
+#: ../pyddlaj/db.py:188
+msgid "Please choose the distrib : "
+msgstr "Choisissez une distribution :"
+
+#: ../pyddlaj/db.py:197
+msgid "Bad Number"
+msgstr "Mauvais nombre"
+
+#: ../pyddlaj/db.py:201
+#: ../pyddlaj/db.py:227
+#: ../pyddlaj/db.py:266
+#: ../pyddlaj/db.py:333
+msgid "Number not in range"
+msgstr "Nombre pas valide"
+
+#: ../pyddlaj/db.py:213
+#: ../pyddlaj/db.py:310
+msgid "Disk num "
+msgstr "Disk num "
+
+#: ../pyddlaj/db.py:216
+msgid "List of available partitions"
+msgstr "Les partitons disponibles : "
+
+#: ../pyddlaj/db.py:223
+#: ../pyddlaj/db.py:262
+#: ../pyddlaj/db.py:329
+msgid "Bad number"
+msgstr "Mauvais nombre"
+
+#: ../pyddlaj/db.py:242
+msgid "OK, Insert finished. I will now save the images."
+msgstr "OK, Insertion terminée. Je procède maintenant aux sauvegardes des partitions."
+
+#: ../pyddlaj/db.py:253
+msgid "*     Add distribution      *"
+msgstr "*     Ajout de distribution      *"
+
+#: ../pyddlaj/db.py:255
+msgid "Which os is installed on this host ?"
+msgstr "Quel OS est installé sur ce poste ?"
+
+#: ../pyddlaj/db.py:260
+msgid "Choice : "
+msgstr "Choix : "
+
+#: ../pyddlaj/db.py:284
+msgid ""
+"Enter name for this distribution\n"
+" Adding computer model is a good idea for easier reference (ex : Fujitsu Esprimo P2520 winxp SP3 2014): "
+msgstr ""
+"Nom pour cette distribution\n"
+" Renseigner le modèle de l'ordinateur est une bonne idée pour un repérage facile  (ex : Fujitsu Esprimo P2520 winxp SP3 2014): "
+
+#: ../pyddlaj/db.py:287
+msgid "Enter distribution version (SP1, R2, Lenny, ...) : "
+msgstr "Enter distribution version (SP1, R2, Lenny, ...) : "
+
+#: ../pyddlaj/db.py:303
+msgid "Created dist number : "
+msgstr "Num Distribtion créée : "
+
+#: ../pyddlaj/db.py:316
+msgid "Partition num "
+msgstr "Partition num "
+
+#: ../pyddlaj/db.py:320
+msgid "No more partition available"
+msgstr "Plus de partition disponible"
+
+#: ../pyddlaj/db.py:323
+msgid "Choose one parition "
+msgstr "Choisissez une partition"
+
+#: ../pyddlaj/db.py:325
+#, python-format
+msgid "[%d]: %s type fs: %s size : %dMB"
+msgstr "[%d]: %s type fs: %s taille : %dMB"
+
+#: ../pyddlaj/db.py:327
+msgid "choice : "
+msgstr "Choix : "
+
+#: ../pyddlaj/db.py:338
+msgid "Filename for partition backup. example : manufacturer/model/osname/sdax.pc"
+msgstr "Nom de la sauvegarde de la partition. Exemple : constructeur/modele/nom_os/sdax.pc"
+
+#: ../pyddlaj/db.py:339
+msgid "Enter partition's backup filename : "
+msgstr "Nom de fichier de sauvegrde de la partition : "
+
+#: ../pyddlaj/db.py:341
+msgid "Partition name"
+msgstr "Nom de la partition"
+
+#: ../pyddlaj/db.py:342
+msgid " -For windows Vista and above you must type keyword 'boot' for the boot partition (ex : win81_boot)"
+msgstr "- Pour les postes Windows Vista et supérieur, mettez  le mot clé 'boot' dans le nom"
+
+#: ../pyddlaj/db.py:343
+msgid " -For linux distributions you must type  the mount point of the partition"
+msgstr "- Pour les distributions Linux, mettez le chemin du point de montage de la partition"
+
+#: ../pyddlaj/db.py:344
+msgid "partition name : "
+msgstr "Nom de la partition : "
+
+#: ../pyddlaj/db.py:346
+msgid "Confirm for this partition (Y/N) ? "
+msgstr "Confirmer pour cete partition (Y/N) ? "
+
+#: ../pyddlaj/db.py:382
+msgid "Another distrib on this computer you want to add (Y/N) ? "
+msgstr "Autre distribution à ahouter (Y/N) ?"
+
+#: ../pyddlaj/db.py:558
+msgid "Record : "
+msgstr "Enregistrement"
+
+#: ../pyddlaj/db.py:558
+msgid " tache :"
+msgstr " tache :"
+
+#: ../pyddlaj/db.py:569
+msgid "There are still not finished transfers for this task. No update"
+msgstr "Il y a toujours des transfert en cours sur cette tache. Pas de mise à jour."
+
+#: ../pyddlaj/host.py:100
+msgid "Formating cache partition : "
+msgstr "Formatage de la partition cache : "
+
+#: ../pyddlaj/host.py:131
+msgid "Disk Error : "
+msgstr "Erreur disque : "
+
+#: ../pyddlaj/host.py:133
+msgid "New partition table :"
+msgstr "Nouvelle table des partitions : "
+
+#: ../pyddlaj/host.py:139
+msgid "Error, can't create partition. Exiting"
+msgstr "Erreur, ne peut creer la partition. Imposssible de continuer."
+
+#: ../pyddlaj/host.py:141
+msgid "...OK!"
+msgstr "...OK!"
+
+#: ../pyddlaj/host.py:171
+msgid "Disk to be partitionned : "
+msgstr "Disque à partitionner"
+
+#: ../pyddlaj/host.py:185
+msgid "* Disk is not empty ! ALL DATA ON DISK WILL BE DESTROYED WITHOUT PROMPT      *"
+msgstr "Disque non vide ! TOUTES LES DONNEES SERONT DETRUITES MALGRE TOUT !"
+
+#: ../pyddlaj/host.py:207
+#, python-format
+msgid "New Disk partitioning. Number to create : %d"
+msgstr "Nouveau partitionnement. Nombre à créer : %d"
+
+#: ../pyddlaj/host.py:212
+msgid "partition to make : "
+msgstr "Partition à créer : "
+
+#: ../pyddlaj/host.py:213
+#, python-format
+msgid "Partition %d : nom=%s type=%s taille=%d MB"
+msgstr "Partition %d : nom=%s type=%s taille=%d MB"
+
+#: ../pyddlaj/host.py:225
+msgid "....OK!"
+msgstr "....OK!"
+
+#: ../pyddlaj/host.py:228
+msgid "Add last partition for cache : "
+msgstr "Ajout de la partition cache sur l'espace libre à la fin du disque"
+
+#: ../pyddlaj/host.py:338
+msgid "No partition for this disk"
+msgstr "PAs de partition pour ce disque"
+
+#: ../pyddlaj/winregistry.py:29
+msgid "Make directory "
+msgstr "Création répertoire"
+
+#: ../pyddlaj/winregistry.py:32
+msgid "Mount Windows system partition"
+msgstr "Montage de la partition windows système"
+
+#: ../pyddlaj/winregistry.py:132
+msgid "Rename host in registry "
+msgstr "REnommage du poste dans le registre Windows."
+
+#: ../pyddlaj/winregistry.py:262
+msgid "Error!"
+msgstr "Erreur !"
+
