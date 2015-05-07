@@ -17,8 +17,9 @@
  
  
 #This will setup pyddlaj server on a new fresh host
-
-ROOT_OSDEPLOY="/opt/ltsp/i386-osdeploy"
+$OSDIR="i386-osdeploy"
+ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
+TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
 
 echo "--------------------------------------------------"
 echo "installing dependencies"
@@ -36,20 +37,24 @@ pip install reparted
 echo "--------------------------------------------------"
 echo "installing LTSP pyddlaj client builder"
 cp -R ltsp-build-client/Debian-osdeploy /usr/share/ltsp/plugins/ltsp-build-client/
-echo "--------------------------------------------------"
+echo "--------------------------------------------------"/srv/tftp/ltsp/i386-osdeploy
 
-echo "adding default VENDOR to build LTSP client"
+echo "Adding default Env to build LTSP client (see /etc/ltsp/ltsp-build-client.conf)"
 if [ -f /etc/ltsp/ltsp-build-client.conf ]; then
 	. /etc/ltsp/ltsp-build-client.conf
 fi
 
+#cat ltsp-build-client.conf >>
 if [ -z $VENDOR ]; then
 	echo 'VENDOR="Debian-osdeploy"' >> /etc/ltsp/ltsp-build-client.conf
+fi	
+if [ -z $DIST ]; then
+		echo 'DIST="stable"' >> /etc/ltsp/ltsp-build-client.conf
+fi
+if [ -z CHROOT ]; then
+	CHROOT=$ROOT_OSDEPLOY
 fi
 
-if [ -z $DIST ]; then
-	echo 'DIST="stable"' >> /etc/ltsp/ltsp-build-client.conf
-fi
 echo "--------------------------------------------------"
 echo "DONE !"
 echo "--------------------------------------------------"
@@ -69,19 +74,17 @@ ln -s /usr/share/pyddlaj/pyddlajd.py /usr/sbin/pyddlajd
 echo "--------------------------------------------------"
 echo "Creating default Config file"
 mkdir -p /etc/pyddlaj
-cp /usr/share/pyddlaj/settings/__init__.py.dist /usr/share/pyddlaj/settings/__init__.py
+if [ ! -f /usr/share/pyddlaj/settings/__init__.py ]; then
+	cp /usr/share/pyddlaj/settings/__init__.py.dist /usr/share/pyddlaj/settings/__init__.py
+fi
 ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
-echo "Installing NFS client package"
-chroot /opt/ltsp/i386-osdeploy apt-get install nfs-common
-
 echo "Now installing pyddlaj script"
-chroot /opt/ltsp/i386-osdeploy ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
+chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
 
 
 echo "Deploying lts.conf on tftp server"
-cp ltsp-build-client/lts.conf /srv/tftp/ltsp/i386-osdeploy
-
+cp ltsp-build-client/lts.conf $TFTP_DIR
 
 echo "All is ready."
 echo "Next step : edit /etc/pyddlaj/pyddlaj.conf to fit your needs"
