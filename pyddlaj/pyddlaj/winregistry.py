@@ -254,7 +254,7 @@ class WinRegistry(object):
             fh.write(join_bat)
             fh.close()
             if ( joindom == 1):
-                shutil.copyfile(settings.BASE_DIR + "tools/netdomxp.exe",joindir + "/netdom.exe")
+                shutil.copyfile(settings.BASE_DIR + "/tools/netdomxp.exe",joindir + "/netdom.exe")
             shutil.copyfile('/tmp/joincom.bat',joindir + "/joincom.bat")
             self.addRunOnceJoin(type_os,'joincom.bat')
         
