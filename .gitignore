@@ -3,3 +3,4 @@
 .pydevproject
 .project
 pyddlaj/settings/__init__.py
+pyddlaj/conf/privkey
