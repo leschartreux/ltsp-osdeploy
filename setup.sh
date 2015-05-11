@@ -17,7 +17,7 @@
  
  
 #This will setup pyddlaj server on a new fresh host
-$OSDIR="i386-osdeploy"
+OSDIR="i386-osdeploy-j"
 ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
 

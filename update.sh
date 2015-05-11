@@ -17,7 +17,7 @@
 #
 #This will update pyddlaj server on a existing installation
 
-ROOT_OSDEPLOY="/opt/ltsp/i386-osdeploy"
+ROOT_OSDEPLOY="/opt/ltsp/i386-osdeploy-j"
 
 echo "update from git"
 git pull
