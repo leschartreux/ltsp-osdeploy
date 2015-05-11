@@ -51,8 +51,8 @@ fi
 if [ -z $DIST ]; then
 		echo 'DIST="stable"' >> /etc/ltsp/ltsp-build-client.conf
 fi
-if [ -z CHROOT ]; then
-	CHROOT=$ROOT_OSDEPLOY
+if [ -z $CHROOT ]; then
+	echo "CHROOT=\"$OSDIR\"" >> /etc/ltsp/ltsp-build-client.conf
 fi
 
 echo "--------------------------------------------------"
@@ -79,6 +79,10 @@ if [ ! -f /usr/share/pyddlaj/settings/__init__.py ]; then
 fi
 ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
+echo "---------------------------------------------------"
+echo Installing nfs client
+chroot $ROOT_OSDEPLOY apt-get install nfs-common
+echo "---------------------------------------------------"
 echo "Now installing pyddlaj script"
 chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
 
