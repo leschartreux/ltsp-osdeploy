@@ -85,6 +85,8 @@ chroot $ROOT_OSDEPLOY apt-get install nfs-common
 echo "---------------------------------------------------"
 echo "Now installing pyddlaj script"
 chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
+chroot $ROOT_OSDEPLOY pip install reparted
+
 
 
 echo "Deploying lts.conf on tftp server"
