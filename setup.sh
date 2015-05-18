@@ -17,9 +17,20 @@
  
  
 #This will setup pyddlaj server on a new fresh host
-OSDIR="i386"
+OSDIR="i386-osdeploy-j"
 ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
+if [ -d $ROOT_OSDEPLOY ]; then
+	echo "ltsp-client chroot $ROOT_OSDEPLOY already exists"
+	read -p "Are you sure you want to destroy it ? " -n 1 -r
+	echo    # (optional) move to a new line
+	if [[ ! $REPLY =~ ^[Yy]$ ]]
+	then
+	    exit 1
+	fi
+	echo OK removing existing client
+	rm -rf $ROOT_OSDEPLOY
+fi
 
 echo "--------------------------------------------------"
 echo "installing dependencies"
@@ -61,7 +72,7 @@ echo "--------------------------------------------------"
 echo "DONE !"
 echo "--------------------------------------------------"
 echo "trying to build ltsp-client..."
-ltsp-build-client --vendor Debian-osdeploy
+ltsp-build-client
 echo "DONE !"
 echo "--------------------------------------------------"
 
@@ -69,6 +80,7 @@ echo "installing pyddlaj tools on Client root"
 cp -R pyddlaj $ROOT_OSDEPLOY/usr/share/
 echo "linking on server"
 ln -s $ROOT_OSDEPLOY/usr/share/pyddlaj /usr/share/pyddlaj
+cp ltsp-build-client/pyddlaj $ROOT_OSDEPLOY/usr/share/ltsp/screen.d/pyddlaj
 
 echo "--------------------------------------------------"
 echo "linking pyddlajd daemon"
