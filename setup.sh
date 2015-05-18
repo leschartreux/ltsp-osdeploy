@@ -17,7 +17,7 @@
  
  
 #This will setup pyddlaj server on a new fresh host
-OSDIR="i386-osdeploy-j"
+OSDIR="i386"
 ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
 
@@ -36,6 +36,8 @@ pip install reparted
 
 echo "--------------------------------------------------"
 echo "installing LTSP pyddlaj client builder"
+mkdir /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy
+cp /usr/share/ltsp/plugins/ltsp-build-client/Debian/* /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy/
 cp -R ltsp-build-client/Debian-osdeploy /usr/share/ltsp/plugins/ltsp-build-client/
 echo "--------------------------------------------------"/srv/tftp/ltsp/i386-osdeploy
 
@@ -59,7 +61,7 @@ echo "--------------------------------------------------"
 echo "DONE !"
 echo "--------------------------------------------------"
 echo "trying to build ltsp-client..."
-ltsp-build-client
+ltsp-build-client --vendor Debian-osdeploy
 echo "DONE !"
 echo "--------------------------------------------------"
 
