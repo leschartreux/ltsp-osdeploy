@@ -29,7 +29,7 @@ case "$MODE" in
                     KERNEL_VARIANT="armmp"
                     ;;
                 i386|kfreebsd-i386)
-                    KERNEL_VARIANT="486"
+                    KERNEL_VARIANT="686-pae"
                     ;;
                 kfreebsd-amd64)
                     KERNEL_VARIANT="amd64"
