@@ -58,7 +58,7 @@
 ######################### CONFIG ZONE ###########################
 
 $rep_pyddlaj = "/usr/share/pyddlaj";
-$tftp_root = "/srv/tftp/ltsp/i386-osdeploy";
+$tftp_root = "/srv/tftp/ltsp/i386-osdeploy-j";
 $img_dir = "/opt/pyddlaj/images/";
 
 ######################### END CONFIG ZONE ###########################
