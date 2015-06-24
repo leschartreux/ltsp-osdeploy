@@ -94,8 +94,8 @@ fi
 ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
 echo "---------------------------------------------------"
-echo Installing nfs client
-chroot $ROOT_OSDEPLOY apt-get install nfs-common
+echo Installing nfs client and grub installer
+chroot $ROOT_OSDEPLOY apt-get install nfs-common grub2-common
 echo "---------------------------------------------------"
 echo "Now installing pyddlaj script"
 chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj

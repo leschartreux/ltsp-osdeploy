@@ -62,6 +62,7 @@ IMG_NFS_MOUNT = "/nfsimg"
 #Local mont of partitions on clients
 CACHE_MOUNT = '/localimg'
 NTFS_MOUNT = '/mnt/win'
+FS_MOUNT = '/mnt/lin'
 
 MAX_BANDWIDTH = 500
 

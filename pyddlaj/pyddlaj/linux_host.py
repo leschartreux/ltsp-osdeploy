@@ -55,4 +55,4 @@ class LinuxHost(object):
         """
         Reinstall grub on disk mbr
         """
-        call(['/usr/sbin/grub-install','--boot-directory='+settings.FS_MOUNT+'/boot', self.dev_path[:-1]]);
+        call(['/usr/sbin/grub-install','--boot-directory='+settings.FS_MOUNT+'/boot','--dir='+settings.FS_MOUNT+'/usr/lib/grub/i386-pc', self.dev_path[:-1]]);
