@@ -19,5 +19,6 @@
  label bootlocal
       menu label ^Boot local disk
       menu default
-	kernel lua.c32
-	append localboot.lua
+      localboot 0
+      timeout 80
+      TOTALTIMEOUT 9000
