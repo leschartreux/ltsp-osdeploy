@@ -5,7 +5,7 @@
 # 
 # --- Copyright notice :
 # 
-# Copyright 2003, 2004, 2005 Gérard Milhaud - Frédéric Bloise
+# Copyright 2003, 2004, 2005 Gï¿½rard Milhaud - Frï¿½dï¿½ric Bloise
 # 
 # 
 # --- Statement of copying permission
@@ -27,29 +27,29 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 # 
-# *********** TRADUCTION FRANÇAISE PERSONNELLE SANS VALEUR LÉGALE ***********
+# *********** TRADUCTION FRANï¿½AISE PERSONNELLE SANS VALEUR Lï¿½GALE ***********
 #
 # --- Notice de Copyright :
 # 
-# Copyright 2003, 2004, 2005 Gérard Milhaud - Frédéric Bloise
+# Copyright 2003, 2004, 2005 Gï¿½rard Milhaud - Frï¿½dï¿½ric Bloise
 # 
 # 
-# --- Déclaration de permission de copie
+# --- Dï¿½claration de permission de copie
 # 
 # Ce fichier fait partie de JeDDLaJ.
 # 
 # JeDDLaJ est un logiciel libre : vous pouvez le redistribuer ou le modifier
-# selon les termes de la Licence Publique Générale GNU telle qu'elle est
-# publiée par la Free Software Foundation ; soit la version 2 de la Licence,
-# soit (à votre choix) une quelconque version ultérieure.
+# selon les termes de la Licence Publique Gï¿½nï¿½rale GNU telle qu'elle est
+# publiï¿½e par la Free Software Foundation ; soit la version 2 de la Licence,
+# soit (ï¿½ votre choix) une quelconque version ultï¿½rieure.
 # 
-# JeDDLaJ est distribué dans l'espoir qu'il soit utile, mais SANS AUCUNE
-# GARANTIE ; sans même la garantie implicite de COMMERCIALISATION ou 
-# d'ADAPTATION DANS UN BUT PARTICULIER. Voir la Licence publique Générale GNU
-# pour plus de détails.
+# JeDDLaJ est distribuï¿½ dans l'espoir qu'il soit utile, mais SANS AUCUNE
+# GARANTIE ; sans mï¿½me la garantie implicite de COMMERCIALISATION ou 
+# d'ADAPTATION DANS UN BUT PARTICULIER. Voir la Licence publique Gï¿½nï¿½rale GNU
+# pour plus de dï¿½tails.
 # 
-# Vous devriez avoir reçu une copie de la Licence Publique Générale GNU avec 
-# JeDDLaJ ; si ça n'était pas le cas, écrivez à la Free Software Foundation,
+# Vous devriez avoir reï¿½u une copie de la Licence Publique Gï¿½nï¿½rale GNU avec 
+# JeDDLaJ ; si ï¿½a n'ï¿½tait pas le cas, ï¿½crivez ï¿½ la Free Software Foundation,
 # Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 # 
 # ############################ END OF GPL STUFF #############################
@@ -66,6 +66,11 @@ if ( isset ($_GET['cb_join'] ))
 	$cb_join=1;
 else
 	$cb_join=0;
+
+if ( isset ($_GET['use_nfs']))
+	$use_nfs=1;
+else
+	$use_nfs=0;
 
 //print_r($_GET);
 include("UtilsHTML.php");
@@ -121,7 +126,7 @@ function statusOrdinateur($total,$nom_dns,$mon_ip) {
  		$linelocal=mysql_fetch_array($resultlocal);
 		$etat=$linelocal["etat_install"];
   	mysql_free_result($resultlocal);
-		return "<TD><IMG SRC=\"ICONES/ordi_lock.png\"></TD><TD></TD><TD>$nom_dns</TD><TD></TD><TD>Cet ordinateur est en état $etat</TD>\n";
+		return "<TD><IMG SRC=\"ICONES/ordi_lock.png\"></TD><TD></TD><TD>$nom_dns</TD><TD></TD><TD>Cet ordinateur est en ï¿½tat $etat</TD>\n";
   }
   $requestlocal = "SELECT timestamp,ip_distante FROM ordinateurs_en_consultation WHERE nom_dns=\"$nom_dns\""; 
   $resultlocal = mysql_query($requestlocal);
@@ -135,13 +140,13 @@ function statusOrdinateur($total,$nom_dns,$mon_ip) {
   $resultlocal = mysql_query($requestlocal);
   if (mysql_num_rows($resultlocal) < 1 )  {
   	mysql_free_result($resultlocal);
-		return "<TD><A HREF=\"modifier_machine.php?nom_dns=$nom_dns\" TARGET=\"new\"><IMG SRC=\"ICONES/ordi_confless.png\" BORDER=\"0\"></A></TD><TD></TD><TD>$nom_dns</TD><TD></TD><TD>Pas de disque dur défini pour cet ordinateur</TD>\n";
+		return "<TD><A HREF=\"modifier_machine.php?nom_dns=$nom_dns\" TARGET=\"new\"><IMG SRC=\"ICONES/ordi_confless.png\" BORDER=\"0\"></A></TD><TD></TD><TD>$nom_dns</TD><TD></TD><TD>Pas de disque dur dï¿½fini pour cet ordinateur</TD>\n";
   } else {
 	  
     for ($i=0;$i<mysql_num_rows($resultlocal);$i++) {
     	$linelocal=mysql_fetch_array($resultlocal);
     	$capa = $linelocal['capacite'];
-    	//print "la taille : $total, la capacité : $capa\n";
+    	//print "la taille : $total, la capacitï¿½ : $capa\n";
     }
     mysql_free_result($resultlocal);
 	if ( $total > $capa ){
@@ -156,7 +161,7 @@ function statusOrdinateur($total,$nom_dns,$mon_ip) {
 }
 
 ///
-/// Affiche la ligne de tableau correspondant au groupe. Vérifie sil l'opération est possible par rapport à son état actuel
+/// Affiche la ligne de tableau correspondant au groupe. Vï¿½rifie sil l'opï¿½ration est possible par rapport ï¿½ son ï¿½tat actuel
 ///
 function tableau_choix_poste($nom_dns,$nom_groupe)
 {
@@ -169,7 +174,7 @@ function tableau_choix_poste($nom_dns,$nom_groupe)
 		$nom_groupe = "tous les ordinateurs";
 	$result = mysql_query($request);
 	print("<TABLE>");
-	print("<TR><TD></TD><TD ALIGN=\"center\"  BGCOLOR=\"#CC00AA\"><b>Sélection</b></TD><TD ALIGN=\"center\" BGCOLOR=\"#CC00AA\"><b>Nom DNS</b></TD><TD ALIGN=\"left\"  BGCOLOR=\"#CC00AA\"><b>Status</b></TD></TR>\n");
+	print("<TR><TD></TD><TD ALIGN=\"center\"  BGCOLOR=\"#CC00AA\"><b>Sï¿½lection</b></TD><TD ALIGN=\"center\" BGCOLOR=\"#CC00AA\"><b>Nom DNS</b></TD><TD ALIGN=\"left\"  BGCOLOR=\"#CC00AA\"><b>Status</b></TD></TR>\n");
 	$indice=0;
 	$i=0;
 	if ($nom_groupe!="") {
@@ -177,8 +182,8 @@ function tableau_choix_poste($nom_dns,$nom_groupe)
 			$line=mysql_fetch_array($result);
 			$nd = $line['nom_dns'];
 			$etat = $line['etat_install'];
-			if ( $etat != 'modifie' &&  $etat != 'installe'  &&  $etat != 'depannage' && $etat != 'idb' && $etat  !='reboot') # Dans ces états, le changement est possible
-				print ("<TR><TD><IMG SRC=\"ICONES/ordi_lock.png\"></TD><TD></TD><TD>$nd</TD><TD></TD><TD>Cet ordinateur est en état $etat</TD></TR>\n");
+			if ( $etat != 'modifie' &&  $etat != 'installe'  &&  $etat != 'depannage' && $etat != 'idb' && $etat  !='reboot') # Dans ces ï¿½tats, le changement est possible
+				print ("<TR><TD><IMG SRC=\"ICONES/ordi_lock.png\"></TD><TD></TD><TD>$nd</TD><TD></TD><TD>Cet ordinateur est en ï¿½tat $etat</TD></TR>\n");
 			else
 				print ("<TR><TD><IMG SRC=\"ICONES/ordi_ok.png\"></TD><TD ALIGN=CENTER><INPUT TYPE=\"checkbox\" NAME=\"check[".$indice++."]\" VALUE=\"$nd\" ></TD><TD>$nd</TD><TD>$etat</TD></TR>\n");
 		}
@@ -187,13 +192,13 @@ function tableau_choix_poste($nom_dns,$nom_groupe)
 	print("</TABLE>\n");
 }
 
-entete("Raphaël RIGNIER - Les Chartreux : inforeseau@leschartreux.net", "CSS/g.css", "JeDDLaJ : Lancement de tâche - Etape 1");
+entete("Raphaï¿½l RIGNIER - Les Chartreux : inforeseau@leschartreux.net", "CSS/g.css", "JeDDLaJ : Lancement de tï¿½che - Etape 1");
 include ("DBParDefaut.php");
 ConnectMySQL($GLOBALS['host'], $GLOBALS['user'], $GLOBALS['pwd']);
 SelectDb($GLOBALS['db']);
 ?>
 <Script type='text/javascript'>
-	//Mise à jour dynamique du tableau par rapport à l'idb séléectionné
+	//Mise ï¿½ jour dynamique du tableau par rapport ï¿½ l'idb sï¿½lï¿½ectionnï¿½
 	function affiche_idb(selobject, arrvalue)
 	{
 		var item = selobject.options[selobject.selectedIndex];
@@ -206,7 +211,7 @@ SelectDb($GLOBALS['db']);
 		element = document.getElementsByName("nom_os")[0];
 		element.textContent = objidb["nom_os"];
 		
-		//parcours des partitions pour mis à jours des valeurs du tableau
+		//parcours des partitions pour mis ï¿½ jours des valeurs du tableau
 		for ( var i=0; i< 5; i++)
 		{
 			var id_idb=""
@@ -218,7 +223,7 @@ SelectDb($GLOBALS['db']);
 				nom_idb = objidb[i]["nom_idb"];
 				taille = objidb[i]["taille"];
 			}
-			//mise à jour des éléments du tableau
+			//mise ï¿½ jour des ï¿½lï¿½ments du tableau
 			var element = document.getElementsByName("id_idb" + i)[0];
 			element.textContent = id_idb;
 			element = document.getElementsByName("nom_idb" + i)[0];
@@ -233,18 +238,18 @@ SelectDb($GLOBALS['db']);
 	}
 </Script>
 <?
-#Affichage du type de tâche dans le titre
+#Affichage du type de tï¿½che dans le titre
 $request = "SELECT * FROM type_tache WHERE idtype_tache=$type_tache";
 $result = mysql_query($request);
 if (mysql_num_rows($result) == 0){
-	print "<P>Pas de tâche de ce type : $type_tache</P>";
+	print "<P>Pas de tï¿½che de ce type : $type_tache</P>";
 	exit;
 }
 $enr = mysql_fetch_assoc($result);
 mysql_free_result($result);
-print("<CENTER><H1>Lancement de tâche -<u>".$enr['desc']."</u>- Etape 1</H1></CENTER>\n");
+print("<CENTER><H1>Lancement de tï¿½che -<u>".$enr['desc']."</u>- Etape 1</H1></CENTER>\n");
 
-#On stocke les partitions liées aux images de base
+#On stocke les partitions liï¿½es aux images de base
 $request = "SELECT * FROM logiciels,images_de_base idb WHERE id_logiciel=id_os order by id_logiciel,id_idb";
 $result = mysql_query($request);
 $images = array();
@@ -275,7 +280,7 @@ switch ($type_tache)
 		else
 			$idlog = 1;
 		#Affichage du combo avec l'affichage dynamique des infos
-		print("<CENTER><FORM Method='GET'><BR>Sélectionnez une installation : ");
+		print("<CENTER><FORM Method='GET'><BR>Sï¿½lectionnez une installation : ");
 		print("<input type='hidden' name='nom_groupe' value='$nom_groupe'>");
 		print("<input type='hidden' name='nom_dns' value='$nom_dns'>");
 		print("<input type='hidden' name='id_typetache' value='$type_tache'>");
@@ -294,12 +299,12 @@ switch ($type_tache)
 
 		print ("<BR><B>Nom  : </B> <span name='nom_logiciel'>". $images[$idlog]['nom_logiciel'] ."</span><BR>\n");
 		print ("<B>Nom OS : </B> <span name='nom_os'>". $images[$idlog]['nom_os'] ."</span>n");
-		print "<BR>Les partitions associées : <BR><TABLE>";
+		print "<BR>Les partitions associï¿½es : <BR><TABLE>";
 		print ("<TR align='center'><TD>ID</TD><TD>nom</TD><TD>Taille</TD></TR>\n");
 
 
 			
-		//On crée une table de 5 lignes maxi (5 images de base devrait suffire)
+		//On crï¿½e une table de 5 lignes maxi (5 images de base devrait suffire)
 		$i=0;
 		$tot=0;
 		for ($i=0;$i<5;$i++)
@@ -313,7 +318,7 @@ switch ($type_tache)
 				$ididb = $images[$idlog][$i]['id_idb'];
 				$nom_idb = $images[$idlog][$i]['nom_idb'];
 				$taille = $images[$idlog][$i]['taille'];
-				#en plus de l'affichage, on calcule la taille totale utilisée par l'image de base
+				#en plus de l'affichage, on calcule la taille totale utilisï¿½e par l'image de base
 				$ttot= split(' ',$taille);
 				if ($ttot[1] == 'GB') $tot+=intval($ttot[0]);
 				if ($ttot[1] == 'MB') $tot+=round(intval($ttot[0]) / 1024,2);
@@ -322,7 +327,7 @@ switch ($type_tache)
 		}
 		print "</TABLE></P>\n";
 		print "<BR><B>Taille totale :</B> $tot";
-		print ("<BR>Les postes sopnt connectés à : ");
+		print ("<BR>Les postes sopnt connectï¿½s ï¿½ : ");
 		print("<SELECT name='link_speed'><OPTION value='100'");
 		if ($link_speed == "100") print " selected ";
 		print ">100mb/s</OPTION><OPTION value='1000'";
@@ -334,6 +339,10 @@ switch ($type_tache)
 			$cbjoinval='';
 			
 		print ("<INPUT Type='checkbox' Name='cb_join' Value ='JoinDom' $cbjoinval />Jointure au domaine<BR>\n");
+		
+		$usenfs='';
+		if ($use_nfs) $usenfs='Checked';
+		print ("<INPUT Type='checkbox' Name='use_nfs' Value ='UseNfs' $usenfs />Utiliser NFS<BR>\n");
 
 		print "<input type='submit' value='Valider'>\n";
 		 
@@ -382,7 +391,7 @@ switch ($type_tache)
 		  $result = mysql_query($request);
 		  
 		  print("<TABLE>");
-		  print("<TR><TD></TD><TD ALIGN=\"center\"  BGCOLOR=\"#CC00AA\"><b>Sélection</b></TD><TD ALIGN=\"center\" BGCOLOR=\"#CC00AA\"><b>Nom DNS</b></TD><TD ALIGN=\"center\"  BGCOLOR=\"#CC00AA\"><b>Taille disque 0</b></TD><TD ALIGN=\"left\"  BGCOLOR=\"#CC00AA\"><b>Status</b></TD></TR>\n");
+		  print("<TR><TD></TD><TD ALIGN=\"center\"  BGCOLOR=\"#CC00AA\"><b>Sï¿½lection</b></TD><TD ALIGN=\"center\" BGCOLOR=\"#CC00AA\"><b>Nom DNS</b></TD><TD ALIGN=\"center\"  BGCOLOR=\"#CC00AA\"><b>Taille disque 0</b></TD><TD ALIGN=\"left\"  BGCOLOR=\"#CC00AA\"><b>Status</b></TD></TR>\n");
 			$indice=0;
 			$i=0;
 			if ($nom_groupe!="") {
@@ -398,6 +407,7 @@ switch ($type_tache)
 			print("<INPUT TYPE=\"hidden\" NAME=\"nb_check\" VALUE=\"$indice\">\n");
 			print("<INPUT TYPE=\"hidden\" NAME=\"photo\" VALUE=\"$photo\">\n");
 			print("<INPUT TYPE=\"hidden\" NAME=\"link_speed\" VALUE=\"$link_speed\">\n");
+			print("<INPUT TYPE=\"hidden\" NAME=\"use_nfs\" VALUE=\"$use_nfs\">\n");
 			print("<INPUT TYPE=\"hidden\" NAME=\"joindom\" VALUE=\"$cb_join\">\n");
 			print("<BR>");
 			print("<TABLE><TR>\n");
@@ -410,7 +420,7 @@ switch ($type_tache)
 			print("</TR></TABLE>\n");
 			print("</FORM>\n</CENTER>\n");
 		}
-		else print("<P><CENTER>La sélection est vide.</CENTER></P>\n");
+		else print("<P><CENTER>La sï¿½lection est vide.</CENTER></P>\n");
 		break;
 		
 	case 2:
