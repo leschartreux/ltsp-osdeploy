@@ -250,7 +250,7 @@ mysql_free_result($result);
 print("<CENTER><H1>Lancement de t�che -<u>".$enr['desc']."</u>- Etape 1</H1></CENTER>\n");
 
 #On stocke les partitions li�es aux images de base
-$request = "SELECT * FROM logiciels,images_de_base idb WHERE id_logiciel=id_os order by id_logiciel,id_idb";
+$request = "SELECT * FROM logiciels,images_de_base idb WHERE id_logiciel=id_os order by nom_logiciel,id_logiciel,id_idb";
 $result = mysql_query($request);
 $images = array();
 $idlog_cur = 0;
