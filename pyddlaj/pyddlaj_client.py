@@ -124,16 +124,18 @@ def modified(clone_type="fsa"):
         if len(disklist) > 0:
             lbaseimg = jdb.getIdbToInstall(myhost.dns)
             
-            task_id = jdb.getTask(myhost.dns)
-            if task_id == None:
+            curTask = jdb.getTask(myhost.dns,False)
+            if curTask == None:
                 print _("No task for this host, switching to installed state")
                 return installed()
             
-            
+            task_id = curTask['tid']
+            use_nfs = curTask['utilise_nfs']
             #print "Les images de bases : ", lbaseimg
             print _("Task ID "), task_id
             okTask = True
-            if task_id > 0:
+                
+            if task_id > 0 and use_nfs == 0:
                 Nt = pyddlaj.nettask.NetTask()
                 Nt.send(task_id, myhost.dns)
                 
@@ -159,15 +161,19 @@ def modified(clone_type="fsa"):
                 dstpart = img['dev_path'] + str(img['num_part'])
                 
                 print "img : " , img
-                #cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
-                cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
                 
-                    
-                """cmd = ["/usr/bin/udp-receiver","--pipe" , settings.CACHE_MOUNT + "/" +os.path.basename(img['imgfile']),
-                       "--mcast-rdv-address" , settings.TFTP_SERVER, "--nokbd", "--ttl" , str(task_id+5)]"""
-                #print "cmd = ",cmd       
-                print _("Wait 5s then launch udp-reciever")
-                time.sleep(5)
+                if use_nfs == 1:
+                    print _("Restoring partition using NFS")
+                    cmd = "/usr/bin/pigz -d -c %s | /usr/sbin/partclone.%s -r -o %s" % (settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz",img['fs_type'],dstpart)
+                else:
+                    #cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
+                    cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
+                    '''cmd = ["/usr/bin/udp-receiver","--pipe" , settings.CACHE_MOUNT + "/" +os.path.basename(img['imgfile']),
+                    "--mcast-rdv-address" , settings.TFTP_SERVER, "--nokbd", "--ttl" , str(task_id+5)]'''
+                    #print "cmd = ",cmd       
+                    print _("Wait 5s then launch udp-reciever")
+                    time.sleep(5)
+                
                 result = call(cmd,shell=True)
                 if result == 0: #on success we dump MBR
                     if current_device != img['dev_path']:

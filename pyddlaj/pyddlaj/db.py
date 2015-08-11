@@ -586,7 +586,7 @@ class jeddlajdb:
         """
         cur = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
         #
-        sql = "SELECT t.id_tache as tid,type_tache,dte_deb,dte_fin,nb_ok,nb_ko,speed,faire_jointure from tache t,tache_est_assignee_a ta WHERE ta.id_tache=t.id_tache AND dte_fin is null AND nom_dns=" + self.valsql(dns)
+        sql = "SELECT t.id_tache as tid,type_tache,dte_deb,dte_fin,nb_ok,nb_ko,speed,faire_jointure,utilise_nfs from tache t,tache_est_assignee_a ta WHERE ta.id_tache=t.id_tache AND dte_fin is null AND nom_dns=" + self.valsql(dns)
         cur.execute(sql)
         row = cur.fetchone()
         #print "row = " , row
