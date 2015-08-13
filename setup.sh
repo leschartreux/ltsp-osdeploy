@@ -47,10 +47,12 @@ pip install reparted
 
 echo "--------------------------------------------------"
 echo "installing LTSP pyddlaj client builder"
-mkdir /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy
-cp /usr/share/ltsp/plugins/ltsp-build-client/Debian/* /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy/
-cp -R ltsp-build-client/Debian-osdeploy /usr/share/ltsp/plugins/ltsp-build-client/
-echo "--------------------------------------------------"/srv/tftp/ltsp/i386-osdeploy
+if [ ! -d /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy ]; then
+	mkdir /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy
+fi
+cp -f /usr/share/ltsp/plugins/ltsp-build-client/Debian/* /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy/
+cp -R -f ltsp-build-client/Debian-osdeploy /usr/share/ltsp/plugins/ltsp-build-client/
+echo "--------------------------------------------------"
 
 echo "Adding default Env to build LTSP client (see /etc/ltsp/ltsp-build-client.conf)"
 if [ -f /etc/ltsp/ltsp-build-client.conf ]; then
@@ -100,7 +102,6 @@ echo "---------------------------------------------------"
 echo "Now installing pyddlaj script"
 chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
 chroot $ROOT_OSDEPLOY pip install reparted
-
 
 
 echo "Deploying lts.conf on tftp server"
