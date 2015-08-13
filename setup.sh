@@ -47,9 +47,11 @@ pip install reparted
 
 echo "--------------------------------------------------"
 echo "installing LTSP pyddlaj client builder"
-if [ ! -d /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy ]; then
-	mkdir /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy
+if [ -d /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy ]; then
+	rm -rf /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy
+
 fi
+mkdir /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy
 cp -f /usr/share/ltsp/plugins/ltsp-build-client/Debian/* /usr/share/ltsp/plugins/ltsp-build-client/Debian-osdeploy/
 cp -R -f ltsp-build-client/Debian-osdeploy /usr/share/ltsp/plugins/ltsp-build-client/
 echo "--------------------------------------------------"
