@@ -21,7 +21,11 @@ OSDIR="i386-osdeploy-j"
 ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
 
+echo "generating ssh"
 chroot $ROOT_OSDEPLOY ssh-keygen
+echo "copy priv key"
 cp $ROOT_OSDEPLOY/root/.ssh/id_rsa $ROOT_OSDEPLOY/usr/share/pyddlaj/conf/privkey
-chmod 700    $ROOT_OSDEPLOY/usr/share/pyddlaj/conf/privkey
-cat $ROOT_OSDEPLOY/root/.ssh/id_rsa >> /root/.ssh/authorized_keys
+chmod 600 $ROOT_OSDEPLOY/usr/share/pyddlaj/conf/privkey
+echo "add pub key to authorizzed_hosts"
+cat $ROOT_OSDEPLOY/root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+echo "Done !"
