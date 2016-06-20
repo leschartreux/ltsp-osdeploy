@@ -71,7 +71,7 @@ def handle_client(sock):
                 mcast_addr = "239.%s.%s.%s" % (settings.TFTP_SERVER.split('.')[1],settings.TFTP_SERVER.split('.')[2],settings.TFTP_SERVER.split('.')[3])
                 cmd+= ["--mcast-data-address" ,mcast_addr]
                 cmd+=["--min-receivers",str(clinumber)]
-                #cmd+=["--nokbd"]
+                cmd+=["--nokbd"]
                 cmd+=["--max-wait","900"]
                 cmd+=["--full-duplex"]
                 cmd+=["--max-bitrate", str(speed) + "m"]
