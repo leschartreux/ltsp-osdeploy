@@ -149,6 +149,10 @@ def modified(clone_type="fsa"):
             
             current_device=""
             for img in lbaseimg:
+                if img['fs_type'] in 'swap':
+                    print("Swap partition type. Skipping...")
+                    continue
+		
                 src_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
                 
                 if current_device != img['dev_path']: 
@@ -164,7 +168,7 @@ def modified(clone_type="fsa"):
                 
                 if use_nfs == 1:
                     print _("Restoring partition using NFS")
-                    cmd = "/usr/bin/pigz -d -c %s | /usr/sbin/partclone.%s -r -o %s" % (settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz",img['fs_type'],dstpart)
+                    cmd = "echo /usr/bin/pigz -d -c %s | /usr/sbin/partclone.%s -r -o %s" % (settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz",img['fs_type'],dstpart)
                 else:
                     #cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
                     cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
