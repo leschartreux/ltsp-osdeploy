@@ -169,7 +169,7 @@ def modified(clone_type="fsa"):
                 if use_nfs == 1:
                     print _("Restoring partition using NFS")
 		    speed = curTask['speed']/10
-                    cmd = "pv -L%s %s | /usr/bin/pigz -d  | /usr/sbin/partclone.%s -r -o %s" % (speed+'m', settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz", img['fs_type'],dstpart)
+                    cmd = "pv -L%s %s | /usr/bin/pigz -d  | /usr/sbin/partclone.%s -r -o %s" % (str(speed)+'m', settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz", img['fs_type'],dstpart)
                 else:
                     #cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
                     cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
