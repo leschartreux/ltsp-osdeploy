@@ -4,9 +4,18 @@ Created on 30 juin 2014
 @author: rignier
 '''
 import os
-from subprocess import call
+import subprocess
+#from subprocess import call
+import fstab
+import shutil
+import StringIO
 import settings
+
+
 from flufl.i18n import initialize
+from fstab import Fstab
+
+
 _ = initialize('pyddlaj_client')
 
 class LinuxHost(object):
@@ -28,7 +37,7 @@ class LinuxHost(object):
         self.dev_path=dev_path
     
     
-    def rename(self,new_name):
+    def rename(self,new_name,domain='leschartreux.com'):
         """
         rename Host with
         @param new_name: name of new host 
@@ -41,6 +50,20 @@ class LinuxHost(object):
         fh = open(settings.FS_MOUNT + self.hostname_file,'w')
         fh.write(new_name)
         fh.close()
+        
+        #update /etc/hosts
+        shutil.copy_file(settings.FSS_MOUNT + '/etc/hosts',settings.FSS_MOUNT + '/etc/hosts.old')
+        fh = open(settings.FSS_MOUNT + '/etc/hosts.old','r')
+        fhn = open(settings.FSS_MOUNT + '/etc/hosts','w')
+        for l in fh:
+            if str(l).startswith('127.0.1.1'):
+                fhn.write("127.0.1.1\t%s\t%s\n" % (new_name, newname +"." . domain))
+            else:
+                fhn.write(l)
+        
+        fh.close()
+        fhn.close()
+        
     
     def cleanUdev(self):
         """
@@ -55,4 +78,30 @@ class LinuxHost(object):
         """
         Reinstall grub on disk mbr
         """
-        call(['/usr/sbin/grub-install','--boot-directory='+settings.FS_MOUNT+'/boot','--dir='+settings.FS_MOUNT+'/usr/lib/grub/i386-pc', self.dev_path[:-1]]);
+        
+        print "\n#####################################\n"
+        print "prepare Boot OS\n"
+        
+        #extract UUID string
+        output = subprocess.Popen("/sbin/blkid | grep swap",shell=True,stdout=subprocess.PIPE)
+        swaps = output.stdout.read()
+        uuid = swaps.split(' ')[1].replace('\"','')
+        
+        
+        fst = fstab.Fstab
+        fst.read(settings.FS_MOUNT+'/etc/fstab','w')
+        for l in fstab.lines:
+            if l.fstype == 'swap':
+                l.device=uuid
+                
+        
+        fst.write(settings.FS_MOUNT+'/etc/fstab','w')
+                
+        
+        if os.path.exists(settings.FS_MOUNT+"/usr/sbin/burg-install"):
+            print _("\nBurg detected.")
+            cmd = "chroot %s /usr/sbin/burg-installl %s" % (settings.FS_MOUNT, self.dev_path[:-1])
+            call(cmd,shell=True)
+        else:
+            print _("\nReinstall grub")               
+            call(['/usr/sbin/grub-install','--boot-directory='+settings.FS_MOUNT+'/boot','--dir='+settings.FS_MOUNT+'/usr/lib/grub/i386-pc', self.dev_path[:-1]]);

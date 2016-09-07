@@ -45,6 +45,7 @@ import languages
 import pyddlaj.linux_host
 
 
+
 from subprocess import call #to launch shell cmds
 
 def installed():
@@ -149,8 +150,16 @@ def modified(clone_type="fsa"):
             
             current_device=""
             for img in lbaseimg:
+                #destination parition is generated here (/dev/sdax)
+                dstpart = img['dev_path'] + str(img['num_part'])
+                
                 if img['fs_type'] in 'swap':
-                    print("Swap partition type. Skipping...")
+                    print_("Swap partition type. Initiating...")
+                    cmd = "mkswap " + dstpart
+                    result = call(cmd,shell=True)
+                    if result != 0:
+                        okTask = False
+                    
                     continue
 		
                 src_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
@@ -162,14 +171,19 @@ def modified(clone_type="fsa"):
                     newdi = myhost.getdiskinfos()
                     jdb.updatePartitions(myhost.dns, newdi, img['num_disk'])
                     
-                dstpart = img['dev_path'] + str(img['num_part'])
+                
                 
                 print "img : " , img
                 
                 if use_nfs == 1:
                     print _("Restoring partition using NFS")
+<<<<<<< HEAD
 		    speed = curTask['speed']/10
                     cmd = "pv -L%s %s | /usr/bin/pigz -d  | /usr/sbin/partclone.%s -r -o %s" % (str(speed)+'m', settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz", img['fs_type'],dstpart)
+=======
+                    speed = curTask['speed']/10
+                    cmd = "pv -L%s %s | /usr/bin/pigz -d  | /usr/sbin/partclone.%s -r -o %s" % (speed+'m', settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz", img['fs_type'],dstpart)
+>>>>>>> 652a4455f8c47f2dbb7dde9d28b49310873257c6
                 else:
                     #cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
                     cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
