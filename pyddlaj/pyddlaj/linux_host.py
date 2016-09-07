@@ -5,7 +5,7 @@ Created on 30 juin 2014
 '''
 import os
 import subprocess
-#from subprocess import call
+from subprocess import call
 import fstab
 import shutil
 import StringIO

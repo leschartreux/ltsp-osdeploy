@@ -43,10 +43,9 @@ import os
 from flufl.i18n import initialize
 import languages
 import pyddlaj.linux_host
-
-
-
+import subprocess
 from subprocess import call #to launch shell cmds
+
 
 def installed():
     """Action to do when existing host is in installed state"""
