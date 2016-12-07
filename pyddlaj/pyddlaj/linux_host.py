@@ -37,7 +37,7 @@ class LinuxHost(object):
         self.dev_path=dev_path
     
     
-    def rename(self,new_name,domain='leschartreux.com'):
+    def rename(self,new_name):
         """
         rename Host with
         @param new_name: name of new host 
@@ -45,19 +45,22 @@ class LinuxHost(object):
         Depends on distrib but write it in /etc/hostname shoud be enough
         """
         if "." in new_name:
-            new_name = new_name.split('.')[0]
+           short_name = new_name.split('.')[0]
             
+        print _("Update hostname file")
+
         fh = open(settings.FS_MOUNT + self.hostname_file,'w')
-        fh.write(new_name)
+        fh.write(short_name)
         fh.close()
         
+        print _("update hosts file")
         #update /etc/hosts
-        shutil.copy_file(settings.FSS_MOUNT + '/etc/hosts',settings.FSS_MOUNT + '/etc/hosts.old')
-        fh = open(settings.FSS_MOUNT + '/etc/hosts.old','r')
-        fhn = open(settings.FSS_MOUNT + '/etc/hosts','w')
+        shutil.copyfile(settings.FS_MOUNT + '/etc/hosts',settings.FS_MOUNT + '/etc/hosts.old')
+        fh = open(settings.FS_MOUNT + '/etc/hosts.old','r')
+        fhn = open(settings.FS_MOUNT + '/etc/hosts','w')
         for l in fh:
             if str(l).startswith('127.0.1.1'):
-                fhn.write("127.0.1.1\t%s\t%s\n" % (new_name, newname +"." . domain))
+                fhn.write("127.0.1.1\t%s\t%s\n" % (short_name, new_name ))
             else:
                 fhn.write(l)
         
@@ -86,22 +89,24 @@ class LinuxHost(object):
         output = subprocess.Popen("/sbin/blkid | grep swap",shell=True,stdout=subprocess.PIPE)
         swaps = output.stdout.read()
         uuid = swaps.split(' ')[1].replace('\"','')
+
+	print _("detect swap partition with UUID" + uuid)
         
         
-        fst = fstab.Fstab
-        fst.read(settings.FS_MOUNT+'/etc/fstab','w')
-        for l in fstab.lines:
+	print _("update fstab  file")
+        fst = fstab.Fstab()
+        fst.read(settings.FS_MOUNT+'/etc/fstab')
+        for l in fst.lines:
             if l.fstype == 'swap':
                 l.device=uuid
                 
         
-        fst.write(settings.FS_MOUNT+'/etc/fstab','w')
-                
-        
-        if os.path.exists(settings.FS_MOUNT+"/usr/sbin/burg-install"):
+        fst.write(settings.FS_MOUNT+'/etc/fstab')
+        """ 
             print _("\nBurg detected.")
-            cmd = "chroot %s /usr/sbin/burg-installl %s" % (settings.FS_MOUNT, self.dev_path[:-1])
+            cmd = "chroot %s /usr/sbin/burg-install %s" % (settings.FS_MOUNT, self.dev_path[:-1])
             call(cmd,shell=True)
         else:
-            print _("\nReinstall grub")               
-            call(['/usr/sbin/grub-install','--boot-directory='+settings.FS_MOUNT+'/boot','--dir='+settings.FS_MOUNT+'/usr/lib/grub/i386-pc', self.dev_path[:-1]]);
+        """
+        print _("\nReinstall grub")               
+        call(['/usr/sbin/grub-install','--boot-directory='+settings.FS_MOUNT+'/boot','--dir='+settings.FS_MOUNT+'/usr/lib/grub/i386-pc', self.dev_path[:-1]]);

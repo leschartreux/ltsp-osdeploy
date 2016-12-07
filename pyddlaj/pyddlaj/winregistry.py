@@ -99,6 +99,8 @@ class WinRegistry(object):
             join_bat+="nbtstat -R\r\n"
             join_bat+="echo Modification du Registre...\r\n"
             join_bat+="reg add \"HKLM\\System\\Setup\" /v SystemSetupInProgress /t REG_DWORD /d 00000000 /f\r\n"
+            join_bat+="reg add \"HKLM\\System\\Setup\" /v SetupType /t REG_DWORD /d 00000000 /f\r\n"
+            join_bat+="reg add \"HKLM\\System\\Setup\" /v CmdLine /t REG_SZ /d \"\" /f\r\n"
             join_bat+=("C:\\Windows\\System32\\cscript.exe C:\\joindom\\" + cmd + "\r\n")
 #            join_bat+="echo Modification du Registre...\r\n"
 #            join_bat+="reg add \"HKLM\\System\\Setup\" /v SystemSetupInProgress /t REG_DWORD /d 00000001 /f\r\n"
@@ -108,7 +110,8 @@ class WinRegistry(object):
         #f.write("Call C:\\Windows\\System32\\cmd.exe") # interactive cmd thi is for debug
         #f.write("pause\r\n")
         f.write("DEL " + cmd + "\r\n") #self suppress of file to hide join passwords
-        f.write("suthdown -r\r\n")
+        if ('vbs' in cmd):
+            f.write("suthdown -r\r\n")
         f.close()
         shutil.copyfile('/tmp/launch.cmd',self._joindir + "/launch.cmd")
         
@@ -136,7 +139,7 @@ class WinRegistry(object):
         #Next push cmd to launch in System Setup
         regfile = RegFile('/tmp/regfilesys.reg',overwrite=True)
         regfile.addKey("HKEY_LOCAL_MACHINE\\SYSTEM\\Setup")
-        regfile.addValue("SetupType","dword:00000004")
+        regfile.addValue("SetupType","dword:00000001")
         regfile.addValue("SystemSetupInProgress","dword:00000001")
         regfile.addValue("CmdLine","\"cmd.exe /c C:\\\\joindom\\\\launch.cmd\"")
         regfile.close()
@@ -180,7 +183,7 @@ class WinRegistry(object):
             return type_os.lower() in NTsys
         
     def isNT6System(self,type_os):
-            NT6sys = ['windowsvista','windowsvista_x64','windows2008','windows2008_x64','windows7','windows7_x64','window8','windows8_x64']
+            NT6sys = ['windowsvista','windowsvista_x64','windows2008','windows2008_x64','windows7','windows7_x64','windows8','windows8_x64','windows10','windows10_x64']
             return type_os.lower() in NT6sys
         
     

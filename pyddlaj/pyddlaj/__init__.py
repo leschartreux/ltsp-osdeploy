@@ -18,7 +18,12 @@
 # Common functions in use with pyddlaj
 
 
+
 import readline
+from __builtin__ import False
+from flufl.i18n import initialize
+ 
+_= initialize('pyddlaj_client')
  
  
 def rlinput(prompt, prefill=''):
@@ -27,3 +32,19 @@ def rlinput(prompt, prefill=''):
         return raw_input(prompt)
     finally:
         readline.set_startup_hook()
+        
+
+def askYesNo(prompt):
+    answer = False
+    
+    while 1:
+        print _(prompt)
+        val = raw_input("Choice (Y/N) : ")
+        if val not in ['Y','N']:
+            print _("Bad Value")
+        else:
+            break
+    if val == "Y":
+        answer = True
+    
+    return answer

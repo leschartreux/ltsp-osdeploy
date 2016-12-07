@@ -15,6 +15,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with ltsp-osdeploy.  If not, see <http://www.gnu.org/licenses/>.
+from pyddlaj import askYesNo
  
 '''
 Created on 8 avr. 2014
@@ -43,7 +44,7 @@ import os
 from flufl.i18n import initialize
 import languages
 import pyddlaj.linux_host
-import subprocess
+#import subprocess
 from subprocess import call #to launch shell cmds
 
 
@@ -152,15 +153,15 @@ def modified(clone_type="fsa"):
                 #destination parition is generated here (/dev/sdax)
                 dstpart = img['dev_path'] + str(img['num_part'])
                 
-                if img['fs_type'] in 'swap':
-                    print_("Swap partition type. Initiating...")
+                if 'swap' in img['fs_type']:
+                    print _("Swap partition type. Initiating...")
                     cmd = "mkswap " + dstpart
                     result = call(cmd,shell=True)
                     if result != 0:
                         okTask = False
                     
                     continue
-		
+                
                 src_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
                 
                 if current_device != img['dev_path']: 
@@ -176,7 +177,7 @@ def modified(clone_type="fsa"):
                 
                 if use_nfs == 1:
                     print _("Restoring partition using NFS")
-		    speed = curTask['speed']/10
+                    speed = curTask['speed']/10
                     cmd = "pv -L%s %s | /usr/bin/pigz -d  | /usr/sbin/partclone.%s -r -o %s" % (str(speed)+'m', settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz", img['fs_type'],dstpart)
                 else:
                     #cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
@@ -187,6 +188,7 @@ def modified(clone_type="fsa"):
                     print _("Wait 5s then launch udp-reciever")
                     time.sleep(5)
                 
+                result=0
                 result = call(cmd,shell=True)
                 if result == 0: #on success we dump MBR
                     if current_device != img['dev_path']:
@@ -228,39 +230,47 @@ def create_idb():
         #store partition table
        
     lbaseimg = jdb.getIdbToInstall(myhost.dns)
+    print "*************************************"
     print _('Associated master images : '),lbaseimg
+    print "*************************************"
     
     #No base image is associated, we prompt for already exist or new one
     #Edit this should be always true to ask for things to do
-    if len(lbaseimg) == 0 or len(lbaseimg) > 0:
-        print _("can't find any associated master image for this computer. I'll ask for this")
-        
-        diskinfo = myhost.getdiskinfos()
-        while True:
-            print _("What do you want to do for this host ? ")
-            
-            print _("[2]: Associate existing distrib")
-            print _("[1]: Create new distrib")
-            print _("[3]: Exit create state and reboot")
-            val = raw_input(_("choix : "))
-            if not val.isdigit():
-                print _("Bad number, please try again")
-                continue
-            val = int(val)
-            if val < 0 or val > 2:
-                print _("Bad input, please try again")
-                continue
-            else:
-                break
-        if (val == 1):
-            jdb.newDists(myhost.dns, diskinfo)
-        elif (val ==0):
-            jdb.addDists(myhost.dns, diskinfo)
+    diskinfo = myhost.getdiskinfos()
+    while True:
+        print _("What do you want to do for this host ? ")
+        if len(lbaseimg) > 0:
+            print _("[0]: Delete existing distrib associations")         
+        print _("[1]: Associate existing distrib")
+        print _("[2]: Create new distrib")
+        print _("[3]: Clone affected distrib(s)")
+        print _("[4]: Exit create state and reboot")
+        val = raw_input(_("choix : "))
+        if not val.isdigit():
+            print _("Bad number, please try again")
+            continue
+        val = int(val)
+        if val < 0 or val > 4:
+            print _("Bad input, please try again")
+            continue
+        if (val == 0):
+            jdb.delDists(myhost.dns)
+            lbaseimg=[]
+            continue
         else:
-            jdb.setState(myhost.dns, "reboot")
-            reboot()
-        #after prompt, Update list of base image 
-        lbaseimg = jdb.getIdbToInstall(myhost.dns)
+            break
+
+    if (val == 2):
+        jdb.newDists(myhost.dns, diskinfo)
+    elif (val ==1):
+        jdb.addDists(myhost.dns, diskinfo)
+    elif (val == 3):
+        pass
+    else:
+        jdb.setState(myhost.dns, "reboot")
+        reboot()
+    #after prompt, Update list of base image 
+    lbaseimg = jdb.getIdbToInstall(myhost.dns)
        
     
     if not os.path.isdir(settings.IMG_NFS_MOUNT):
@@ -270,10 +280,17 @@ def create_idb():
         print _("Mounting NFS master images directory")
         #mount Images directory via NFS
         call(['/bin/mount',settings.IMG_SERVER+':'+settings.IMG_NFS_SHARE,settings.IMG_NFS_MOUNT])
-    
+
+    bunattended = False
     current_device=""
     for img in lbaseimg:
+        print ("*****************************************************")
+        print _("Current Image : "),img
         #prepare source dev and destination directories
+        if "swap" in img['fs_type']:
+            print "Ignoring Swap type partition"
+            continue
+
         dst_file = os.path.basename(img['imgfile'])
         src_dev =  img['dev_path'] + str(img['num_part'])
         dst_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
@@ -284,27 +301,43 @@ def create_idb():
         #with each new device we store partition table and MBR
         if current_device != img['dev_path']: 
             print _("Backup partition table")
-            cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
-            call ( cmd,shell=True)
-            print _("Backup MBR")
-            cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path']) + ".mbr")
-            call ( cmd,shell=True)
+            dupfile = dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup"
+            boverwrite=True
+            if os.path.exists(dupfile):
+                boverwrite = askYesNo(_("The MBR backup files already exists. Do you want to overwrite ?"))
+           
+            if boverwrite or bunattended:    
+                cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
+                call ( cmd,shell=True)
+                print _("Backup MBR")
+                cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path']) + ".mbr")
+                call ( cmd,shell=True)
+            
             current_device = img['dev_path']
 
         print _('Backup partition in progress')
         fs = img['fs_type'].lower()
         
-        cmd = "/usr/sbin/partclone." +fs +" -c -s " + src_dev + " | /usr/bin/pigz -c --fast > "+ dst_dir +"/" +dst_file + ".gz"
-        #print "commande : ", cmd
-        ret = call(cmd,shell=True)
-        #ret = 0
-        #On clone succes, we update db and restore localboot of the host
-        if ret == 0:
-            jdb.setState(myhost.dns, "reboot")
-            reboot()                
-        else:
-            print _("Something went wrong ! can't reboot")
-            return 1
+        boverwrite =True
+        partfile = dst_dir +"/" +dst_file + ".gz"
+        if os.path.exists(partfile) and not bunattended:
+            boverwrite = askYesNo("The partition backup already exists. Do you want to overwrite it ?")
+            bunattended = askYesNo("Would you like to clone all remaining partitions without ask ?")
+        if boverwrite or bunattended:
+            cmd = "/usr/sbin/partclone." +fs +" -c -s " + src_dev + " | /usr/bin/pigz -c --fast > "+ dst_dir +"/" +dst_file + ".gz"
+            #print "commande : ", cmd
+            ret = call(cmd,shell=True)
+            #ret = 0
+            #On clone succes, we update db and restore localboot of the host
+            if ret == 0:
+                jdb.setState(myhost.dns, "renomme")
+                rename()
+            else:
+                print _("Something went wrong ! can't reboot")
+                return 1
+
+        print ("*****************************************************")
+        
 
 def reboot():
     transfert.ssh.scplocalboot(myhost.mac)

@@ -18,10 +18,12 @@
 
 
 import mysql.connector
+from mysql.connector import errorcode
 #import host
 from pyddlaj import *
 from flufl.i18n import initialize
 import settings
+#import MySQLdb
 
 #import languages
 
@@ -215,6 +217,15 @@ class jeddlajdb:
         self._dbconnect.commit()
     
 
+    def delDists(self,dns):
+        """Delete All Distributions already associated to the host"""
+        cursor = self._dbconnect.cursor()
+        sql = "DELETE FROM idb_est_installe_sur where nom_dns=" + self.valsql(dns)
+        cursor.execute(sql)
+        self.dbconnect.commit()
+        
+        
+        
     def addDists(self,dns,diskinfo):
         """Ask about distribution to associate with the host"""
         sql = "Select DISTINCT id_logiciel,nom_logiciel from images_de_base idb,logiciels where idb.id_os=id_logiciel"
@@ -226,83 +237,110 @@ class jeddlajdb:
             idbs.append((row['id_logiciel'],row['nom_logiciel']))
             row=cursor.fetchone()
 
-        print _("Please choose the distrib : ")
         while True:
-            num=1
-            for idb in idbs:
-                print "[%d]: %s" % (num,idb[1])
-                num+=1
-                
-            val = raw_input("Choice : ")
-            if not val.isdigit():
-                print _("Bad Number")
-                continue
-            val = int(val)
-            if val < 1 or val > num:
-                print _("Number not in range")
-                continue
-            break
-        #row=cursor.fetchall()
-        
-        print "idbs : " , idbs     
-        print "cursorclass", cursor.__class__
-        id_os = idbs[val-1][0]
-        sql = "Select * from images_de_base where id_os= " + str(id_os)            
-        cursor.execute(sql)
-        row = cursor.fetchone()
-        while row:
-            for disk in diskinfo:
-                disk_num = diskinfo[disk]['num']
-                print "***********************"
-                print _("Disk num ") + str(disk_num)
-                print "***********************"
-                while True:
+            print _("Please choose the distrib : ")
+            while True:
+                num=1
+                for idb in idbs:
+                    print "[%d]: %s" % (num,idb[1])
+                    num+=1
+                    
+                val = raw_input("Choice : ")
+                if not val.isdigit():
+                    print _("Bad Number")
+                    continue
+                val = int(val)
+                if val < 1 or val > num:
+                    print _("Number not in range")
+                    continue
+                break
+            #row=cursor.fetchall()
+            
+            #print "idbs : " , idbs     
+            print "cursorclass", cursor.__class__
+            id_os = idbs[val-1][0]
+            sql = "Select * from images_de_base where id_os= " + str(id_os)            
+            cursor.execute(sql)
+            row = cursor.fetchone()
+            tval_selected=[] #Store values already selected 
+            while row:
+                for disk in diskinfo:
+                    disk_num = diskinfo[disk]['num']
+                    print "***********************"
+                    print _("Disk num ") + str(disk_num)
+                    print "***********************"
+                    print "diskinfo : ",diskinfo
+                    tval = [] #store possible values in list
+    
                     print _("List of available partitions")
                     num=1
-                    tval = [] #store possible values in list
                     if 'PPartitions' in diskinfo[disk].keys():
                         
                         for part in diskinfo[disk]['PPartitions']:
                             num = int(part['num'])
-                            print "[%d] : Number:%d, size: %s" % (num,part['num'],part['size'])
-                            tval.append(num)
+                            desc= ( "[%d] : Number:%d, size: %s" % (num,part['num'],part['size']))
+                            tval.append((num, desc))
                             #num+=1
                     if 'EPartitions' in diskinfo[disk].keys():
                         for part in diskinfo[disk]['EPartitions']:
                             num = int(part['num'])
-                            print "[%d] : [Logical] Number:%d, size: %s" % (num+10,part['num'],part['size'])
-                            tval.append(num+10)
+                            desc=( "[%d] : [Logical] Number:%d, size: %s" % (num+10,part['num'],part['size']))
+                            tval.append((num+10,desc))
                             #num+=1
-                    val = raw_input("Choice for image " + row['nom_idb'] + " of size " + row['taille'] + " : ")
-                    if not val.isdigit():
-                        print _("Bad number")
-                        continue
-                    val = int(val)
-                    if not val in tval:
-                        print _("Number not in range")
-                        continue
-                    break
-                #Logical partitions are numbered above 10 so we could select corrsponding array
-                sql = "Insert into idb_est_installe_sur (id_idb,nom_dns,num_disque,num_partition,etat_idb,idb_active) VALUES("
-                sql += str(row['id_idb']) + ","
-                sql += self.valsql(dns) + ","
-                sql += str(disk_num) + ","
-                if ( val >4):
-                    sql += str(diskinfo[disk]['EPartitions'][val-5]['num']) + ","
-                else:
-                    sql += str(diskinfo[disk]['PPartitions'][val-1]['num']) + ","
-                sql +="'installe','oui')"
-                
-                print "verif sql" , sql
-#                r= self._cursor.fetchall()
-                self._dbconnect.commit();
-                self._cursor.execute(sql)
-                if val<=4:
-                    del  diskinfo[disk]['PPartitions'][val-1]
-                else:
-                    del  diskinfo[disk]['EPartitions'][val-5]
-                #next possible base image for the distrib
-                row = cursor.fetchone()
+        
+                    while True:
+                        for v in tval:
+                            if v[0] not in tval_selected:
+                                print v[1]
+                        print     
+                        val = raw_input("Choice for image " + row['nom_idb'] + " of size " + row['taille'] + " : ")
+                        if not val.isdigit():
+                            print _("Bad number")
+                            continue
+                        val = int(val)
+                        if not val in [ vv[0] for vv in tval ]: #Python hint to get list of possible values to enter
+                            print _("Number not in range")
+                            continue
+                        break
+                    
+                    #Logical partitions are numbered above 10 so we could select corresponding array
+                    sql = "Insert into idb_est_installe_sur (id_idb,nom_dns,num_disque,num_partition,etat_idb,idb_active) VALUES("
+                    sql += str(row['id_idb']) + ","
+                    sql += self.valsql(dns) + ","
+                    sql += str(disk_num) + ","
+                    if ( val >=10):
+                        sql += str(diskinfo[disk]['EPartitions'][val-15]['num']) + ","
+                    else:
+                        sql += str(diskinfo[disk]['PPartitions'][val-1]['num']) + ","
+                    sql +="'installe','oui')"
+                    
+                    print "verif sql" , sql
+    #                r= self._cursor.fetchall()
+                    try:
+                        self._dbconnect.commit()
+                        self._cursor.execute(sql)
+                    except mysql.connector.Error as e:
+                        if e.errno == errorcode.ER_DUP_ENTRY:
+                            print "This dist already exists for this hosts, ignoring"
+                        else:
+                            print "Error [%d] : %s" % (e.args[0],e.args[1])
+                            raise
+                    print "Fin exception"
+    
+                    tval_selected.append(val)
+                    #if val<=4:
+    
+                    #    del  diskinfo[disk]['PPartitions'][val-1]
+                    #else:
+                    #    tval_selected.append(val-15)
+                    #    del  diskinfo[disk]['EPartitions'][val-15]
+                    #next possible base image for the distrib
+                    row = cursor.fetchone()
+            
+            c = askYesNo(_("Do you want to add another Distribution ?"))
+            if not c:
+                break
+            
         cursor.close()
         print _("OK, Insert finished. I will now save the images.")
                     
@@ -572,7 +610,7 @@ class jeddlajdb:
             
     
     def deldisks(self,dns):
-        '''Remove all disk records in theb of the specified host'''
+        '''Remove all disk records of the specified host'''
         cursor = self._dbconnect.cursor()
         sql = "delete from partitions where nom_dns=" + self.valsql(dns)
         cursor.execute(sql)
@@ -626,8 +664,11 @@ class jeddlajdb:
         @param tid: Task ID
         @param dns: hostname"""
         
+        sql = "DELETE from tache_est_assignee_a where nom_dns=" + self.valsql(dns)
+        self._cursor.execute(sql)
         sql = "INSERT into tache_est_assignee_a values (" + str(tid) + "," + self.valsql(dns) + ")"
         self._cursor.execute(sql)
+        self._dbconnect.commit()
         pass
   
         
