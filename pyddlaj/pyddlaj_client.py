@@ -327,16 +327,19 @@ def create_idb():
             cmd = "/usr/sbin/partclone." +fs +" -c -s " + src_dev + " | /usr/bin/pigz -c --fast > "+ dst_dir +"/" +dst_file + ".gz"
             #print "commande : ", cmd
             ret = call(cmd,shell=True)
-            #ret = 0
-            #On clone succes, we update db and restore localboot of the host
-            if ret == 0:
-                jdb.setState(myhost.dns, "renomme")
-                rename()
-            else:
+            if ret != 0:
                 print _("Something went wrong ! can't reboot")
                 return 1
 
-        print ("*****************************************************")
+            #On clone succes, we update db and restore localboot of the host
+    if ret == 0:
+        jdb.setState(myhost.dns, "reboot")
+        reboot()
+    else:
+        print _("Something went wrong ! can't reboot")
+        return 1
+
+    print ("*****************************************************")
         
 
 def reboot():
