@@ -174,14 +174,18 @@ def modified(clone_type="fsa"):
                 
                 
                 print "img : " , img
+                fstype = img['fs_type'].lower()
+                #Use dd for unsuported fs type
+                if "unused" in fstype:
+                    fstype = "dd"
                 
                 if use_nfs == 1:
                     print _("Restoring partition using NFS")
                     speed = curTask['speed']/10
-                    cmd = "pv -L%s %s | /usr/bin/pigz -d  | /usr/sbin/partclone.%s -r -o %s" % (str(speed)+'m', settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz", img['fs_type'],dstpart)
+                    cmd = "pv -L%s %s | /usr/bin/pigz -d  | /usr/sbin/partclone.%s -r -o %s" % (str(speed)+'m', settings.IMG_NFS_MOUNT+"/" +  img['imgfile'] + ".gz", fstype,dstpart)
                 else:
                     #cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --nokbd --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s --ncurses -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
-                    cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s -r -o %s" % (settings.TFTP_SERVER,img['fs_type'],dstpart)
+                    cmd = "/usr/bin/udp-receiver --mcast-rdv-address %s --start-timeout 900 --ttl 32 --exit-wait 2000 | /usr/bin/pigz -d -c | /usr/sbin/partclone.%s -r -o %s" % (settings.TFTP_SERVER,fstype,dstpart)
                     '''cmd = ["/usr/bin/udp-receiver","--pipe" , settings.CACHE_MOUNT + "/" +os.path.basename(img['imgfile']),
                     "--mcast-rdv-address" , settings.TFTP_SERVER, "--nokbd", "--ttl" , str(task_id+5)]'''
                     #print "cmd = ",cmd       
@@ -316,7 +320,12 @@ def create_idb():
             current_device = img['dev_path']
 
         print _('Backup partition in progress')
-        fs = img['fs_type'].lower()
+        if 'unused' in img['fs_type'].lower():
+            print _('FS is unknowned type. (MSR?) We will use dd')
+            fs = "dd"
+        else:
+            fs = img['fs_type'].lower()
+        
         
         boverwrite =True
         partfile = dst_dir +"/" +dst_file + ".gz"
