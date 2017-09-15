@@ -17,7 +17,9 @@
  
  
 #This will setup pyddlaj server on a new fresh host
-OSDIR="i386-osdeploy-j"
+if [ -z $OSDIR ]; then
+	OSDIR="i386-osdeploy-j"
+fi
 ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
 if [ -d $ROOT_OSDEPLOY ]; then
@@ -88,7 +90,9 @@ cp ltsp-build-client/pyddlaj $ROOT_OSDEPLOY/usr/share/ltsp/screen.d/pyddlaj
 
 echo "--------------------------------------------------"
 echo "linking pyddlajd daemon"
-ln -s /usr/share/pyddlaj/pyddlajd.py /usr/sbin/pyddlajd
+if [ ! -f /usr/sbin/pyddlajd ]; then
+	ln -s /usr/share/pyddlaj/pyddlajd.py /usr/sbin/pyddlajd
+fi
 echo "--------------------------------------------------"
 echo "Creating default Config file"
 mkdir -p /etc/pyddlaj
@@ -99,7 +103,7 @@ ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
 echo "---------------------------------------------------"
 echo Installing nfs client and grub installer
-chroot $ROOT_OSDEPLOY apt-get install nfs-common grub2-common
+chroot $ROOT_OSDEPLOY apt-get install nfs-common grub2-common gfdisk
 echo "---------------------------------------------------"
 echo "Now installing pyddlaj script"
 chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
