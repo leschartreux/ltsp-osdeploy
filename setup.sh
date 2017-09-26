@@ -42,10 +42,10 @@ if [ -d $ROOT_OSDEPLOY ]; then
 	echo "ltsp-client chroot $ROOT_OSDEPLOY already exists"
 	read -p "Are you sure you want to destroy it (Y=Yes,C=Continue) ? " -n 1 -r
 	echo    # (optional) move to a new line
-	if [ ! $REPLY =~ ^[YyCc]$ ]
+	if [[ ! $REPLY =~ ^[YyCc]$ ]]
 	then
 	    exit 1
-	elif [ $REPLY =~ ^[Yy]$ ]
+	elif [[ $REPLY =~ ^[Yy]$ ]]
 		echo OK removing existing client
 		rm -rf $ROOT_OSDEPLOY
 	fi
