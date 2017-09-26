@@ -124,10 +124,11 @@ class jeddlajdb:
         
         meminfo = host.meminfo()
     
-        sql = "insert into ordinateurs(nom_dns,adresse_ip,adresse_mac,processeur,nombre_proc,marque,modele,numero_serie,ram,affiliation_windows,nom_affiliation) values("
+        sql = "insert into ordinateurs(nom_dns,adresse_ip,adresse_mac,processeur,nombre_proc,marque,modele,numero_serie,ram,affiliation_windows,nom_affiliation,efi) values("
         sql += self.valsql(host.dns) + "," + self.valsql(host.ip) + "," + self.valsql(host.mac) + "," + self.valsql(host.proc) + "," + str(host.nbcpu)
         sql += "," + self.valsql(host.manuf) + "," + self.valsql(host.model) +","+ self.valsql(host.serial)+ "," + meminfo['MemTotal'].replace(" kB","")
         sql += ",'domain'," + self.valsql(settings.AD_DOMAIN)
+        sql += ","+host.isEFI()
         sql += ")"
         #print "SQL req = ", sql
         cursor = self._dbconnect.cursor()

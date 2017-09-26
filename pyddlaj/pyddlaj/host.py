@@ -347,6 +347,17 @@ class host:
                         break
         
         return bootflag
+    
+    
+    
+    """
+    test if host is EFI
+    @return: int 
+    """   
+    def isEFI(self):
+        if os.path.exists("/sys/firmware/efi"):
+            return 1
+        return 0
 
     def _size(self, device):
         nr_sectors = open(device + '/size').read().rstrip('\n')

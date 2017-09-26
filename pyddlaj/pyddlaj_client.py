@@ -444,6 +444,8 @@ if __name__ == '__main__':
             print _("Inserting Host with mac-adress as hostname. This should be change with Web GUI")
             myhost.dns = myhost.mac.replace(':','-') + '.' + settings.AD_DOMAIN
             
+            myhost.dns = input (_("Actual name is : %s. Please, specify computer name : " ))
+            
             jdb.newhost(myhost)
             if myhost.isBootable():
                 print "The system seems bootable I Copy local boot PXE File"
