@@ -24,14 +24,15 @@ ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
 if [ -d $ROOT_OSDEPLOY ]; then
 	echo "ltsp-client chroot $ROOT_OSDEPLOY already exists"
-	read -p "Are you sure you want to destroy it ? " -n 1 -r
+	read -p "Are you sure you want to destroy it (Y=Yes,C=Continue) ? " -n 1 -r
 	echo    # (optional) move to a new line
-	if [[ ! $REPLY =~ ^[Yy]$ ]]
+	if [ ! $REPLY =~ ^[YyCc]$ ]
 	then
 	    exit 1
+	elif [ $REPLY =~ ^[Yy]$ ]
+		echo OK removing existing client
+		rm -rf $ROOT_OSDEPLOY
 	fi
-	echo OK removing existing client
-	rm -rf $ROOT_OSDEPLOY
 fi
 
 echo "--------------------------------------------------"
@@ -103,12 +104,12 @@ ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
 echo "---------------------------------------------------"
 echo Installing nfs client and grub installer
-chroot $ROOT_OSDEPLOY apt-get install nfs-common grub2-common gfdisk
+chroot $ROOT_OSDEPLOY apt-get install nfs-common grub2-common gdisk
 echo "---------------------------------------------------"
 echo "Now installing pyddlaj script"
 chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
 chroot $ROOT_OSDEPLOY pip install reparted
-
+exit
 
 echo "Deploying lts.conf on tftp server"
 cp ltsp-build-client/lts.conf $TFTP_DIR
