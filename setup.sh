@@ -46,6 +46,7 @@ if [ -d $ROOT_OSDEPLOY ]; then
 	then
 	    exit 1
 	elif [[ $REPLY =~ ^[Yy]$ ]]
+	then
 		echo OK removing existing client
 		rm -rf $ROOT_OSDEPLOY
 	fi
@@ -95,7 +96,7 @@ echo "--------------------------------------------------"
 echo "DONE !"
 echo "--------------------------------------------------"
 echo "trying to build ltsp-client..."
-ltsp-build-client --arch amd64
+ltsp-build-client --arch $ARCH --chroot $OSDIR
 echo "DONE !"
 echo "--------------------------------------------------"
 
