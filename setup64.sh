@@ -17,8 +17,24 @@
  
  
 #This will setup pyddlaj server on a new fresh host
+if [ -z $1 ]; then
+	echo "usage : setup {i386|amd64}"
+	exit 1
+fi
+
+if [ $1 = "i386" ]; then
+	ARCH=$1;
+fi
+if [ $1 = "amd64'; then
+	ARCH=$1
+fi
+if [ -z $ARCH ]; then
+		echo "usage : setup {i386|amd64}"
+	exit 1
+fi
+
 if [ -z $OSDIR ]; then
-	OSDIR="amd64-osdeploy-j"
+	OSDIR="$ARCH-osdeploy-j"
 fi
 ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"

@@ -17,8 +17,24 @@
  
  
 #This will setup pyddlaj server on a new fresh host
+if [ -z $1 ]; then
+	echo "usage : setup {i386|amd64}"
+	exit 1
+fi
+
+if [ $1 = "i386" ]; then
+	ARCH=$1;
+fi
+if [ $1 = "amd64" ]; then
+	ARCH=$1
+fi
+if [ -z $ARCH ]; then
+		echo "usage : setup {i386|amd64}"
+	exit 1
+fi
+
 if [ -z $OSDIR ]; then
-	OSDIR="i386-osdeploy-j"
+	OSDIR="$ARCH-osdeploy-j"
 fi
 ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
@@ -69,7 +85,7 @@ if [ -z $VENDOR ]; then
 	echo 'VENDOR="Debian-osdeploy"' >> /etc/ltsp/ltsp-build-client.conf
 fi	
 if [ -z $DIST ]; then
-		echo 'DIST="stable"' >> /etc/ltsp/ltsp-build-client.conf
+		echo 'DIST="jessie"' >> /etc/ltsp/ltsp-build-client.conf
 fi
 if [ -z $CHROOT ]; then
 	echo "CHROOT=\"$OSDIR\"" >> /etc/ltsp/ltsp-build-client.conf
@@ -79,7 +95,7 @@ echo "--------------------------------------------------"
 echo "DONE !"
 echo "--------------------------------------------------"
 echo "trying to build ltsp-client..."
-ltsp-build-client
+ltsp-build-client --arch amd64
 echo "DONE !"
 echo "--------------------------------------------------"
 
