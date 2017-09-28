@@ -75,6 +75,7 @@ class host:
         
         self._devices = []
         self.nbdev = 0
+        self.efi = self.isEFI()
         self._cachepart = ''
         self._disks = {}
         self._diskinfo={} #Dictionary with local disks informations

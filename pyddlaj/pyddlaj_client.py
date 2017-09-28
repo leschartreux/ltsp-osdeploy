@@ -311,14 +311,19 @@ def create_idb():
             dupfile = dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup"
             boverwrite=True
             if os.path.exists(dupfile):
-                boverwrite = askYesNo(_("The MBR backup files already exists. Do you want to overwrite ?"))
+                boverwrite = askYesNo(_("The partitions backup files already exists. Do you want to overwrite ?"))
            
-            if boverwrite or bunattended:    
-                cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
-                call ( cmd,shell=True)
-                print _("Backup MBR")
-                cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path']) + ".mbr")
-                call ( cmd,shell=True)
+            if boverwrite or bunattended:
+                if myhost.efi == 0:
+                    cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
+                    call ( cmd,shell=True)
+                    print _("Backup MBR")
+                    cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path']) + ".mbr")
+                    call ( cmd,shell=True)
+                else:
+                    print _("EFI Host detected")
+                    cmd= "/sbin/sgdisk --backup %s %s" % (dst_dir+"/"+os.path.basename(img['dev_path'])  + ".dup", img['dev_path'])
+                    call ( cmd,shell=True)
             
             current_device = img['dev_path']
 

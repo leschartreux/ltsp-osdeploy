@@ -38,6 +38,8 @@ if [ -z $OSDIR ]; then
 fi
 ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
+
+
 if [ -d $ROOT_OSDEPLOY ]; then
 	echo "ltsp-client chroot $ROOT_OSDEPLOY already exists"
 	read -p "Are you sure you want to destroy it (Y=Yes,C=Continue) ? " -n 1 -r
@@ -102,15 +104,17 @@ echo "--------------------------------------------------"
 
 echo "installing pyddlaj tools on Client root"
 cp -R pyddlaj $ROOT_OSDEPLOY/usr/share/
-echo "linking on server"
-ln -s $ROOT_OSDEPLOY/usr/share/pyddlaj /usr/share/pyddlaj
 cp ltsp-build-client/pyddlaj $ROOT_OSDEPLOY/usr/share/ltsp/screen.d/pyddlaj
+
+echo "linking on server"
+cp -R pyddlaj /usr/share/
 
 echo "--------------------------------------------------"
 echo "linking pyddlajd daemon"
 if [ ! -f /usr/sbin/pyddlajd ]; then
 	ln -s /usr/share/pyddlaj/pyddlajd.py /usr/sbin/pyddlajd
 fi
+
 echo "--------------------------------------------------"
 echo "Creating default Config file"
 mkdir -p /etc/pyddlaj
@@ -126,10 +130,13 @@ echo "---------------------------------------------------"
 echo "Now installing pyddlaj script"
 chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
 chroot $ROOT_OSDEPLOY pip install reparted
-exit
+chroot $ROOT_OSDEPLOY pip install fstab
 
+echo "---------------------------------------------------"
 echo "Deploying lts.conf on tftp server"
-cp ltsp-build-client/lts.conf $TFTP_DIR
+if [ ! -f $TFTP_DIR/lts.conf ]; then
+	cp ltsp-build-client/lts.conf $TFTP_DIR
+fi
 
 echo "All is ready."
 echo "Next step : edit /etc/pyddlaj/pyddlaj.conf to fit your needs"
