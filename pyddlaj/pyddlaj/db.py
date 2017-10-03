@@ -128,7 +128,7 @@ class jeddlajdb:
         sql += self.valsql(host.dns) + "," + self.valsql(host.ip) + "," + self.valsql(host.mac) + "," + self.valsql(host.proc) + "," + str(host.nbcpu)
         sql += "," + self.valsql(host.manuf) + "," + self.valsql(host.model) +","+ self.valsql(host.serial)+ "," + meminfo['MemTotal'].replace(" kB","")
         sql += ",'domain'," + self.valsql(settings.AD_DOMAIN)
-        sql += ","+host.isEFI
+        sql += ","+str(host.isEFI())
         sql += ")"
         #print "SQL req = ", sql
         cursor = self._dbconnect.cursor()
