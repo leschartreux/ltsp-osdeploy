@@ -165,8 +165,14 @@ def modified(clone_type="fsa"):
                 src_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
                 
                 if current_device != img['dev_path']: 
-                    print _("Disk partitionning : "), 
-                    cmd = "/sbin/sfdisk  %s < %s" % (img['dev_path'],src_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
+                    print _("Disk partitionning : "),
+                    if myhost.isEFI():
+                        print _("disk is GPT using sgdik")
+                        cmd = "/sbin/sgdisk --load-backup=%s %s" % (src_dir+"/"+os.path.basename(img['dev_path'])  + ".dup")
+                    else:
+                        print _("Disk is MBR using sfdisk")
+                        cmd = "/sbin/sfdisk  %s < %s" % (img['dev_path'],src_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
+                        
                     call ( cmd,shell=True)
                     newdi = myhost.getdiskinfos()
                     jdb.updatePartitions(myhost.dns, newdi, img['num_disk'])
