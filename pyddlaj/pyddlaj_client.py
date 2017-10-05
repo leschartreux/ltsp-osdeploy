@@ -168,7 +168,7 @@ def modified(clone_type="fsa"):
                     print _("Disk partitionning : "),
                     if myhost.isEFI():
                         print _("disk is GPT using sgdik")
-                        cmd = "/sbin/sgdisk --load-backup=%s %s" % (src_dir+"/"+os.path.basename(img['dev_path'])  + ".dup")
+                        cmd = "/sbin/sgdisk --load-backup=%s %s" % (src_dir+"/"+os.path.basename(img['dev_path'])  + ".dup", img['dev_path'])
                     else:
                         print _("Disk is MBR using sfdisk")
                         cmd = "/sbin/sfdisk  %s < %s" % (img['dev_path'],src_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
