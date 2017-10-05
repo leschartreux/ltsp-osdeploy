@@ -392,12 +392,10 @@ def rename(joindom=1):
         print "os name", os['nom_os'].lower()
         
         if  'win' in os['nom_os'].lower(): #OS partition is Windows
-            if 'boot' in os['nom_idb'].lower():
-                continue #Ignore windows boot partition. must be part of idb name
-            
-            winreg = pyddlaj.winregistry.WinRegistry(os['dev_path'])
-            winreg.RenameJoinScript(os['nom_os'], myhost.dns,joindom)
-            winreg.close()
+            if 'sys' in os['nom_idb'].lower():
+                winreg = pyddlaj.winregistry.WinRegistry(os['dev_path'])
+                winreg.RenameJoinScript(os['nom_os'], myhost.dns,joindom)
+                winreg.close()
 #                transfert.ssh.scplocalboot(myhost.mac)
         if 'lin' in os['nom_os'].lower():
             if os['nom_idb'] == '/':
