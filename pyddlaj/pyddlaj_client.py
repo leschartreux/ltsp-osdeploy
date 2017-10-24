@@ -219,8 +219,11 @@ def modified(clone_type="fsa"):
                 #get from task if Computer needs to be joined to windows domain
                 full_task = jdb.getTask(myhost.dns,idonly=False)
                 print "infos tache : ",full_task
-    
-                return rename( full_task['faire_jointure'])
+                if not full_task['faire_jointure']:
+                    jdb.serState(myhost.dns,'reboot');
+                    return reboot();
+                else:
+                    return rename( full_task['faire_jointure'])
             else:
                 jdb.addTaskKO(task_id)
                 return 1
