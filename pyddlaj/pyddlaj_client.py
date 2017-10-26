@@ -220,7 +220,7 @@ def modified(clone_type="fsa"):
                 full_task = jdb.getTask(myhost.dns,idonly=False)
                 print "infos tache : ",full_task
                 if not full_task['faire_jointure']:
-                    jdb.serState(myhost.dns,'reboot');
+                    jdb.setState(myhost.dns,'reboot');
                     return reboot();
                 else:
                     return rename( full_task['faire_jointure'])
