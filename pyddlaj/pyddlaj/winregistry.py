@@ -101,6 +101,7 @@ class WinRegistry(object):
             join_bat+="reg add \"HKLM\\System\\Setup\" /v SystemSetupInProgress /t REG_DWORD /d 00000000 /f\r\n"
             join_bat+="reg add \"HKLM\\System\\Setup\" /v SetupType /t REG_DWORD /d 00000000 /f\r\n"
             join_bat+="reg add \"HKLM\\System\\Setup\" /v CmdLine /t REG_SZ /d \"\" /f\r\n"
+            join_bat+="reg add \"HKLM\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\" /v EnableLUA /t REG_DWORD /d 00000001 /f\r\n"
             join_bat+=("C:\\Windows\\System32\\cscript.exe C:\\joindom\\" + cmd + "\r\n")
 #            join_bat+="echo Modification du Registre...\r\n"
 #            join_bat+="reg add \"HKLM\\System\\Setup\" /v SystemSetupInProgress /t REG_DWORD /d 00000001 /f\r\n"
