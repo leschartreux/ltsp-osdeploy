@@ -166,7 +166,7 @@ def modified(clone_type="fsa"):
                 
                 if current_device != img['dev_path']: 
                     print _("Disk partitionning : "),
-                    if myhost.isEFI():
+                    if myhost.isGPT(img['dev_path']) == 1:
                         print _("disk is GPT using sgdik")
                         cmd = "/sbin/sgdisk --load-backup=%s %s" % (src_dir+"/"+os.path.basename(img['dev_path'])  + ".dup", img['dev_path'])
                     else:
@@ -302,6 +302,28 @@ def create_idb():
     for img in lbaseimg:
         print ("*****************************************************")
         print _("Current Image : "),img
+        
+        if current_device != img['dev_path']: 
+            print _("Backup partition table")
+            dupfile = dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup"
+            boverwrite=True
+            if os.path.exists(dupfile):
+                boverwrite = askYesNo(_("The partitions backup files already exists. Do you want to overwrite ?"))
+           
+            if boverwrite or bunattended:
+               if (myhost.isGPT(img['dev_path']) == 0):
+                    cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
+                    call ( cmd,shell=True)
+                    print _("Backup MBR")
+                    cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path']) + ".mbr")
+                    call ( cmd,shell=True)
+               else:
+                    print _("GPT disk detected")
+                    cmd= "/sbin/sgdisk --backup %s %s" % (dst_dir+"/"+os.path.basename(img['dev_path'])  + ".dup", img['dev_path'])
+                    call ( cmd,shell=True)
+            
+            current_device = img['dev_path']
+
         #prepare source dev and destination directories
         if "swap" in img['fs_type']:
             print "Ignoring Swap type partition"
@@ -315,27 +337,7 @@ def create_idb():
             os.makedirs(dst_dir)
         
         #with each new device we store partition table and MBR
-        if current_device != img['dev_path']: 
-            print _("Backup partition table")
-            dupfile = dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup"
-            boverwrite=True
-            if os.path.exists(dupfile):
-                boverwrite = askYesNo(_("The partitions backup files already exists. Do you want to overwrite ?"))
-           
-            if boverwrite or bunattended:
-                if (myhost.isGPT(img['dev_path']) == 1):
-                    cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
-                    call ( cmd,shell=True)
-                    print _("Backup MBR")
-                    cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path']) + ".mbr")
-                    call ( cmd,shell=True)
-                else:
-                    print _("GPT disk detected")
-                    cmd= "/sbin/sgdisk --backup %s %s" % (dst_dir+"/"+os.path.basename(img['dev_path'])  + ".dup", img['dev_path'])
-                    call ( cmd,shell=True)
-            
-            current_device = img['dev_path']
-
+ 
         print _('Backup partition in progress')
         if 'unused' in img['fs_type'].lower():
             print _('FS is unknowned type. (MSR?) We will use dd')
