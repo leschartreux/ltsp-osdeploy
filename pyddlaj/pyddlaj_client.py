@@ -323,14 +323,14 @@ def create_idb():
                 boverwrite = askYesNo(_("The partitions backup files already exists. Do you want to overwrite ?"))
            
             if boverwrite or bunattended:
-                if myhost.efi == 0:
+                if (myhost.isGPT(img['dev_path']) == 1):
                     cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
                     call ( cmd,shell=True)
                     print _("Backup MBR")
                     cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path']) + ".mbr")
                     call ( cmd,shell=True)
                 else:
-                    print _("EFI Host detected")
+                    print _("GPT disk detected")
                     cmd= "/sbin/sgdisk --backup %s %s" % (dst_dir+"/"+os.path.basename(img['dev_path'])  + ".dup", img['dev_path'])
                     call ( cmd,shell=True)
             
