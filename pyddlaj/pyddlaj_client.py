@@ -303,6 +303,13 @@ def create_idb():
         print ("*****************************************************")
         print _("Current Image : "),img
         
+        dst_file = os.path.basename(img['imgfile'])
+        src_dev =  img['dev_path'] + str(img['num_part'])
+        dst_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
+        #create dest dir if not exist
+        if not os.path.isdir(dst_dir):
+            os.makedirs(dst_dir)
+            
         if current_device != img['dev_path']: 
             print _("Backup partition table")
             dupfile = dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup"
@@ -329,12 +336,7 @@ def create_idb():
             print "Ignoring Swap type partition"
             continue
 
-        dst_file = os.path.basename(img['imgfile'])
-        src_dev =  img['dev_path'] + str(img['num_part'])
-        dst_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
-        #create dest dir if not exist
-        if not os.path.isdir(dst_dir):
-            os.makedirs(dst_dir)
+       
         
         #with each new device we store partition table and MBR
  
