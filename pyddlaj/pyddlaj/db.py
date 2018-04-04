@@ -184,7 +184,10 @@ class jeddlajdb:
             
             sql =  "SELECT linux_device,idbs.num_partition,taille_partition,type_partition,nom_partition"
             sql += " FROM partitions p, idb_est_installe_sur idbs, images_de_base idb"
-            sql += " WHERE p.num_disque=%s and p.nom_dns = %s" % (num_disque,self.valsql(dns))
+            sql += " WHERE idb.id_idb= idbs.id_idb"
+            sql += " AND idbs.num_partition = p.num_partition"
+            sql += " AND idbs.nom_dns = p.nom_dns AND idbs.num_disque = p.num_disque"
+            sql += " AND p.num_disque=%s and p.nom_dns = %s" % (num_disque,self.valsql(dns))
             
 #            print ("sql", sql)
             cursor2 = self._dbconnect.cursor()
