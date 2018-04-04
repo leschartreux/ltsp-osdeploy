@@ -362,9 +362,13 @@ def create_idb():
             if ret != 0:
                 print _("Something went wrong ! can't reboot")
                 return 1
+        else:
+            ret = 0
 
             #On clone succes, we update db and restore localboot of the host
     if ret == 0:
+        for disk in diskinfo:
+            jdb.updatePartitions(myhost.dns,diskinfo, diskinfo[disk]['num'])
         jdb.setState(myhost.dns, "reboot")
         reboot()
     else:
