@@ -564,7 +564,7 @@ class jeddlajdb:
         cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
         listOs=[]
         
-        sql = "Select os.nom_os,idb.nom_idb,concat(s.linux_device,cast(idbs.num_partition as char)) as dev_path, os.gpt"
+        sql = "Select os.nom_os,idb.nom_idb,concat(s.linux_device,cast(idbs.num_partition as char)) as dev_path, logiciels.gpt"
         sql +=" FROM os,logiciels,idb_est_installe_sur idbs,images_de_base idb,stockages_de_masse s"
         sql += " WHERE logiciels.id_logiciel=idb.id_os"
         sql += " AND os.idos=logiciels.idos"
