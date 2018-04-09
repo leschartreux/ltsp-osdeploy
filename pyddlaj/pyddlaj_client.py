@@ -124,6 +124,9 @@ def modified(clone_type="fsa"):
         disklist = jdb.diskPartitions(myhost.dns)
         if len(disklist) > 0:
             lbaseimg = jdb.getIdbToInstall(myhost.dns)
+            os = jdb.getOs(myhost.dns)
+            
+            distGPT = os['gpt']
             
             curTask = jdb.getTask(myhost.dns,False)
             if curTask == None:
@@ -153,21 +156,19 @@ def modified(clone_type="fsa"):
                 #destination parition is generated here (/dev/sdax)
                 dstpart = img['dev_path'] + str(img['num_part'])
                 
-                if 'swap' in img['fs_type']:
-                    print _("Swap partition type. Initiating...")
-                    cmd = "mkswap " + dstpart
-                    result = call(cmd,shell=True)
-                    if result != 0:
-                        okTask = False
-                    
-                    continue
+
                 
                 src_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
                 
                 if current_device != img['dev_path']: 
                     print _("Disk partitionning : "),
-                    if myhost.isGPT(img['dev_path']) == 1:
-                        print _("disk is GPT using sgdik")
+                    if distGPT == 1:
+                        print _("Distrib disk is GPT using sgdik")
+                        if myhost.isGPT == 0:
+                            print _("Local disk in not GPT. trying to create new GPT table")
+                            cmd = "/sbin/parted mklabel gpt %s" % (img['dev_path'])
+                            call ( cmd,shell=True)
+                            
                         cmd = "/sbin/sgdisk --load-backup=%s %s" % (src_dir+"/"+os.path.basename(img['dev_path'])  + ".dup", img['dev_path'])
                     else:
                         print _("Disk is MBR using sfdisk")
@@ -176,7 +177,15 @@ def modified(clone_type="fsa"):
                     call ( cmd,shell=True)
                     newdi = myhost.getdiskinfos()
                     jdb.updatePartitions(myhost.dns, newdi, img['num_disk'])
+ 
+                if 'swap' in img['fs_type']:
+                   print _("Swap partition type. Initiating...")
+                   cmd = "mkswap " + dstpart
+                   result = call(cmd,shell=True)
+                   if result != 0:
+                       okTask = False
                     
+                   continue                   
                 
                 
                 print "img : " , img
