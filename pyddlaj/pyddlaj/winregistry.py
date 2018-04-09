@@ -129,7 +129,7 @@ class WinRegistry(object):
         if self.isNT6System(type_os):
             reg2 = self.getReg("Microsoft\\Windows\\CurrentVersion\\Policies\\System", '/tmp/regpolsys.reg', 'software')
             lua = reg2.getValue("EnableLUA")
-            #print "valeur LUA", lua.split('=')
+            print "valeur LUA", lua.split('=')
             regfile.addKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System")
             regfile.addValue("EnableLUA_old", lua.split('=')[1])
             regfile.addValue("EnableLUA","dword:00000000")
