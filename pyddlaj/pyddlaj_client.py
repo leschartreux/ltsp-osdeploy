@@ -124,9 +124,9 @@ def modified(clone_type="fsa"):
         disklist = jdb.diskPartitions(myhost.dns)
         if len(disklist) > 0:
             lbaseimg = jdb.getIdbToInstall(myhost.dns)
-            os = jdb.getOs(myhost.dns)
+            dbos = jdb.getOs(myhost.dns)
             
-            distGPT = os[0]['gpt'] #all os partitions should be same disk type
+            distGPT = dbos[0]['gpt'] #all os partitions should be same disk type
             
             curTask = jdb.getTask(myhost.dns,False)
             if curTask == None:
