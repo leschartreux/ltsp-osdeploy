@@ -39,11 +39,6 @@ ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
 
 
-<<<<<<< HEAD
-ROOT_OSDEPLOY="/opt/ltsp/amd64-osdeploy-j"
-=======
->>>>>>> 3b35d5854e538724538f04d52e2891c0836f3f0a
-
 echo "update from git"
 git pull
 
