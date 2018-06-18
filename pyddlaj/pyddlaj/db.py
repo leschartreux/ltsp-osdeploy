@@ -790,8 +790,8 @@ class jeddlajdb:
             num_disque =  diskinfo[disk]['num']
             type_disque = diskinfo[disk]['type']
             if (disk_num_only == -1 ):
-                sql = "Insert into stockages_de_masse (nom_dns,type_disque,num_disque,capacite,linux_device) values("
-                sql += self.valsql(dns) + "," + str(num_disque) + "," + str(type_disque) + ',' + str(capacite) + "," + self.valsql(linux_device) +")"
+                sql = "Insert into stockages_de_masse (nom_dns,num_disque,type_disque,capacite,linux_device) values("
+                sql += self.valsql(dns) + "," + str(num_disque) + "," + self.valsql(type_disque) + ',' + str(capacite) + "," + self.valsql(linux_device) +")"
                 cursor.execute(sql)
                 #print "Insertion disque :" , sql
             else:

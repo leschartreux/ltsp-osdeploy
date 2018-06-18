@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ltsp-osdeploy 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-06-03 11:53+0200\n"
+"POT-Creation-Date: 2018-06-18 16:50+0200\n"
 "PO-Revision-Date: 2014-06-03 15:17+0100\n"
 "Last-Translator: Raphaël RIGNIER <raphael@rignier.com>\n"
 "Language-Team: Les Chartreux <inforeseau@leschartreux.net>\n"
@@ -19,36 +19,35 @@ msgstr ""
 "X-Poedit-Country: FRANCE\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: ../pyddlajd.py:29
+#: ../pyddlajd.py:45
 msgid "Connected by"
 msgstr "Connecté par"
 
-#: ../pyddlajd.py:40
+#: ../pyddlajd.py:56
 msgid "Task info:"
 msgstr "La tâche :"
 
-#: ../pyddlajd.py:48
+#: ../pyddlajd.py:64
 msgid "Clients number : "
 msgstr "Nombre de clients : "
 
-#: ../pyddlajd.py:49
+#: ../pyddlajd.py:65
 msgid "Master image to deploy"
 msgstr "Les images à déployer"
 
-#: ../pyddlajd.py:67
+#: ../pyddlajd.py:86
 msgid "Wait 15s for update Database from clients"
 msgstr "Attente 15 secondes pour maj base"
 
-#: ../pyddlajd.py:73
+#: ../pyddlajd.py:93
 #, python-format
 msgid "Task ID %d already started. No need to launch UDP sender"
 msgstr "La tâhce N° %d est déjà en cours je ne crée pas le sender"
 
-#: ../pyddlajd.py:106
+#: ../pyddlajd.py:126
 msgid "Testing Database connection"
 msgstr ""
 
-#: ../pyddlajd.py:113
+#: ../pyddlajd.py:133
 msgid "Waiting for task to launch"
 msgstr ""
-
