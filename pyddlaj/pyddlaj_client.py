@@ -124,6 +124,9 @@ def modified(clone_type="fsa"):
         disklist = jdb.diskPartitions(myhost.dns)
         if len(disklist) > 0:
             lbaseimg = jdb.getIdbToInstall(myhost.dns)
+            dbos = jdb.getOs(myhost.dns)
+            
+            distGPT = dbos[0]['gpt'] #all os partitions should be same disk type
             
             curTask = jdb.getTask(myhost.dns,False)
             if curTask == None:
@@ -153,24 +156,36 @@ def modified(clone_type="fsa"):
                 #destination parition is generated here (/dev/sdax)
                 dstpart = img['dev_path'] + str(img['num_part'])
                 
-                if 'swap' in img['fs_type']:
-                    print _("Swap partition type. Initiating...")
-                    cmd = "mkswap " + dstpart
-                    result = call(cmd,shell=True)
-                    if result != 0:
-                        okTask = False
-                    
-                    continue
+
                 
                 src_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
                 
                 if current_device != img['dev_path']: 
-                    print _("Disk partitionning : "), 
-                    cmd = "/sbin/sfdisk  %s < %s" % (img['dev_path'],src_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
+                    print _("Disk partitionning : "),
+                    if distGPT == 1:
+                        print _("Distrib disk is GPT using sgdik")
+                        if myhost.isGPT == 0:
+                            print _("Local disk in not GPT. trying to create new GPT table")
+                            cmd = "/sbin/parted mklabel gpt %s" % (img['dev_path'])
+                            call ( cmd,shell=True)
+                            
+                        cmd = "/sbin/sgdisk --load-backup=%s %s" % (src_dir+"/"+os.path.basename(img['dev_path'])  + ".dup", img['dev_path'])
+                    else:
+                        print _("Disk is MBR using sfdisk")
+                        cmd = "/sbin/sfdisk  %s < %s" % (img['dev_path'],src_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
+                        
                     call ( cmd,shell=True)
                     newdi = myhost.getdiskinfos()
                     jdb.updatePartitions(myhost.dns, newdi, img['num_disk'])
+ 
+                if 'swap' in img['fs_type']:
+                   print _("Swap partition type. Initiating...")
+                   cmd = "mkswap " + dstpart
+                   result = call(cmd,shell=True)
+                   if result != 0:
+                       okTask = False
                     
+                   continue                   
                 
                 
                 print "img : " , img
@@ -213,8 +228,11 @@ def modified(clone_type="fsa"):
                 #get from task if Computer needs to be joined to windows domain
                 full_task = jdb.getTask(myhost.dns,idonly=False)
                 print "infos tache : ",full_task
-    
-                return rename( full_task['faire_jointure'])
+                if not full_task['faire_jointure']:
+                    jdb.setState(myhost.dns,'reboot');
+                    return reboot();
+                else:
+                    return rename( full_task['faire_jointure'])
             else:
                 jdb.addTaskKO(task_id)
                 return 1
@@ -293,35 +311,44 @@ def create_idb():
     for img in lbaseimg:
         print ("*****************************************************")
         print _("Current Image : "),img
-        #prepare source dev and destination directories
-        if "swap" in img['fs_type']:
-            print "Ignoring Swap type partition"
-            continue
-
+        
         dst_file = os.path.basename(img['imgfile'])
         src_dev =  img['dev_path'] + str(img['num_part'])
         dst_dir= os.path.dirname(settings.IMG_NFS_MOUNT + '/' + img['imgfile'])
         #create dest dir if not exist
         if not os.path.isdir(dst_dir):
             os.makedirs(dst_dir)
-        
-        #with each new device we store partition table and MBR
+            
         if current_device != img['dev_path']: 
             print _("Backup partition table")
             dupfile = dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup"
             boverwrite=True
             if os.path.exists(dupfile):
-                boverwrite = askYesNo(_("The MBR backup files already exists. Do you want to overwrite ?"))
+                boverwrite = askYesNo(_("The partitions backup files already exists. Do you want to overwrite ?"))
            
-            if boverwrite or bunattended:    
-                cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
-                call ( cmd,shell=True)
-                print _("Backup MBR")
-                cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path']) + ".mbr")
-                call ( cmd,shell=True)
+            if boverwrite or bunattended:
+               if (myhost.isGPT(img['dev_path']) == 0):
+                    cmd = "/sbin/sfdisk -d %s > %s" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path'])  + ".dup")
+                    call ( cmd,shell=True)
+                    print _("Backup MBR")
+                    cmd = "dd if=%s of=%s bs=446 count=1" % (img['dev_path'],dst_dir + "/" + os.path.basename(img['dev_path']) + ".mbr")
+                    call ( cmd,shell=True)
+               else:
+                    print _("GPT disk detected")
+                    cmd= "/sbin/sgdisk --backup %s %s" % (dst_dir+"/"+os.path.basename(img['dev_path'])  + ".dup", img['dev_path'])
+                    call ( cmd,shell=True)
             
             current_device = img['dev_path']
 
+        #prepare source dev and destination directories
+        if "swap" in img['fs_type']:
+            print "Ignoring Swap type partition"
+            continue
+
+       
+        
+        #with each new device we store partition table and MBR
+ 
         print _('Backup partition in progress')
         if 'unused' in img['fs_type'].lower():
             print _('FS is unknowned type. (MSR?) We will use dd')
@@ -344,9 +371,13 @@ def create_idb():
             if ret != 0:
                 print _("Something went wrong ! can't reboot")
                 return 1
+        else:
+            ret = 0
 
             #On clone succes, we update db and restore localboot of the host
     if ret == 0:
+        for disk in diskinfo:
+            jdb.updatePartitions(myhost.dns,diskinfo, diskinfo[disk]['num'])
         jdb.setState(myhost.dns, "reboot")
         reboot()
     else:
@@ -381,12 +412,10 @@ def rename(joindom=1):
         print "os name", os['nom_os'].lower()
         
         if  'win' in os['nom_os'].lower(): #OS partition is Windows
-            if 'boot' in os['nom_idb'].lower():
-                continue #Ignore windows boot partition. must be part of idb name
-            
-            winreg = pyddlaj.winregistry.WinRegistry(os['dev_path'])
-            winreg.RenameJoinScript(os['nom_os'], myhost.dns,joindom)
-            winreg.close()
+            if 'sys' in os['nom_idb'].lower():
+                winreg = pyddlaj.winregistry.WinRegistry(os['dev_path'])
+                winreg.RenameJoinScript(os['nom_os'], myhost.dns,joindom)
+                winreg.close()
 #                transfert.ssh.scplocalboot(myhost.mac)
         if 'lin' in os['nom_os'].lower():
             if os['nom_idb'] == '/':
@@ -443,6 +472,8 @@ if __name__ == '__main__':
 
             print _("Inserting Host with mac-adress as hostname. This should be change with Web GUI")
             myhost.dns = myhost.mac.replace(':','-') + '.' + settings.AD_DOMAIN
+            
+            myhost.dns = raw_input (_("Actual name is : %s. Please, specify computer name : " % myhost.dns))
             
             jdb.newhost(myhost)
             if myhost.isBootable():

@@ -13,7 +13,7 @@ case "$MODE" in
 			KERNEL_VARIANT="686-pae"
 		fi
 		
-        INCLUDE='openssh-server,openssh-client,python-mysql.connector,ntfs-3g,fsarchiver,partclone,python-paramiko,python-dmidecode,python-pip,python-netifaces,parted,python-parted,udpcast,python-flufl.i18n,pigz,dbus'
+        INCLUDE='openssh-server,openssh-client,python-mysql.connector,ntfs-3g,fsarchiver,partclone,python-paramiko,python-dmidecode,python-pip,python-netifaces,parted,python-parted,udpcast,python-flufl.i18n,pigz,dbus,gdisk'
         OVERRIDE_EXPORTS='true'
         NFS_EXPORT_STRING='*(rw,no_root_squash,async,no_subtree_check)'
 		;;

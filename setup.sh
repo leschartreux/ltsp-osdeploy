@@ -17,21 +17,41 @@
  
  
 #This will setup pyddlaj server on a new fresh host
+if [ -z $1 ]; then
+	echo "usage : setup {i386|amd64}"
+	exit 1
+fi
+
+if [ $1 = "i386" ]; then
+	ARCH=$1;
+fi
+if [ $1 = "amd64" ]; then
+	ARCH=$1
+fi
+if [ -z $ARCH ]; then
+		echo "usage : setup {i386|amd64}"
+	exit 1
+fi
+
 if [ -z $OSDIR ]; then
-	OSDIR="i386-osdeploy-j"
+	OSDIR="$ARCH-osdeploy-j"
 fi
 ROOT_OSDEPLOY="/opt/ltsp/$OSDIR"
 TFTP_DIR="/srv/tftp/ltsp/$OSDIR"
+
+
 if [ -d $ROOT_OSDEPLOY ]; then
 	echo "ltsp-client chroot $ROOT_OSDEPLOY already exists"
-	read -p "Are you sure you want to destroy it ? " -n 1 -r
+	read -p "Are you sure you want to destroy it (Y=Yes,C=Continue) ? " -n 1 -r
 	echo    # (optional) move to a new line
-	if [[ ! $REPLY =~ ^[Yy]$ ]]
+	if [[ ! $REPLY =~ ^[YyCc]$ ]]
 	then
 	    exit 1
+	elif [[ $REPLY =~ ^[Yy]$ ]]
+	then
+		echo OK removing existing client
+		rm -rf $ROOT_OSDEPLOY
 	fi
-	echo OK removing existing client
-	rm -rf $ROOT_OSDEPLOY
 fi
 
 echo "--------------------------------------------------"
@@ -68,7 +88,7 @@ if [ -z $VENDOR ]; then
 	echo 'VENDOR="Debian-osdeploy"' >> /etc/ltsp/ltsp-build-client.conf
 fi	
 if [ -z $DIST ]; then
-		echo 'DIST="stable"' >> /etc/ltsp/ltsp-build-client.conf
+		echo 'DIST="jessie"' >> /etc/ltsp/ltsp-build-client.conf
 fi
 if [ -z $CHROOT ]; then
 	echo "CHROOT=\"$OSDIR\"" >> /etc/ltsp/ltsp-build-client.conf
@@ -78,21 +98,23 @@ echo "--------------------------------------------------"
 echo "DONE !"
 echo "--------------------------------------------------"
 echo "trying to build ltsp-client..."
-ltsp-build-client
+ltsp-build-client --arch $ARCH --chroot $OSDIR
 echo "DONE !"
 echo "--------------------------------------------------"
 
 echo "installing pyddlaj tools on Client root"
 cp -R pyddlaj $ROOT_OSDEPLOY/usr/share/
-echo "linking on server"
-ln -s $ROOT_OSDEPLOY/usr/share/pyddlaj /usr/share/pyddlaj
 cp ltsp-build-client/pyddlaj $ROOT_OSDEPLOY/usr/share/ltsp/screen.d/pyddlaj
+
+echo "linking on server"
+cp -R pyddlaj /usr/share/
 
 echo "--------------------------------------------------"
 echo "linking pyddlajd daemon"
 if [ ! -f /usr/sbin/pyddlajd ]; then
 	ln -s /usr/share/pyddlaj/pyddlajd.py /usr/sbin/pyddlajd
 fi
+
 echo "--------------------------------------------------"
 echo "Creating default Config file"
 mkdir -p /etc/pyddlaj
@@ -103,15 +125,18 @@ ln -s /usr/share/pyddlaj/settings/__init__.py /etc/pyddlaj/pyddlaj.conf
 
 echo "---------------------------------------------------"
 echo Installing nfs client and grub installer
-chroot $ROOT_OSDEPLOY apt-get install nfs-common grub2-common gfdisk
+chroot $ROOT_OSDEPLOY apt-get install nfs-common grub2-common gdisk
 echo "---------------------------------------------------"
 echo "Now installing pyddlaj script"
 chroot $ROOT_OSDEPLOY ln -s /usr/share/pyddlaj/pyddlaj_client.py /usr/bin/pyddlaj
 chroot $ROOT_OSDEPLOY pip install reparted
+chroot $ROOT_OSDEPLOY pip install fstab
 
-
+echo "---------------------------------------------------"
 echo "Deploying lts.conf on tftp server"
-cp ltsp-build-client/lts.conf $TFTP_DIR
+if [ ! -f $TFTP_DIR/lts.conf ]; then
+	cp ltsp-build-client/lts.conf $TFTP_DIR
+fi
 
 echo "All is ready."
 echo "Next step : edit /etc/pyddlaj/pyddlaj.conf to fit your needs"

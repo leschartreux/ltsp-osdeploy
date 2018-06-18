@@ -101,6 +101,7 @@ class WinRegistry(object):
             join_bat+="reg add \"HKLM\\System\\Setup\" /v SystemSetupInProgress /t REG_DWORD /d 00000000 /f\r\n"
             join_bat+="reg add \"HKLM\\System\\Setup\" /v SetupType /t REG_DWORD /d 00000000 /f\r\n"
             join_bat+="reg add \"HKLM\\System\\Setup\" /v CmdLine /t REG_SZ /d \"\" /f\r\n"
+            join_bat+="reg add \"HKLM\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\" /v EnableLUA /t REG_DWORD /d 00000001 /f\r\n"
             join_bat+=("C:\\Windows\\System32\\cscript.exe C:\\joindom\\" + cmd + "\r\n")
 #            join_bat+="echo Modification du Registre...\r\n"
 #            join_bat+="reg add \"HKLM\\System\\Setup\" /v SystemSetupInProgress /t REG_DWORD /d 00000001 /f\r\n"
@@ -128,7 +129,7 @@ class WinRegistry(object):
         if self.isNT6System(type_os):
             reg2 = self.getReg("Microsoft\\Windows\\CurrentVersion\\Policies\\System", '/tmp/regpolsys.reg', 'software')
             lua = reg2.getValue("EnableLUA")
-            #print "valeur LUA", lua.split('=')
+            print "valeur LUA", lua.split('=')
             regfile.addKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System")
             regfile.addValue("EnableLUA_old", lua.split('=')[1])
             regfile.addValue("EnableLUA","dword:00000000")

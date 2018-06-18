@@ -124,10 +124,11 @@ class jeddlajdb:
         
         meminfo = host.meminfo()
     
-        sql = "insert into ordinateurs(nom_dns,adresse_ip,adresse_mac,processeur,nombre_proc,marque,modele,numero_serie,ram,affiliation_windows,nom_affiliation) values("
+        sql = "insert into ordinateurs(nom_dns,adresse_ip,adresse_mac,processeur,nombre_proc,marque,modele,numero_serie,ram,affiliation_windows,nom_affiliation,efi) values("
         sql += self.valsql(host.dns) + "," + self.valsql(host.ip) + "," + self.valsql(host.mac) + "," + self.valsql(host.proc) + "," + str(host.nbcpu)
         sql += "," + self.valsql(host.manuf) + "," + self.valsql(host.model) +","+ self.valsql(host.serial)+ "," + meminfo['MemTotal'].replace(" kB","")
         sql += ",'domain'," + self.valsql(settings.AD_DOMAIN)
+        sql += ","+str(host.isEFI())
         sql += ")"
         #print "SQL req = ", sql
         cursor = self._dbconnect.cursor()
@@ -183,7 +184,10 @@ class jeddlajdb:
             
             sql =  "SELECT linux_device,idbs.num_partition,taille_partition,type_partition,nom_partition"
             sql += " FROM partitions p, idb_est_installe_sur idbs, images_de_base idb"
-            sql += " WHERE p.num_disque=%s and p.nom_dns = %s" % (num_disque,self.valsql(dns))
+            sql += " WHERE idb.id_idb= idbs.id_idb"
+            sql += " AND idbs.num_partition = p.num_partition"
+            sql += " AND idbs.nom_dns = p.nom_dns AND idbs.num_disque = p.num_disque"
+            sql += " AND p.num_disque=%s and p.nom_dns = %s" % (num_disque,self.valsql(dns))
             
 #            print ("sql", sql)
             cursor2 = self._dbconnect.cursor()
@@ -560,7 +564,7 @@ class jeddlajdb:
         cursor = self._dbconnect.cursor(cursor_class=MySQLCursorDict)
         listOs=[]
         
-        sql = "Select os.nom_os,idb.nom_idb,concat(s.linux_device,cast(idbs.num_partition as char)) as dev_path"
+        sql = "Select os.nom_os,idb.nom_idb,concat(s.linux_device,cast(idbs.num_partition as char)) as dev_path, logiciels.gpt"
         sql +=" FROM os,logiciels,idb_est_installe_sur idbs,images_de_base idb,stockages_de_masse s"
         sql += " WHERE logiciels.id_logiciel=idb.id_os"
         sql += " AND os.idos=logiciels.idos"
@@ -784,9 +788,10 @@ class jeddlajdb:
             linux_device = disk
             capacite = diskinfo[disk]['size']
             num_disque =  diskinfo[disk]['num']
+            type_disque = diskinfo[disk]['type']
             if (disk_num_only == -1 ):
-                sql = "Insert into stockages_de_masse (nom_dns,num_disque,capacite,linux_device) values("
-                sql += self.valsql(dns) + "," + str(num_disque) + "," + str(capacite) + "," + self.valsql(linux_device) +")"
+                sql = "Insert into stockages_de_masse (nom_dns,type_disque,num_disque,capacite,linux_device) values("
+                sql += self.valsql(dns) + "," + str(num_disque) + "," + str(type_disque) + ',' + str(capacite) + "," + self.valsql(linux_device) +")"
                 cursor.execute(sql)
                 #print "Insertion disque :" , sql
             else:

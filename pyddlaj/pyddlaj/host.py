@@ -32,6 +32,7 @@ import sys
 import os
 
 from flufl.i18n import initialize
+from lxml import _elementpath
 
 #import languages
 
@@ -75,6 +76,7 @@ class host:
         
         self._devices = []
         self.nbdev = 0
+        self.efi = self.isEFI()
         self._cachepart = ''
         self._disks = {}
         self._diskinfo={} #Dictionary with local disks informations
@@ -272,7 +274,7 @@ class host:
  
     def getdiskinfos(self):
         """return lits of disks with folowing elements
-        {disk0 num,disq0 size, [ {part0 num, par0 size, part0 name, part0 fstype, part0 fssize}, ...]}"""
+        {disk0 num,disq0 size, disq0 type [ {part0 num, par0 size, part0 name, part0 fstype, part0 fssize}, ...]}"""
         if len(self._diskinfo) != 0:
             return ( self._diskinfo) #no need to rescan disk info if already stored
         
@@ -292,6 +294,7 @@ class host:
             #we coud consider last letter in path of disk (/dev/sd? is the disk number
             diskdesc['num'] = ord( localdisk[-1]) - 97 #fast convert letter to integer using (utf-8) code
             diskdesc['size'] = self._size( '/sys/block/' + os.path.basename(localdisk) )
+            diskdesc['type'] = ld[0].type
             #pick som usefull  partition info
             if not ld[1][0] is None:
                 l_localpart=[]
@@ -347,6 +350,27 @@ class host:
                         break
         
         return bootflag
+    
+    
+    
+    """
+    test if host is EFI
+    @return: int 
+    """   
+    def isEFI(self):
+        if os.path.exists("/sys/firmware/efi"):
+            return 1
+        return 0
+    
+    """test if disk is GPT
+    @return: int (1-0)
+    """
+    def isGPT(self,path):
+        disktype = self._disks[path][0].type
+        if (disktype == 'gpt'):
+            return 1
+        return 0
+        
 
     def _size(self, device):
         nr_sectors = open(device + '/size').read().rstrip('\n')
