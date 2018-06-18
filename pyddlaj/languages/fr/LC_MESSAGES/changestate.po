@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ltsp-osdeploy 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-06-03 11:53+0200\n"
+"POT-Creation-Date: 2018-06-18 16:50+0200\n"
 "PO-Revision-Date: 2014-06-03 15:16+0100\n"
 "Last-Translator: Raphaël RIGNIER <raphael@rignier.com>\n"
 "Language-Team: Les Chartreux <inforeseau@leschartreux.net>\n"
@@ -19,59 +19,59 @@ msgstr ""
 "X-Poedit-Country: FRANCE\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: ../changestate.py:24
+#: ../changestate.py:40
 msgid "Adding host to task ID "
 msgstr "Ajout du poste à la tâche "
 
-#: ../changestate.py:43
+#: ../changestate.py:59
 msgid "Usage : changestate hostname newstate"
 msgstr "Utilisation : changestate hostname newstate"
 
-#: ../changestate.py:44
+#: ../changestate.py:60
 msgid "newstate must be one of : osdeploy,osbackup,rename,reboot,debug"
-msgstr "newstate doit etre un de ceux-ci déploieidb|idb|renomme|reboot|depannage"
+msgstr ""
+"newstate doit etre un de ceux-ci déploieidb|idb|renomme|reboot|depannage"
 
-#: ../changestate.py:62
+#: ../changestate.py:78
 msgid "Haven't found any host in database with the name : "
 msgstr "Je n'ai pas trouvé de nom correspondantg dans la base :"
 
-#: ../changestate.py:66
+#: ../changestate.py:82
 msgid "Records found corresponding to your search"
 msgstr "Enregistreements correspondant à votre recherche"
 
-#: ../changestate.py:68
+#: ../changestate.py:84
 msgid "Choose one from list :"
 msgstr "Sélectionnez celui qui vous intéresse :"
 
-#: ../changestate.py:73
+#: ../changestate.py:89
 msgid "[0] : end"
 msgstr "[0]: Finir"
 
-#: ../changestate.py:74
+#: ../changestate.py:90
 msgid "choice : "
 msgstr "Choix : "
 
-#: ../changestate.py:77
+#: ../changestate.py:93
 msgid "Bad value, please try again"
 msgstr "Mauvaise valeur. Recommencez."
 
-#: ../changestate.py:81
+#: ../changestate.py:97
 msgid "Bad number, please try again"
 msgstr "Mauvais nombre, recommencez"
 
-#: ../changestate.py:85
+#: ../changestate.py:101
 msgid "Selected host : "
 msgstr "Hôte sélectionné :"
 
-#: ../changestate.py:90
+#: ../changestate.py:106
 msgid "New task : "
 msgstr "Nouvelle tâche"
 
-#: ../changestate.py:93
+#: ../changestate.py:109
 msgid "Database updated. Please reboot the host for changes to take effect"
 msgstr "Base mise àjour. Redémarrez le poste et laissez-vous guider"
 
-#: ../changestate.py:101
+#: ../changestate.py:117
 msgid "Thank you! See ya"
 msgstr "Merci, à Bientôt"
-
