@@ -99,8 +99,8 @@ def modified(clone_type="fsa"):
             cmd = ["/usr/bin/udp-receiver","--file" , settings.CACHE_MOUNT + "/" +os.path.basename(img['imgfile']),
                    #"--mcast-rdv-address" , settings.TFTP_SERVER, "--nokbd", "--ttl" , str(task_id+5)]
                    "--mcast-rdv-address" , settings.TFTP_SERVER, "--nokbd", "--ttl" , str(task_id+5)]
-            print _("Wait 5 secondes pour le sender")
-            time.sleep(5)
+            print _("Wait %d secondes pour le sender" % settings.UDP_RCV_WAIT)
+            time.sleep(settings.UDP_RCV_WAIT)
             result = call(cmd)
         
         #Next we copy fsa file to corresponding partition
@@ -207,8 +207,8 @@ def modified(clone_type="fsa"):
                     '''cmd = ["/usr/bin/udp-receiver","--pipe" , settings.CACHE_MOUNT + "/" +os.path.basename(img['imgfile']),
                     "--mcast-rdv-address" , settings.TFTP_SERVER, "--nokbd", "--ttl" , str(task_id+5)]'''
                     #print "cmd = ",cmd       
-                    print _("Wait 5s then launch udp-reciever")
-                    time.sleep(5)
+                    print _("Wait %s then launch udp-reciever" % settings.UDP_RCV_WAIT)
+                    time.sleep(settings.UDP_RCV_WAIT)
                 
                 result=0
                 result = call(cmd,shell=True)
@@ -542,6 +542,6 @@ if __name__ == '__main__':
     jdb.close()
     
     print(_("Database closed"));
-    print _("Wait for 10s")
-    time.sleep(10)
+    print _("Wait for " + settings.DB_CLOSE_WAIT)
+    time.sleep(settings.DB_CLOSE_WAIT)
     sys.exit(exit_code)

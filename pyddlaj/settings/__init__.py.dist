@@ -66,6 +66,9 @@ FS_MOUNT = '/mnt/lin'
 
 MAX_BANDWIDTH = 500
 
+DB_CLOSE_WAIT=10
+UDP_RCV_WAIT=5
+
 #Here are the Settings to join cloned machines to your Active Diretory Forest
 #The user could be Domain's adminitrator but a user with Computer Objects rights is enough
 AD_DOMAIN = "domain.local"
